@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { NodeData } from '@/data/nodeData';
+import { LucideIcon } from 'lucide-react';
 
 interface NodeCardProps {
   node: NodeData;
@@ -10,7 +11,7 @@ interface NodeCardProps {
 }
 
 export const NodeCard: React.FC<NodeCardProps> = ({ node, nodeType, onDragStart }) => {
-  const IconComponent = node.icon;
+  const IconComponent = node.icon as LucideIcon;
 
   return (
     <Card
