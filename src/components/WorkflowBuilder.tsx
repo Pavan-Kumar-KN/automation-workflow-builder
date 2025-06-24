@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef } from 'react';
 import {
   ReactFlow,
@@ -43,11 +42,13 @@ export const WorkflowBuilder = () => {
 
   const onConnect = useCallback(
     (params: Connection) => {
-      const edge = {
+      const edge: Edge = {
         ...params,
         id: `edge-${params.source}-${params.target}`,
         type: 'smoothstep',
         animated: true,
+        source: params.source!,
+        target: params.target!,
       };
       setEdges((eds) => addEdge(edge, eds));
       toast.success('Nodes connected successfully!');
@@ -169,7 +170,7 @@ export const WorkflowBuilder = () => {
               type: 'smoothstep',
             }}
           >
-            <Background variant="cross" gap={20} size={1} color="#e5e7eb" />
+            <Background variant="dots" gap={20} size={1} color="#e5e7eb" />
             <Controls className="bg-white border border-gray-200 rounded-lg shadow-sm" />
             <MiniMap
               className="bg-white border border-gray-200 rounded-lg shadow-sm"
