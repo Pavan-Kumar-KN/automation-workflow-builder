@@ -1,6 +1,6 @@
 
 import React, { useCallback } from 'react';
-import { Node, Connection, addEdge } from '@xyflow/react';
+import { Node, Connection } from '@xyflow/react';
 import { Menu, X } from 'lucide-react';
 
 import { Sidebar } from './Sidebar';
@@ -8,9 +8,10 @@ import { NodeConfigPanel } from './node-config/NodeConfigPanel';
 import { WorkflowHeader } from './WorkflowHeader';
 import { WorkflowCanvas } from './workflow/WorkflowCanvas';
 import { WorkflowControls } from './workflow/WorkflowControls';
+import { ConnectionRulesHelp } from './ConnectionRulesHelp';
 import { Button } from '@/components/ui/button';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useWorkflowState } from '@/hooks/useWorkflowState';
+import { useWorkflowStore, useReactFlowWrapper, LayoutMode } from '@/hooks/useWorkflowState';
 import { useNodeOperations } from '@/hooks/useNodeOperations';
 import { useWorkflowActions } from '@/hooks/useWorkflowActions';
 import { useLayoutModeHandler } from '@/hooks/useLayoutModeHandler';
@@ -28,57 +29,122 @@ export const WorkflowBuilder = () => {
     setLayoutMode,
     sidebarOpen,
     setSidebarOpen,
-    reactFlowWrapper,
     reactFlowInstance,
     setReactFlowInstance,
-  } = useWorkflowState();
-
-  const {
     nodes,
     edges,
     setNodes,
     setEdges,
+  } = useWorkflowStore();
+
+  const reactFlowWrapper = useReactFlowWrapper();
+
+  const {
     onNodesChange,
     onEdgesChange,
     getSmartPosition,
     updateNodeData,
     autoArrangeNodes,
-  } = useNodeOperations(layoutMode);
+  } = useNodeOperations();
 
-  const { executeWorkflow, saveWorkflow } = useWorkflowActions(
-    workflowName,
-    nodes,
-    edges,
-    isActive,
-    layoutMode
-  );
 
-  const { handleLayoutModeChange } = useLayoutModeHandler(
-    nodes,
-    setNodes,
-    setEdges,
-    reactFlowInstance
-  );
+
+  const { executeWorkflow, saveWorkflow } = useWorkflowActions();
+
+  const { handleLayoutModeChange } = useLayoutModeHandler();
 
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   const onConnect = useCallback(
     (params: Connection) => {
+      // Validate connection parameters
+      if (!params.source || !params.target) {
+        toast.error('Invalid connection parameters');
+        return;
+      }
+
+      // Get source and target nodes to check their types
+      const sourceNode = nodes.find(node => node.id === params.source);
+      const targetNode = nodes.find(node => node.id === params.target);
+
+      if (!sourceNode || !targetNode) {
+        toast.error('Source or target node not found');
+        return;
+      }
+
+      // Check if connection already exists between the same source handle and target handle
+      const existingConnection = edges.find(
+        (edge) =>
+          edge.source === params.source &&
+          edge.target === params.target &&
+          edge.sourceHandle === params.sourceHandle &&
+          edge.targetHandle === params.targetHandle
+      );
+
+      if (existingConnection) {
+        toast.warning('Connection already exists between these handles');
+        return;
+      }
+
+      // CONSTRAINT: One trigger can only connect to ONE action
+      if (sourceNode.type === 'trigger' && targetNode.type === 'action') {
+        // Check if this trigger already has an action connection
+        const triggerHasAction = edges.find(
+          (edge) =>
+            edge.source === params.source &&
+            nodes.find(node => node.id === edge.target)?.type === 'action'
+        );
+
+        if (triggerHasAction) {
+          const connectedAction = nodes.find(node => node.id === triggerHasAction.target);
+          toast.error(
+            `This trigger is already connected to "${connectedAction?.data.label || 'an action'}". ` +
+            'Each trigger can only connect to ONE action. Disconnect the existing connection first.',
+            { duration: 5000 }
+          );
+          return;
+        }
+      }
+
+      // CONSTRAINT: Prevent trigger-to-trigger connections
+      if (sourceNode.type === 'trigger' && targetNode.type === 'trigger') {
+        toast.error('Triggers cannot connect directly to other triggers');
+        return;
+      }
+
+      // CONSTRAINT: Prevent action-to-trigger connections (actions should lead to conditions or other actions)
+      if (sourceNode.type === 'action' && targetNode.type === 'trigger') {
+        toast.error('Actions cannot connect back to triggers');
+        return;
+      }
+
+      // Create unique edge ID including handle IDs for better tracking
+      const edgeId = `edge-${params.source}-${params.sourceHandle || 'default'}-${params.target}-${params.targetHandle || 'default'}`;
+
       const edge = {
         ...params,
-        id: `edge-${params.source}-${params.target}`,
+        id: edgeId,
         type: layoutMode === 'vertical' ? 'straight' : 'smoothstep',
         animated: true,
         source: params.source!,
         target: params.target!,
+        sourceHandle: params.sourceHandle || null,
+        targetHandle: params.targetHandle || null,
       };
-      setEdges((eds) => addEdge(edge, eds));
-      toast.success('Nodes connected successfully!');
+
+      setEdges((eds) => [...eds, edge]);
+
+      // Success message based on connection type
+      if (sourceNode.type === 'trigger' && targetNode.type === 'action') {
+        toast.success(`Trigger "${sourceNode.data.label}" connected to action "${targetNode.data.label}"`);
+      } else {
+        toast.success('Nodes connected successfully!');
+      }
     },
-    [setEdges, layoutMode]
+    [setEdges, layoutMode, edges, nodes]
   );
 
-  const onLayoutModeChangeWrapper = useCallback((mode: any) => {
+  const onLayoutModeChangeWrapper = useCallback((mode: LayoutMode) => {
     setLayoutMode(mode);
     handleLayoutModeChange(mode);
   }, [setLayoutMode, handleLayoutModeChange]);
@@ -100,11 +166,6 @@ export const WorkflowBuilder = () => {
       if (typeof type === 'undefined' || !type) {
         return;
       }
-
-      const position = reactFlowInstance.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
 
       const finalPosition = getSmartPosition(type, nodes);
 
@@ -250,6 +311,9 @@ export const WorkflowBuilder = () => {
             />
           </div>
         )}
+
+        {/* Connection Rules Help */}
+        <ConnectionRulesHelp />
       </div>
     </div>
   );

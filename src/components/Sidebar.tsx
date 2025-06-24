@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Search } from 'lucide-react';
 import { triggerNodes, actionNodes, conditionNodes, externalAppNodes, NodeData } from '@/data/nodeData';
 import { useNodeFilter } from '@/hooks/useNodeFilter';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { SidebarHeader } from './sidebar/SidebarHeader';
 import { SearchBar } from './sidebar/SearchBar';
 import { NodeCategory } from './sidebar/NodeCategory';
 
 export const Sidebar = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [triggersOpen, setTriggersOpen] = useState(false);
-  const [actionsOpen, setActionsOpen] = useState(false);
-  const [conditionsOpen, setConditionsOpen] = useState(false);
-  const [externalAppsOpen, setExternalAppsOpen] = useState(false);
+  const {
+    searchTerm,
+    setSearchTerm,
+    triggersOpen,
+    setTriggersOpen,
+    actionsOpen,
+    setActionsOpen,
+    conditionsOpen,
+    setConditionsOpen,
+    externalAppsOpen,
+    setExternalAppsOpen,
+  } = useWorkflowStore();
 
   const onDragStart = (event: React.DragEvent, nodeType: string, nodeData: NodeData) => {
     // Handle special node types

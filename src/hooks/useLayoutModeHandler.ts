@@ -1,16 +1,17 @@
 
 import { useCallback } from 'react';
-import { Node, Edge } from '@xyflow/react';
 import { useMediaQuery } from './useMediaQuery';
-import { LayoutMode } from './useWorkflowState';
+import { useWorkflowStore, LayoutMode } from './useWorkflowState';
 import { toast } from 'sonner';
 
-export const useLayoutModeHandler = (
-  nodes: Node[],
-  setNodes: (nodes: Node[]) => void,
-  setEdges: (update: Edge[] | ((edges: Edge[]) => Edge[])) => void,
-  reactFlowInstance: any
-) => {
+export const useLayoutModeHandler = () => {
+  const {
+    nodes,
+    setNodes,
+    setEdges,
+    reactFlowInstance,
+  } = useWorkflowStore();
+
   const isMobile = useMediaQuery('(max-width: 768px)');
   const isTablet = useMediaQuery('(max-width: 1024px)');
 

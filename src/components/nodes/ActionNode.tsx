@@ -15,7 +15,7 @@ interface ActionNodeProps {
 export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
   const getIcon = () => {
     if (data.icon && data.icon in LucideIcons) {
-      return LucideIcons[data.icon] as React.ComponentType<any>;
+      return LucideIcons[data.icon] as React.ComponentType<React.SVGProps<SVGSVGElement>>;
     }
     
     // Fallback based on ID patterns
@@ -114,23 +114,58 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
   return (
     <div className={`bg-white border-2 ${classes.border} rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]`}>
       {/* Input connection points - positioned based on layout mode */}
+      {/* Multiple input handles to accept connections from multiple triggers */}
       {isVertical ? (
-        <Handle
-          type="target"
-          position={Position.Top}
-          className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-          style={{ left: '50%' }}
-        />
+        <>
+          <Handle
+            type="target"
+            position={Position.Top}
+            id="input-top-center"
+            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+            style={{ left: '50%' }}
+          />
+          <Handle
+            type="target"
+            position={Position.Top}
+            id="input-top-left"
+            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+            style={{ left: '30%' }}
+          />
+          <Handle
+            type="target"
+            position={Position.Top}
+            id="input-top-right"
+            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+            style={{ left: '70%' }}
+          />
+        </>
       ) : (
         <>
           <Handle
             type="target"
             position={Position.Left}
+            id="input-left-center"
             className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+            style={{ top: '50%' }}
+          />
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="input-left-top"
+            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+            style={{ top: '30%' }}
+          />
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="input-left-bottom"
+            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+            style={{ top: '70%' }}
           />
           <Handle
             type="target"
             position={Position.Top}
+            id="input-top"
             className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
             style={{ left: '50%' }}
           />
@@ -151,10 +186,14 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
           {data.label}
         </h3>
         {data.description && (
-          <p className="text-xs text-gray-500 leading-relaxed">
+          <p className="text-xs text-gray-500 leading-relaxed mb-2">
             {data.description}
           </p>
         )}
+        <div className={`text-xs ${classes.textColor} bg-opacity-50 px-2 py-1 rounded border border-opacity-50`}
+             style={{ backgroundColor: classes.iconBg, borderColor: classes.border.replace('border-', '') }}>
+          <span className="font-medium">← Multiple Triggers OK</span>
+        </div>
       </div>
 
       {/* Output connection points - positioned based on layout mode */}
@@ -162,6 +201,7 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
         <Handle
           type="source"
           position={Position.Bottom}
+          id="output-bottom"
           className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
           style={{ left: '50%' }}
         />
@@ -170,11 +210,13 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
           <Handle
             type="source"
             position={Position.Right}
+            id="output-right"
             className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
           />
           <Handle
             type="source"
             position={Position.Bottom}
+            id="output-bottom"
             className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
             style={{ left: '50%' }}
           />

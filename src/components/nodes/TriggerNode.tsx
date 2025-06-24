@@ -16,7 +16,7 @@ interface TriggerNodeProps {
 export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
   const getIcon = () => {
     if (data.icon && data.icon in LucideIcons) {
-      return LucideIcons[data.icon] as React.ComponentType<any>;
+      return LucideIcons[data.icon] as React.ComponentType<React.SVGProps<SVGSVGElement>>;
     }
     
     // Fallback based on ID patterns
@@ -44,34 +44,28 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
           <span className="text-sm font-bold text-red-800 tracking-wide">TRIGGER</span>
         </div>
       </div>
-      
+
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
           {data.label}
         </h3>
         {data.description && (
-          <p className="text-xs text-gray-500 leading-relaxed">
+          <p className="text-xs text-gray-500 leading-relaxed mb-2">
             {data.description}
           </p>
         )}
+        <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200">
+          <span className="font-medium">→ One Action Only</span>
+        </div>
       </div>
 
-      {/* Primary output handle - position depends on layout mode */}
+      {/* Single output handle - position depends on layout mode */}
       <Handle
         type="source"
         position={isVertical ? Position.Bottom : Position.Right}
+        id="primary-output"
         className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
       />
-      
-      {/* Secondary output handle for flexibility - only in horizontal mode */}
-      {!isVertical && (
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
-          style={{ left: '50%' }}
-        />
-      )}
     </div>
   );
 };

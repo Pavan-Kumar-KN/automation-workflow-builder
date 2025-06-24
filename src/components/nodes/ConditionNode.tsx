@@ -30,6 +30,7 @@ export const ConditionNode: React.FC<ConditionNodeProps> = ({ data }) => {
       <Handle
         type="target"
         position={isVertical ? Position.Top : Position.Left}
+        id="input"
         className="w-3 h-3 bg-orange-500 border-2 border-white shadow-md hover:bg-orange-600 transition-colors"
       />
 

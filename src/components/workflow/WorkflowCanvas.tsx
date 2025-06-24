@@ -18,6 +18,7 @@ import { ActionNode } from '../nodes/ActionNode';
 import { ConditionNode } from '../nodes/ConditionNode';
 import { SplitNode } from '../nodes/SplitNode';
 import { AddTriggerNode } from '../nodes/AddTriggerNode';
+import { PlusButtonOverlay } from '../PlusButtonOverlay';
 import { toast } from 'sonner';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { LayoutMode } from '@/hooks/useWorkflowState';
@@ -75,8 +76,13 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         onInit={onInit}
         nodeTypes={nodeTypes}
         connectionMode={ConnectionMode.Loose}
-        fitView
+        connectOnClick={false}
+        deleteKeyCode={['Backspace', 'Delete']}
+        // fitView
         className="bg-gray-100"
+        style={{
+          '--rf-zoom-speed': '0.3', // Reduce zoom speed
+        } as React.CSSProperties}
         defaultEdgeOptions={{
           style: { strokeWidth: 2, stroke: '#6366f1' },
           type: layoutMode === 'vertical' ? 'straight' : 'smoothstep',
@@ -87,8 +93,10 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         zoomOnScroll={!isMobile}
         zoomOnPinch={true}
         zoomOnDoubleClick={false}
-        minZoom={0.1}
-        maxZoom={2}
+        minZoom={0.3}
+        maxZoom={1.5}
+        zoomActivationKeyCode={null}
+        panActivationKeyCode={null}
       >
         <Background 
           gap={layoutMode === 'freeform' ? 15 : layoutMode === 'vertical' ? 40 : 20} 
@@ -120,6 +128,9 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             }
           }}
         />
+
+        {/* Plus Button Overlay */}
+        <PlusButtonOverlay nodes={nodes} />
       </ReactFlow>
     </div>
   );

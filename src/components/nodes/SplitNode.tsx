@@ -24,6 +24,7 @@ export const SplitNode: React.FC<SplitNodeProps> = ({ data }) => {
       <Handle
         type="target"
         position={Position.Top}
+        id="input"
         className="w-3 h-3 bg-purple-500 border-2 border-white shadow-md hover:bg-purple-600 transition-colors"
       />
 
