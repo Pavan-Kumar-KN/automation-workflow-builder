@@ -42,7 +42,7 @@ interface WorkflowCanvasProps {
   layoutMode: LayoutMode;
   sidebarOpen: boolean;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
-  setEdges: (edges: Edge[]) => void;
+  onConnect: (params: Connection) => void;
 }
 
 export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
@@ -57,25 +57,9 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   layoutMode,
   sidebarOpen,
   reactFlowWrapper,
-  setEdges,
+  onConnect,
 }) => {
   const isMobile = useMediaQuery('(max-width: 768px)');
-
-  const onConnect = useCallback(
-    (params: Connection) => {
-      const edge: Edge = {
-        ...params,
-        id: `edge-${params.source}-${params.target}`,
-        type: layoutMode === 'vertical' ? 'straight' : 'smoothstep',
-        animated: true,
-        source: params.source!,
-        target: params.target!,
-      };
-      setEdges((eds) => addEdge(edge, eds));
-      toast.success('Nodes connected successfully!');
-    },
-    [setEdges, layoutMode]
-  );
 
   return (
     <div className="flex-1 relative overflow-hidden" ref={reactFlowWrapper}>

@@ -1,6 +1,6 @@
 
 import React, { useCallback } from 'react';
-import { Node } from '@xyflow/react';
+import { Node, Connection, addEdge } from '@xyflow/react';
 import { Menu, X } from 'lucide-react';
 
 import { Sidebar } from './Sidebar';
@@ -61,6 +61,22 @@ export const WorkflowBuilder = () => {
   );
 
   const isMobile = useMediaQuery('(max-width: 768px)');
+
+  const onConnect = useCallback(
+    (params: Connection) => {
+      const edge = {
+        ...params,
+        id: `edge-${params.source}-${params.target}`,
+        type: layoutMode === 'vertical' ? 'straight' : 'smoothstep',
+        animated: true,
+        source: params.source!,
+        target: params.target!,
+      };
+      setEdges((eds) => addEdge(edge, eds));
+      toast.success('Nodes connected successfully!');
+    },
+    [setEdges, layoutMode]
+  );
 
   const onLayoutModeChangeWrapper = useCallback((mode: any) => {
     setLayoutMode(mode);
@@ -210,7 +226,7 @@ export const WorkflowBuilder = () => {
           layoutMode={layoutMode}
           sidebarOpen={sidebarOpen}
           reactFlowWrapper={reactFlowWrapper}
-          setEdges={setEdges}
+          onConnect={onConnect}
         />
         
         <WorkflowControls

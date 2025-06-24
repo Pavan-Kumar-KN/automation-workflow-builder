@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 export const useLayoutModeHandler = (
   nodes: Node[],
   setNodes: (nodes: Node[]) => void,
-  setEdges: (edges: Edge[]) => void,
+  setEdges: (update: Edge[] | ((edges: Edge[]) => Edge[])) => void,
   reactFlowInstance: any
 ) => {
   const isMobile = useMediaQuery('(max-width: 768px)');
