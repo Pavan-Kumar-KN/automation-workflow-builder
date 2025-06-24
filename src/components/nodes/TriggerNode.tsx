@@ -9,6 +9,7 @@ interface TriggerNodeProps {
     id: string;
     icon?: keyof typeof LucideIcons;
     description?: string;
+    layoutMode?: string;
   };
 }
 
@@ -31,6 +32,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
   };
 
   const IconComponent = getIcon();
+  const isVertical = data.layoutMode === 'vertical';
 
   return (
     <div className="bg-white border-2 border-red-200 rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
@@ -54,18 +56,22 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
         )}
       </div>
 
-      {/* Multiple connection points for better flow */}
+      {/* Primary output handle - position depends on layout mode */}
       <Handle
         type="source"
-        position={Position.Right}
+        position={isVertical ? Position.Bottom : Position.Right}
         className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
       />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
-        style={{ left: '50%' }}
-      />
+      
+      {/* Secondary output handle for flexibility */}
+      {!isVertical && (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
+          style={{ left: '50%' }}
+        />
+      )}
     </div>
   );
 };

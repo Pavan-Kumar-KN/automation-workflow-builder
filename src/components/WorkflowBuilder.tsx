@@ -51,7 +51,7 @@ export const WorkflowBuilder = () => {
       const edge: Edge = {
         ...params,
         id: `edge-${params.source}-${params.target}`,
-        type: 'smoothstep',
+        type: layoutMode === 'vertical' ? 'straight' : 'smoothstep',
         animated: true,
         source: params.source!,
         target: params.target!,
@@ -59,7 +59,7 @@ export const WorkflowBuilder = () => {
       setEdges((eds) => addEdge(edge, eds));
       toast.success('Nodes connected successfully!');
     },
-    [setEdges]
+    [setEdges, layoutMode]
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -138,6 +138,7 @@ export const WorkflowBuilder = () => {
           data: {
             ...nodeData,
             label: nodeData.label,
+            layoutMode,
           },
         };
         setNodes((nds) => nds.concat(newNode));
@@ -152,6 +153,7 @@ export const WorkflowBuilder = () => {
         data: {
           ...nodeData,
           label: nodeData.label,
+          layoutMode,
         },
       };
 
@@ -171,6 +173,7 @@ export const WorkflowBuilder = () => {
           ...node.data,
           label: 'New Trigger',
           description: 'Configure this trigger',
+          layoutMode,
         },
       };
       
@@ -184,7 +187,7 @@ export const WorkflowBuilder = () => {
     }
     
     setSelectedNode(node);
-  }, [setNodes]);
+  }, [setNodes, layoutMode]);
 
   const updateNodeData = useCallback((nodeId: string, newData: any) => {
     setNodes((nds) =>
@@ -232,7 +235,11 @@ export const WorkflowBuilder = () => {
       }
       // For freeform, keep existing positions
 
-      return { ...node, position: newPosition };
+      return { 
+        ...node, 
+        position: newPosition,
+        data: { ...node.data, layoutMode: layoutMode },
+      };
     });
 
     setNodes(arrangedNodes);
@@ -250,6 +257,22 @@ export const WorkflowBuilder = () => {
   const handleLayoutModeChange = useCallback((mode: LayoutMode) => {
     setLayoutMode(mode);
     toast.success(`Layout mode changed to ${mode.charAt(0).toUpperCase() + mode.slice(1)}!`);
+    
+    // Update all nodes with the new layout mode and update edge types
+    setNodes((nds) => 
+      nds.map((node) => ({
+        ...node,
+        data: { ...node.data, layoutMode: mode },
+      }))
+    );
+
+    // Update all edges to use appropriate type for the layout
+    setEdges((eds) =>
+      eds.map((edge) => ({
+        ...edge,
+        type: mode === 'vertical' ? 'straight' : 'smoothstep',
+      }))
+    );
     
     // Auto-arrange nodes when layout mode changes for better UX
     setTimeout(() => {
@@ -288,7 +311,11 @@ export const WorkflowBuilder = () => {
           }
           // For freeform, keep existing positions
 
-          return { ...node, position: newPosition };
+          return { 
+            ...node, 
+            position: newPosition,
+            data: { ...node.data, layoutMode: mode },
+          };
         });
 
         setNodes(arrangedNodes);
@@ -301,7 +328,7 @@ export const WorkflowBuilder = () => {
         }, 100);
       }
     }, 100);
-  }, [nodes, setNodes, reactFlowInstance]);
+  }, [nodes, setNodes, setEdges, reactFlowInstance]);
 
   const executeWorkflow = useCallback(() => {
     if (nodes.length === 0) {
@@ -364,7 +391,7 @@ export const WorkflowBuilder = () => {
             className="bg-gray-100"
             defaultEdgeOptions={{
               style: { strokeWidth: 2, stroke: '#6366f1' },
-              type: 'smoothstep',
+              type: layoutMode === 'vertical' ? 'straight' : 'smoothstep',
             }}
             snapToGrid={layoutMode !== 'freeform'}
             snapGrid={layoutMode === 'vertical' ? [40, 40] : [20, 20]}

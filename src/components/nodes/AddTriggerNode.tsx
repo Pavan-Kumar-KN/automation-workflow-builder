@@ -8,10 +8,13 @@ interface AddTriggerNodeProps {
     label: string;
     id: string;
     description?: string;
+    layoutMode?: string;
   };
 }
 
 export const AddTriggerNode: React.FC<AddTriggerNodeProps> = ({ data }) => {
+  const isVertical = data.layoutMode === 'vertical';
+
   return (
     <div className="bg-white border-2 border-dashed border-blue-300 rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02] hover:border-blue-400">
       <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 rounded-t-lg border-b border-blue-200">
@@ -34,18 +37,22 @@ export const AddTriggerNode: React.FC<AddTriggerNodeProps> = ({ data }) => {
         )}
       </div>
 
-      {/* Multiple output connection points for better flow */}
+      {/* Primary output handle - position depends on layout mode */}
       <Handle
         type="source"
-        position={Position.Right}
+        position={isVertical ? Position.Bottom : Position.Right}
         className="w-3 h-3 bg-blue-500 border-2 border-white shadow-md hover:bg-blue-600 transition-colors"
       />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="w-3 h-3 bg-blue-500 border-2 border-white shadow-md hover:bg-blue-600 transition-colors"
-        style={{ left: '50%' }}
-      />
+      
+      {/* Secondary output handle for flexibility */}
+      {!isVertical && (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="w-3 h-3 bg-blue-500 border-2 border-white shadow-md hover:bg-blue-600 transition-colors"
+          style={{ left: '50%' }}
+        />
+      )}
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { GitBranch, CheckCircle, XCircle, Filter } from 'lucide-react';
@@ -10,6 +11,7 @@ interface ConditionNodeProps {
     operator?: string;
     value?: string;
     description?: string;
+    layoutMode?: string;
   };
 }
 
@@ -20,20 +22,15 @@ export const ConditionNode: React.FC<ConditionNodeProps> = ({ data }) => {
   };
 
   const IconComponent = getIcon();
+  const isVertical = data.layoutMode === 'vertical';
 
   return (
     <div className="bg-white border-2 border-orange-200 rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
-      {/* Multiple input connection points */}
+      {/* Input connection point - position depends on layout mode */}
       <Handle
         type="target"
-        position={Position.Left}
+        position={isVertical ? Position.Top : Position.Left}
         className="w-3 h-3 bg-orange-500 border-2 border-white shadow-md hover:bg-orange-600 transition-colors"
-      />
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="w-3 h-3 bg-orange-500 border-2 border-white shadow-md hover:bg-orange-600 transition-colors"
-        style={{ left: '50%' }}
       />
 
       <div className="bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-3 rounded-t-lg border-b border-orange-200">
@@ -61,37 +58,72 @@ export const ConditionNode: React.FC<ConditionNodeProps> = ({ data }) => {
         )}
       </div>
 
-      {/* True/Yes handle - Right side for horizontal flow */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="true"
-        className="w-3 h-3 bg-green-500 border-2 border-white shadow-md hover:bg-green-600 transition-colors"
-        style={{ top: '40%' }}
-      />
-      
-      {/* False/No handle - Bottom for vertical flow */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="false"
-        className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
-        style={{ left: '50%' }}
-      />
+      {/* Output handles - arranged for vertical or horizontal flow */}
+      {isVertical ? (
+        <>
+          {/* Vertical layout: True handle on bottom-left, False handle on bottom-right */}
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="true"
+            className="w-3 h-3 bg-green-500 border-2 border-white shadow-md hover:bg-green-600 transition-colors"
+            style={{ left: '30%' }}
+          />
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="false"
+            className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
+            style={{ left: '70%' }}
+          />
+          
+          {/* Labels for vertical layout */}
+          <div className="absolute bottom-2 left-8 text-xs">
+            <div className="flex items-center space-x-1 text-green-600 font-medium">
+              <CheckCircle className="w-3 h-3" />
+              <span>True</span>
+            </div>
+          </div>
+          <div className="absolute bottom-2 right-8 text-xs">
+            <div className="flex items-center space-x-1 text-red-600 font-medium">
+              <XCircle className="w-3 h-3" />
+              <span>False</span>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Horizontal layout: True handle on right, False handle on bottom */}
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="true"
+            className="w-3 h-3 bg-green-500 border-2 border-white shadow-md hover:bg-green-600 transition-colors"
+            style={{ top: '40%' }}
+          />
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="false"
+            className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
+            style={{ left: '50%' }}
+          />
 
-      {/* Labels for the handles */}
-      <div className="absolute right-4 top-10 text-xs">
-        <div className="flex items-center space-x-1 text-green-600 font-medium">
-          <CheckCircle className="w-3 h-3" />
-          <span>True</span>
-        </div>
-      </div>
-      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs">
-        <div className="flex items-center space-x-1 text-red-600 font-medium">
-          <XCircle className="w-3 h-3" />
-          <span>False</span>
-        </div>
-      </div>
+          {/* Labels for horizontal layout */}
+          <div className="absolute right-4 top-10 text-xs">
+            <div className="flex items-center space-x-1 text-green-600 font-medium">
+              <CheckCircle className="w-3 h-3" />
+              <span>True</span>
+            </div>
+          </div>
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs">
+            <div className="flex items-center space-x-1 text-red-600 font-medium">
+              <XCircle className="w-3 h-3" />
+              <span>False</span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
