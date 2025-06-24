@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Search } from 'lucide-react';
 import { triggerNodes, actionNodes, conditionNodes, externalAppNodes, NodeData } from '@/data/nodeData';
@@ -8,10 +9,10 @@ import { NodeCategory } from './sidebar/NodeCategory';
 
 export const Sidebar = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [triggersOpen, setTriggersOpen] = useState(false);
-  const [actionsOpen, setActionsOpen] = useState(false);
-  const [conditionsOpen, setConditionsOpen] = useState(false);
-  const [externalAppsOpen, setExternalAppsOpen] = useState(false);
+  const [triggersOpen, setTriggersOpen] = useState(true);
+  const [actionsOpen, setActionsOpen] = useState(true);
+  const [conditionsOpen, setConditionsOpen] = useState(true);
+  const [externalAppsOpen, setExternalAppsOpen] = useState(true);
 
   const onDragStart = (event: React.DragEvent, nodeType: string, nodeData: NodeData) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
