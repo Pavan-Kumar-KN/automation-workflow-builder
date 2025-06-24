@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef } from 'react';
 import {
   ReactFlow,
@@ -13,6 +14,7 @@ import {
   Connection,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Menu, X } from 'lucide-react';
 
 import { Sidebar } from './Sidebar';
 import { NodeConfigPanel } from './node-config/NodeConfigPanel';
@@ -24,6 +26,8 @@ import { ConditionNode } from './nodes/ConditionNode';
 import { SplitNode } from './nodes/SplitNode';
 import { AddTriggerNode } from './nodes/AddTriggerNode';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 const nodeTypes = {
   trigger: TriggerNode,
@@ -43,8 +47,13 @@ export const WorkflowBuilder = () => {
   const [workflowName, setWorkflowName] = useState('My workflow');
   const [isActive, setIsActive] = useState(false);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('horizontal');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+
+  // Media queries for responsive design
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isTablet = useMediaQuery('(max-width: 1024px)');
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -67,41 +76,46 @@ export const WorkflowBuilder = () => {
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  // Enhanced smart positioning logic based on layout mode
+  // Enhanced smart positioning logic based on layout mode and device size
   const getSmartPosition = (type: string, existingNodes: Node[]) => {
     if (existingNodes.length === 0) {
-      return { x: 250, y: 100 };
+      return isMobile ? { x: 50, y: 50 } : { x: 250, y: 100 };
     }
 
     if (layoutMode === 'freeform') {
-      // For freeform, use basic positioning with some randomness
-      const rightmostX = Math.max(...existingNodes.map(n => n.position.x + 220));
+      const rightmostX = Math.max(...existingNodes.map(n => n.position.x + (isMobile ? 180 : 220)));
       const bottommostY = Math.max(...existingNodes.map(n => n.position.y));
-      return { x: rightmostX + 50, y: bottommostY - 50 + Math.random() * 100 };
+      return { 
+        x: rightmostX + (isMobile ? 30 : 50), 
+        y: bottommostY - (isMobile ? 30 : 50) + Math.random() * (isMobile ? 50 : 100) 
+      };
     }
 
-    // Calculate positions based on layout mode
     const triggers = existingNodes.filter(n => n.type === 'trigger' || n.type === 'add-trigger');
     const actions = existingNodes.filter(n => n.type === 'action');
     const conditions = existingNodes.filter(n => n.type === 'condition' || n.type === 'split-condition');
 
+    // Adjust spacing based on device size
+    const horizontalSpacing = isMobile ? 200 : isTablet ? 300 : 350;
+    const verticalSpacing = isMobile ? 150 : 200;
+    const columnSpacing = isMobile ? 180 : isTablet ? 220 : 280;
+
     if (layoutMode === 'horizontal') {
-      // Horizontal layout: flows left to right in columns
       if (type === 'trigger' || type === 'add-trigger') {
-        return { x: 50, y: 100 + triggers.length * 200 };
+        return { x: 30, y: 50 + triggers.length * verticalSpacing };
       } else if (type === 'condition' || type === 'split-condition') {
-        return { x: 400, y: 100 + conditions.length * 220 };
+        return { x: horizontalSpacing, y: 50 + conditions.length * (verticalSpacing + 20) };
       } else {
-        return { x: 750, y: 100 + actions.length * 200 };
+        return { x: horizontalSpacing * 2, y: 50 + actions.length * verticalSpacing };
       }
     } else {
-      // Vertical layout: flows top to bottom in rows
+      // Vertical layout
       if (type === 'trigger' || type === 'add-trigger') {
-        return { x: 200 + triggers.length * 280, y: 50 };
+        return { x: 100 + triggers.length * columnSpacing, y: 30 };
       } else if (type === 'condition' || type === 'split-condition') {
-        return { x: 200 + conditions.length * 280, y: 350 };
+        return { x: 100 + conditions.length * columnSpacing, y: isMobile ? 250 : 350 };
       } else {
-        return { x: 200 + actions.length * 280, y: 650 };
+        return { x: 100 + actions.length * columnSpacing, y: isMobile ? 450 : 650 };
       }
     }
   };
@@ -124,12 +138,10 @@ export const WorkflowBuilder = () => {
         y: event.clientY,
       });
 
-      // Use smart positioning for organized layouts, screen position for freeform
       const finalPosition = layoutMode === 'freeform' 
         ? position 
         : getSmartPosition(type, nodes);
 
-      // Handle special case for "Add New Trigger" node
       if (nodeData.id === 'add-new-trigger') {
         const newNode: Node = {
           id: `add-trigger-${Date.now()}`,
@@ -143,6 +155,10 @@ export const WorkflowBuilder = () => {
         };
         setNodes((nds) => nds.concat(newNode));
         toast.success(`${nodeData.label} placeholder added! Click to convert to a trigger.`);
+        // Auto-close sidebar on mobile after adding node
+        if (isMobile) {
+          setSidebarOpen(false);
+        }
         return;
       }
 
@@ -159,12 +175,16 @@ export const WorkflowBuilder = () => {
 
       setNodes((nds) => nds.concat(newNode));
       toast.success(`${nodeData.label} node added to workflow!`);
+      
+      // Auto-close sidebar on mobile after adding node
+      if (isMobile) {
+        setSidebarOpen(false);
+      }
     },
-    [reactFlowInstance, setNodes, nodes, layoutMode]
+    [reactFlowInstance, setNodes, nodes, layoutMode, isMobile]
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    // Special handling for add-trigger nodes - convert them to regular trigger nodes
     if (node.type === 'add-trigger') {
       const updatedNode: Node = {
         ...node,
@@ -197,7 +217,6 @@ export const WorkflowBuilder = () => {
     );
   }, [setNodes]);
 
-  // Enhanced auto-arrange nodes based on layout mode with proper spacing
   const autoArrangeNodes = useCallback(() => {
     if (nodes.length === 0) return;
 
@@ -205,35 +224,36 @@ export const WorkflowBuilder = () => {
     const actions = nodes.filter(n => n.type === 'action');
     const conditions = nodes.filter(n => n.type === 'condition' || n.type === 'split-condition');
 
+    const horizontalSpacing = isMobile ? 200 : isTablet ? 300 : 350;
+    const verticalSpacing = isMobile ? 150 : 200;
+    const columnSpacing = isMobile ? 180 : isTablet ? 220 : 280;
+
     const arrangedNodes = nodes.map((node) => {
       let newPosition = { ...node.position };
 
       if (layoutMode === 'horizontal') {
-        // Horizontal arrangement: left to right flow
         if (triggers.includes(node)) {
           const triggerIndex = triggers.indexOf(node);
-          newPosition = { x: 50, y: 100 + triggerIndex * 200 };
+          newPosition = { x: 30, y: 50 + triggerIndex * verticalSpacing };
         } else if (conditions.includes(node)) {
           const conditionIndex = conditions.indexOf(node);
-          newPosition = { x: 400, y: 100 + conditionIndex * 220 };
+          newPosition = { x: horizontalSpacing, y: 50 + conditionIndex * (verticalSpacing + 20) };
         } else if (actions.includes(node)) {
           const actionIndex = actions.indexOf(node);
-          newPosition = { x: 750, y: 100 + actionIndex * 200 };
+          newPosition = { x: horizontalSpacing * 2, y: 50 + actionIndex * verticalSpacing };
         }
       } else if (layoutMode === 'vertical') {
-        // Vertical arrangement: top to bottom flow
         if (triggers.includes(node)) {
           const triggerIndex = triggers.indexOf(node);
-          newPosition = { x: 200 + triggerIndex * 280, y: 50 };
+          newPosition = { x: 100 + triggerIndex * columnSpacing, y: 30 };
         } else if (conditions.includes(node)) {
           const conditionIndex = conditions.indexOf(node);
-          newPosition = { x: 200 + conditionIndex * 280, y: 350 };
+          newPosition = { x: 100 + conditionIndex * columnSpacing, y: isMobile ? 250 : 350 };
         } else if (actions.includes(node)) {
           const actionIndex = actions.indexOf(node);
-          newPosition = { x: 200 + actionIndex * 280, y: 650 };
+          newPosition = { x: 100 + actionIndex * columnSpacing, y: isMobile ? 450 : 650 };
         }
       }
-      // For freeform, keep existing positions
 
       return { 
         ...node, 
@@ -244,21 +264,19 @@ export const WorkflowBuilder = () => {
 
     setNodes(arrangedNodes);
     
-    // Fit view after arrangement for better user experience
     setTimeout(() => {
       if (reactFlowInstance) {
-        reactFlowInstance.fitView({ padding: 50, duration: 800 });
+        reactFlowInstance.fitView({ padding: isMobile ? 20 : 50, duration: 800 });
       }
     }, 100);
     
     toast.success(`Nodes auto-arranged in ${layoutMode} layout!`);
-  }, [nodes, setNodes, layoutMode, reactFlowInstance]);
+  }, [nodes, setNodes, layoutMode, reactFlowInstance, isMobile, isTablet]);
 
   const handleLayoutModeChange = useCallback((mode: LayoutMode) => {
     setLayoutMode(mode);
     toast.success(`Layout mode changed to ${mode.charAt(0).toUpperCase() + mode.slice(1)}!`);
     
-    // Update all nodes with the new layout mode and update edge types
     setNodes((nds) => 
       nds.map((node) => ({
         ...node,
@@ -266,7 +284,6 @@ export const WorkflowBuilder = () => {
       }))
     );
 
-    // Update all edges to use appropriate type for the layout
     setEdges((eds) =>
       eds.map((edge) => ({
         ...edge,
@@ -274,42 +291,42 @@ export const WorkflowBuilder = () => {
       }))
     );
     
-    // Auto-arrange nodes when layout mode changes for better UX
     setTimeout(() => {
       if (nodes.length > 0) {
         const triggers = nodes.filter(n => n.type === 'trigger' || n.type === 'add-trigger');
         const actions = nodes.filter(n => n.type === 'action');
         const conditions = nodes.filter(n => n.type === 'condition' || n.type === 'split-condition');
 
+        const horizontalSpacing = isMobile ? 200 : isTablet ? 300 : 350;
+        const verticalSpacing = isMobile ? 150 : 200;
+        const columnSpacing = isMobile ? 180 : isTablet ? 220 : 280;
+
         const arrangedNodes = nodes.map((node) => {
           let newPosition = { ...node.position };
 
           if (mode === 'horizontal') {
-            // Horizontal arrangement: left to right flow
             if (triggers.includes(node)) {
               const triggerIndex = triggers.indexOf(node);
-              newPosition = { x: 50, y: 100 + triggerIndex * 200 };
+              newPosition = { x: 30, y: 50 + triggerIndex * verticalSpacing };
             } else if (conditions.includes(node)) {
               const conditionIndex = conditions.indexOf(node);
-              newPosition = { x: 400, y: 100 + conditionIndex * 220 };
+              newPosition = { x: horizontalSpacing, y: 50 + conditionIndex * (verticalSpacing + 20) };
             } else if (actions.includes(node)) {
               const actionIndex = actions.indexOf(node);
-              newPosition = { x: 750, y: 100 + actionIndex * 200 };
+              newPosition = { x: horizontalSpacing * 2, y: 50 + actionIndex * verticalSpacing };
             }
           } else if (mode === 'vertical') {
-            // Vertical arrangement: top to bottom flow
             if (triggers.includes(node)) {
               const triggerIndex = triggers.indexOf(node);
-              newPosition = { x: 200 + triggerIndex * 280, y: 50 };
+              newPosition = { x: 100 + triggerIndex * columnSpacing, y: 30 };
             } else if (conditions.includes(node)) {
               const conditionIndex = conditions.indexOf(node);
-              newPosition = { x: 200 + conditionIndex * 280, y: 350 };
+              newPosition = { x: 100 + conditionIndex * columnSpacing, y: isMobile ? 250 : 350 };
             } else if (actions.includes(node)) {
               const actionIndex = actions.indexOf(node);
-              newPosition = { x: 200 + actionIndex * 280, y: 650 };
+              newPosition = { x: 100 + actionIndex * columnSpacing, y: isMobile ? 450 : 650 };
             }
           }
-          // For freeform, keep existing positions
 
           return { 
             ...node, 
@@ -320,15 +337,14 @@ export const WorkflowBuilder = () => {
 
         setNodes(arrangedNodes);
         
-        // Fit view after layout change
         setTimeout(() => {
           if (reactFlowInstance) {
-            reactFlowInstance.fitView({ padding: 50, duration: 800 });
+            reactFlowInstance.fitView({ padding: isMobile ? 20 : 50, duration: 800 });
           }
         }, 100);
       }
     }, 100);
-  }, [nodes, setNodes, setEdges, reactFlowInstance]);
+  }, [nodes, setNodes, setEdges, reactFlowInstance, isMobile, isTablet]);
 
   const executeWorkflow = useCallback(() => {
     if (nodes.length === 0) {
@@ -340,7 +356,6 @@ export const WorkflowBuilder = () => {
     console.log('Executing workflow with nodes:', nodes);
     console.log('Workflow edges:', edges);
     
-    // Simulate workflow execution
     setTimeout(() => {
       toast.success('Workflow completed successfully! ✨');
     }, 2000);
@@ -371,8 +386,38 @@ export const WorkflowBuilder = () => {
         onExecute={executeWorkflow}
       />
       
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Mobile sidebar toggle button */}
+        {isMobile && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute top-4 left-4 z-20 bg-white shadow-lg md:hidden"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </Button>
+        )}
+
+        {/* Sidebar - responsive behavior */}
+        <div className={`
+          ${isMobile 
+            ? `absolute inset-y-0 left-0 z-10 transform transition-transform duration-300 ease-in-out
+               ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
+            : 'relative'
+          }
+          ${isMobile ? 'w-80' : 'w-64 lg:w-80'}
+        `}>
+          <Sidebar />
+        </div>
+
+        {/* Mobile overlay */}
+        {isMobile && sidebarOpen && (
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50 z-5"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
         
         <div className="flex-1 relative overflow-hidden" ref={reactFlowWrapper}>
           <ReactFlow
@@ -395,6 +440,13 @@ export const WorkflowBuilder = () => {
             }}
             snapToGrid={layoutMode !== 'freeform'}
             snapGrid={layoutMode === 'vertical' ? [40, 40] : [20, 20]}
+            // Touch-friendly settings
+            panOnDrag={!isMobile || !sidebarOpen}
+            zoomOnScroll={!isMobile}
+            zoomOnPinch={true}
+            zoomOnDoubleClick={false}
+            minZoom={0.1}
+            maxZoom={2}
           >
             <Background 
               gap={layoutMode === 'vertical' ? 40 : 20} 
@@ -402,13 +454,19 @@ export const WorkflowBuilder = () => {
               color="#e5e7eb" 
             />
             <Controls 
-              className="bg-white border border-gray-200 rounded-lg shadow-sm" 
+              className={`bg-white border border-gray-200 rounded-lg shadow-sm ${
+                isMobile ? 'scale-110' : ''
+              }`}
               showZoom={true}
               showFitView={true}
               showInteractive={true}
+              position={isMobile ? 'bottom-left' : 'bottom-right'}
             />
             <MiniMap
-              className="bg-white border border-gray-200 rounded-lg shadow-sm"
+              className={`bg-white border border-gray-200 rounded-lg shadow-sm ${
+                isMobile ? 'w-24 h-16' : 'w-32 h-20'
+              }`}
+              position={isMobile ? 'top-right' : 'bottom-left'}
               nodeColor={(node) => {
                 switch (node.type) {
                   case 'trigger': return '#ef4444';
@@ -422,31 +480,45 @@ export const WorkflowBuilder = () => {
             />
           </ReactFlow>
           
-          {/* Layout controls */}
-          <div className="absolute top-4 right-4 flex items-center gap-3 z-10">
+          {/* Layout controls - responsive positioning */}
+          <div className={`absolute z-10 flex items-center gap-2 ${
+            isMobile 
+              ? 'top-16 right-4 flex-col'
+              : 'top-4 right-4 flex-row gap-3'
+          }`}>
             <LayoutModeSelector
               layoutMode={layoutMode}
               onLayoutModeChange={handleLayoutModeChange}
             />
-            <button
+            <Button
               onClick={autoArrangeNodes}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg transition-colors flex items-center gap-2"
+              className={`bg-blue-500 hover:bg-blue-600 text-white shadow-lg transition-colors flex items-center gap-2 ${
+                isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'
+              }`}
               disabled={nodes.length === 0}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
-              Auto Arrange
-            </button>
+              {!isMobile && 'Auto Arrange'}
+            </Button>
           </div>
         </div>
 
+        {/* Node config panel - responsive */}
         {selectedNode && (
-          <NodeConfigPanel
-            node={selectedNode}
-            onClose={() => setSelectedNode(null)}
-            onUpdate={updateNodeData}
-          />
+          <div className={`
+            ${isMobile 
+              ? 'absolute inset-x-0 bottom-0 h-1/2 z-20' 
+              : 'relative w-80 lg:w-96'
+            }
+          `}>
+            <NodeConfigPanel
+              node={selectedNode}
+              onClose={() => setSelectedNode(null)}
+              onUpdate={updateNodeData}
+            />
+          </div>
         )}
       </div>
     </div>
