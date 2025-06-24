@@ -1,7 +1,7 @@
-
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { 
   MessageSquare, 
   Database, 
@@ -40,7 +40,8 @@ import {
   Eye,
   EyeOff,
   Share2,
-  Filter
+  Filter,
+  Search
 } from 'lucide-react';
 
 const triggerNodes = [
@@ -535,47 +536,77 @@ const conditionNodes = [
 ];
 
 export const Sidebar = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+
   const onDragStart = (event: React.DragEvent, nodeType: string, nodeData: any) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.setData('application/nodedata', JSON.stringify(nodeData));
     event.dataTransfer.effectAllowed = 'move';
   };
 
-  const NodeCategory = ({ title, nodes, nodeType, emoji }: { title: string; nodes: any[]; nodeType: string; emoji: string }) => (
-    <div className="mb-6">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-        <span className="text-base">{emoji}</span>
-        {title}
-      </h3>
-      <div className="space-y-2">
-        {nodes.map((node) => {
-          const IconComponent = node.icon;
-          return (
-            <Card
-              key={node.id}
-              className={`p-3 cursor-grab hover:shadow-md transition-all duration-200 border-2 ${node.color} hover:scale-[1.02]`}
-              draggable
-              onDragStart={(event) => onDragStart(event, nodeType, node)}
-            >
-              <div className="flex items-start space-x-3">
-                <div className="p-2 rounded-lg bg-white shadow-sm flex-shrink-0">
-                  <IconComponent className="w-4 h-4 text-gray-600" />
+  const filterNodes = (nodes: any[], search: string) => {
+    if (!search.trim()) return nodes;
+    
+    const searchLower = search.toLowerCase();
+    return nodes.filter(node => {
+      const label = node.label.toLowerCase();
+      const description = node.description.toLowerCase();
+      
+      // Check if search term is contained in label or description
+      const containsMatch = label.includes(searchLower) || description.includes(searchLower);
+      
+      // Check if search term matches first letter or word
+      const words = label.split(' ');
+      const firstLetterMatch = label.startsWith(searchLower);
+      const firstWordMatch = words.some(word => word.toLowerCase().startsWith(searchLower));
+      
+      return containsMatch || firstLetterMatch || firstWordMatch;
+    });
+  };
+
+  const filteredTriggers = useMemo(() => filterNodes(triggerNodes, searchTerm), [searchTerm]);
+  const filteredActions = useMemo(() => filterNodes(actionNodes, searchTerm), [searchTerm]);
+  const filteredConditions = useMemo(() => filterNodes(conditionNodes, searchTerm), [searchTerm]);
+
+  const NodeCategory = ({ title, nodes, nodeType, emoji }: { title: string; nodes: any[]; nodeType: string; emoji: string }) => {
+    if (nodes.length === 0) return null;
+    
+    return (
+      <div className="mb-6">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <span className="text-base">{emoji}</span>
+          {title} ({nodes.length})
+        </h3>
+        <div className="space-y-2">
+          {nodes.map((node) => {
+            const IconComponent = node.icon;
+            return (
+              <Card
+                key={node.id}
+                className={`p-3 cursor-grab hover:shadow-md transition-all duration-200 border-2 ${node.color} hover:scale-[1.02]`}
+                draggable
+                onDragStart={(event) => onDragStart(event, nodeType, node)}
+              >
+                <div className="flex items-start space-x-3">
+                  <div className="p-2 rounded-lg bg-white shadow-sm flex-shrink-0">
+                    <IconComponent className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 leading-tight">
+                      {node.label}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                      {node.description}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 leading-tight">
-                    {node.label}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                    {node.description}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+              </Card>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="w-80 bg-white border-r border-gray-200 p-4 overflow-y-auto h-full">
@@ -587,14 +618,33 @@ export const Sidebar = () => {
             Drag to add
           </Badge>
         </div>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 mb-4">
           Build powerful automation workflows by dragging and dropping components
         </p>
+        
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            type="text"
+            placeholder="Search triggers and actions..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-9 text-sm"
+          />
+        </div>
       </div>
 
-      <NodeCategory title="Triggers" nodes={triggerNodes} nodeType="trigger" emoji="🔥" />
-      <NodeCategory title="Actions" nodes={actionNodes} nodeType="action" emoji="⚡" />
-      <NodeCategory title="Conditions" nodes={conditionNodes} nodeType="condition" emoji="🎯" />
+      <NodeCategory title="Triggers" nodes={filteredTriggers} nodeType="trigger" emoji="🔥" />
+      <NodeCategory title="Actions" nodes={filteredActions} nodeType="action" emoji="⚡" />
+      <NodeCategory title="Conditions" nodes={filteredConditions} nodeType="condition" emoji="🎯" />
+      
+      {searchTerm && filteredTriggers.length === 0 && filteredActions.length === 0 && filteredConditions.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <Search className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+          <p className="text-sm">No components found matching "{searchTerm}"</p>
+        </div>
+      )}
     </div>
   );
 };
