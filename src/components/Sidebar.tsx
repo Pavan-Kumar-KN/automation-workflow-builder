@@ -868,7 +868,7 @@ const externalAppNodes = [
   { 
     id: 'jira-cloud-app', 
     label: 'Jira Cloud', 
-    icon: Bug,
+    icon: AlertCircle,
     description: 'Connect with Jira Cloud',
     color: 'bg-blue-50 border-blue-200'
   },
