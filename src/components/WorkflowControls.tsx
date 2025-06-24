@@ -53,6 +53,7 @@ export const WorkflowControls: React.FC<WorkflowControlsProps> = ({
           newPosition = { x: 200 + actionIndex * 280, y: 650 };
         }
       }
+      // For freeform, keep existing positions
 
       return { 
         ...node, 

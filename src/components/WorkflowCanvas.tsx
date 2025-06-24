@@ -73,7 +73,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           style: { strokeWidth: 2, stroke: '#6366f1' },
           type: layoutMode === 'vertical' ? 'straight' : 'smoothstep',
         }}
-        snapToGrid={true}
+        snapToGrid={layoutMode !== 'freeform'}
         snapGrid={layoutMode === 'vertical' ? [40, 40] : [20, 20]}
       >
         <Background 

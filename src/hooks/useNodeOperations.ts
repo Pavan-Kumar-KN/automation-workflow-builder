@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { Node, addEdge, Connection, Edge } from '@xyflow/react';
 import { toast } from 'sonner';
@@ -47,6 +48,13 @@ export const useNodeOperations = ({
       return { x: 250, y: 100 };
     }
 
+    if (layoutMode === 'freeform') {
+      // For freeform, use basic positioning with some randomness
+      const rightmostX = Math.max(...existingNodes.map(n => n.position.x + 220));
+      const bottommostY = Math.max(...existingNodes.map(n => n.position.y));
+      return { x: rightmostX + 50, y: bottommostY - 50 + Math.random() * 100 };
+    }
+
     // Calculate positions based on layout mode
     const triggers = existingNodes.filter(n => n.type === 'trigger' || n.type === 'add-trigger');
     const actions = existingNodes.filter(n => n.type === 'action');
@@ -91,8 +99,10 @@ export const useNodeOperations = ({
         y: event.clientY,
       });
 
-      // Use smart positioning for organized layouts
-      const finalPosition = getSmartPosition(type, nodes);
+      // Use smart positioning for organized layouts, screen position for freeform
+      const finalPosition = layoutMode === 'freeform' 
+        ? position 
+        : getSmartPosition(type, nodes);
 
       // Handle special case for "Add New Trigger" node
       if (nodeData.id === 'add-new-trigger') {
