@@ -19,6 +19,15 @@ export const useNodeOperations = (layoutMode: LayoutMode) => {
       return isMobile ? { x: 50, y: 50 } : { x: 250, y: 100 };
     }
 
+    // For freeform mode, use a simple offset approach
+    if (layoutMode === 'freeform') {
+      const lastNode = existingNodes[existingNodes.length - 1];
+      return {
+        x: lastNode.position.x + (isMobile ? 50 : 100),
+        y: lastNode.position.y + (isMobile ? 50 : 100),
+      };
+    }
+
     const triggers = existingNodes.filter(n => n.type === 'trigger' || n.type === 'add-trigger');
     const actions = existingNodes.filter(n => n.type === 'action');
     const conditions = existingNodes.filter(n => n.type === 'condition' || n.type === 'split-condition');
@@ -56,6 +65,12 @@ export const useNodeOperations = (layoutMode: LayoutMode) => {
 
   const autoArrangeNodes = useCallback(() => {
     if (nodes.length === 0) return;
+
+    // Skip auto-arrangement for freeform mode
+    if (layoutMode === 'freeform') {
+      toast.info('Auto-arrange is not available in Free Form mode. Nodes can be positioned manually.');
+      return;
+    }
 
     const triggers = nodes.filter(n => n.type === 'trigger' || n.type === 'add-trigger');
     const actions = nodes.filter(n => n.type === 'action');

@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react';
 import { Node, Edge } from '@xyflow/react';
 
-export type LayoutMode = 'horizontal' | 'vertical';
+export type LayoutMode = 'horizontal' | 'vertical' | 'freeform';
 
 export const useWorkflowState = () => {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);

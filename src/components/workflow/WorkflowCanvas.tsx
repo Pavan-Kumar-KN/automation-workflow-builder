@@ -81,7 +81,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           style: { strokeWidth: 2, stroke: '#6366f1' },
           type: layoutMode === 'vertical' ? 'straight' : 'smoothstep',
         }}
-        snapToGrid={layoutMode !== 'horizontal'}
+        snapToGrid={layoutMode !== 'freeform'}
         snapGrid={layoutMode === 'vertical' ? [40, 40] : [20, 20]}
         panOnDrag={!isMobile || !sidebarOpen}
         zoomOnScroll={!isMobile}
@@ -91,7 +91,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         maxZoom={2}
       >
         <Background 
-          gap={layoutMode === 'vertical' ? 40 : 20} 
+          gap={layoutMode === 'freeform' ? 15 : layoutMode === 'vertical' ? 40 : 20} 
           size={1} 
           color="#e5e7eb" 
         />

@@ -15,7 +15,7 @@ export const useLayoutModeHandler = (
   const isTablet = useMediaQuery('(max-width: 1024px)');
 
   const handleLayoutModeChange = useCallback((mode: LayoutMode) => {
-    toast.success(`Layout mode changed to ${mode.charAt(0).toUpperCase() + mode.slice(1)}!`);
+    toast.success(`Layout mode changed to ${mode === 'freeform' ? 'Free Form' : mode.charAt(0).toUpperCase() + mode.slice(1)}!`);
     
     setNodes(
       nodes.map((node) => ({
@@ -30,6 +30,16 @@ export const useLayoutModeHandler = (
         type: mode === 'vertical' ? 'straight' : 'smoothstep',
       }))
     );
+    
+    // Skip auto-arrangement for freeform mode
+    if (mode === 'freeform') {
+      setTimeout(() => {
+        if (reactFlowInstance) {
+          reactFlowInstance.fitView({ padding: isMobile ? 20 : 50, duration: 800 });
+        }
+      }, 100);
+      return;
+    }
     
     setTimeout(() => {
       if (nodes.length > 0) {
