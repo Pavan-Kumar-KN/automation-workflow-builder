@@ -1,7 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   MessageSquare, 
   Database, 
@@ -41,7 +43,9 @@ import {
   EyeOff,
   Share2,
   Filter,
-  Search
+  Search,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 const triggerNodes = [
@@ -537,6 +541,9 @@ const conditionNodes = [
 
 export const Sidebar = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [triggersOpen, setTriggersOpen] = useState(true);
+  const [actionsOpen, setActionsOpen] = useState(true);
+  const [conditionsOpen, setConditionsOpen] = useState(true);
 
   const onDragStart = (event: React.DragEvent, nodeType: string, nodeData: any) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
@@ -568,43 +575,61 @@ export const Sidebar = () => {
   const filteredActions = useMemo(() => filterNodes(actionNodes, searchTerm), [searchTerm]);
   const filteredConditions = useMemo(() => filterNodes(conditionNodes, searchTerm), [searchTerm]);
 
-  const NodeCategory = ({ title, nodes, nodeType, emoji }: { title: string; nodes: any[]; nodeType: string; emoji: string }) => {
+  const NodeCategory = ({ title, nodes, nodeType, emoji, isOpen, setIsOpen }: { 
+    title: string; 
+    nodes: any[]; 
+    nodeType: string; 
+    emoji: string;
+    isOpen: boolean;
+    setIsOpen: (open: boolean) => void;
+  }) => {
     if (nodes.length === 0) return null;
     
     return (
-      <div className="mb-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <span className="text-base">{emoji}</span>
-          {title} ({nodes.length})
-        </h3>
-        <div className="space-y-2">
-          {nodes.map((node) => {
-            const IconComponent = node.icon;
-            return (
-              <Card
-                key={node.id}
-                className={`p-3 cursor-grab hover:shadow-md transition-all duration-200 border-2 ${node.color} hover:scale-[1.02]`}
-                draggable
-                onDragStart={(event) => onDragStart(event, nodeType, node)}
-              >
-                <div className="flex items-start space-x-3">
-                  <div className="p-2 rounded-lg bg-white shadow-sm flex-shrink-0">
-                    <IconComponent className="w-4 h-4 text-gray-600" />
+      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-6">
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center justify-between w-full group hover:bg-gray-50 p-2 rounded-md transition-colors">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span className="text-base">{emoji}</span>
+              {title} ({nodes.length})
+            </h3>
+            {isOpen ? (
+              <ChevronUp className="w-4 h-4 text-gray-500 group-hover:text-gray-700" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-500 group-hover:text-gray-700" />
+            )}
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-3">
+          <div className="space-y-2">
+            {nodes.map((node) => {
+              const IconComponent = node.icon;
+              return (
+                <Card
+                  key={node.id}
+                  className={`p-3 cursor-grab hover:shadow-md transition-all duration-200 border-2 ${node.color} hover:scale-[1.02]`}
+                  draggable
+                  onDragStart={(event) => onDragStart(event, nodeType, node)}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="p-2 rounded-lg bg-white shadow-sm flex-shrink-0">
+                      <IconComponent className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 leading-tight">
+                        {node.label}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                        {node.description}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 leading-tight">
-                      {node.label}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                      {node.description}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+                </Card>
+              );
+            })}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     );
   };
 
@@ -635,9 +660,30 @@ export const Sidebar = () => {
         </div>
       </div>
 
-      <NodeCategory title="Triggers" nodes={filteredTriggers} nodeType="trigger" emoji="🔥" />
-      <NodeCategory title="Actions" nodes={filteredActions} nodeType="action" emoji="⚡" />
-      <NodeCategory title="Conditions" nodes={filteredConditions} nodeType="condition" emoji="🎯" />
+      <NodeCategory 
+        title="Triggers" 
+        nodes={filteredTriggers} 
+        nodeType="trigger" 
+        emoji="🔥" 
+        isOpen={triggersOpen}
+        setIsOpen={setTriggersOpen}
+      />
+      <NodeCategory 
+        title="Actions" 
+        nodes={filteredActions} 
+        nodeType="action" 
+        emoji="⚡" 
+        isOpen={actionsOpen}
+        setIsOpen={setActionsOpen}
+      />
+      <NodeCategory 
+        title="Conditions" 
+        nodes={filteredConditions} 
+        nodeType="condition" 
+        emoji="🎯" 
+        isOpen={conditionsOpen}
+        setIsOpen={setConditionsOpen}
+      />
       
       {searchTerm && filteredTriggers.length === 0 && filteredActions.length === 0 && filteredConditions.length === 0 && (
         <div className="text-center py-8 text-gray-500">
