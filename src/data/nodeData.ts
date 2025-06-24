@@ -40,7 +40,8 @@ import {
   Facebook,
   Twitter,
   Slack,
-  Instagram
+  Instagram,
+  Split
 } from 'lucide-react';
 
 export interface NodeData {
@@ -539,6 +540,13 @@ export const conditionNodes: NodeData[] = [
     icon: Filter,
     description: 'Filter contacts based on criteria',
     color: 'bg-orange-50 border-orange-200'
+  },
+  { 
+    id: 'split-condition', 
+    label: 'Split', 
+    icon: Split,
+    description: 'Split contacts into multiple paths based on percentage distribution',
+    color: 'bg-purple-50 border-purple-200'
   },
 ];
 

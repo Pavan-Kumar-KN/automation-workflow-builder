@@ -20,12 +20,14 @@ import { WorkflowHeader } from './WorkflowHeader';
 import { TriggerNode } from './nodes/TriggerNode';
 import { ActionNode } from './nodes/ActionNode';
 import { ConditionNode } from './nodes/ConditionNode';
+import { SplitNode } from './nodes/SplitNode';
 import { toast } from 'sonner';
 
 const nodeTypes = {
   trigger: TriggerNode,
   action: ActionNode,
   condition: ConditionNode,
+  'split-condition': SplitNode,
 };
 
 const initialNodes: Node[] = [];
@@ -179,6 +181,7 @@ export const WorkflowBuilder = () => {
                   case 'trigger': return '#ef4444';
                   case 'action': return '#3b82f6';
                   case 'condition': return '#f59e0b';
+                  case 'split-condition': return '#f59e0b';
                   default: return '#6b7280';
                 }
               }}

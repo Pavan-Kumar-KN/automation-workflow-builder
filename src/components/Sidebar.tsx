@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Search } from 'lucide-react';
 import { triggerNodes, actionNodes, conditionNodes, externalAppNodes, NodeData } from '@/data/nodeData';
@@ -14,7 +15,9 @@ export const Sidebar = () => {
   const [externalAppsOpen, setExternalAppsOpen] = useState(false);
 
   const onDragStart = (event: React.DragEvent, nodeType: string, nodeData: NodeData) => {
-    event.dataTransfer.setData('application/reactflow', nodeType);
+    // Handle split-condition node type
+    const actualNodeType = nodeData.id === 'split-condition' ? 'split-condition' : nodeType;
+    event.dataTransfer.setData('application/reactflow', actualNodeType);
     event.dataTransfer.setData('application/nodedata', JSON.stringify(nodeData));
     event.dataTransfer.effectAllowed = 'move';
   };
