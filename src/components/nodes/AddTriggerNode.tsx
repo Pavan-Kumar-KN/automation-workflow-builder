@@ -34,10 +34,17 @@ export const AddTriggerNode: React.FC<AddTriggerNodeProps> = ({ data }) => {
         )}
       </div>
 
+      {/* Multiple output connection points for better flow */}
       <Handle
         type="source"
         position={Position.Right}
         className="w-3 h-3 bg-blue-500 border-2 border-white shadow-md hover:bg-blue-600 transition-colors"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="w-3 h-3 bg-blue-500 border-2 border-white shadow-md hover:bg-blue-600 transition-colors"
+        style={{ left: '50%' }}
       />
     </div>
   );

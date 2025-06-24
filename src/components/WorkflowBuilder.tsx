@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef } from 'react';
 import {
   ReactFlow,
@@ -65,6 +66,30 @@ export const WorkflowBuilder = () => {
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
+  // Smart positioning logic for better UX
+  const getSmartPosition = (type: string, existingNodes: Node[]) => {
+    if (existingNodes.length === 0) {
+      return { x: 250, y: 100 };
+    }
+
+    // Find the rightmost and bottommost positions
+    const rightmostX = Math.max(...existingNodes.map(n => n.position.x + 200));
+    const bottommostY = Math.max(...existingNodes.map(n => n.position.y));
+    const leftmostX = Math.min(...existingNodes.map(n => n.position.x));
+
+    // Smart positioning based on node type and existing layout
+    if (type === 'trigger' || type === 'add-trigger') {
+      // Place triggers at the beginning (left side)
+      return { x: leftmostX - 250, y: bottommostY + 150 };
+    } else if (type === 'condition' || type === 'split-condition') {
+      // Place conditions in the center with vertical spacing
+      return { x: rightmostX + 100, y: bottommostY + 50 };
+    } else {
+      // Place actions to the right with horizontal flow
+      return { x: rightmostX + 50, y: bottommostY - 50 };
+    }
+  };
+
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
@@ -83,12 +108,17 @@ export const WorkflowBuilder = () => {
         y: event.clientY,
       });
 
+      // Use smart positioning if dropped in empty area, otherwise use drop position
+      const finalPosition = event.clientX < 100 || event.clientY < 100 
+        ? getSmartPosition(type, nodes) 
+        : position;
+
       // Handle special case for "Add New Trigger" node
       if (nodeData.id === 'add-new-trigger') {
         const newNode: Node = {
           id: `add-trigger-${Date.now()}`,
           type: 'add-trigger',
-          position,
+          position: finalPosition,
           data: {
             ...nodeData,
             label: nodeData.label,
@@ -102,7 +132,7 @@ export const WorkflowBuilder = () => {
       const newNode: Node = {
         id: `${type}-${Date.now()}`,
         type,
-        position,
+        position: finalPosition,
         data: {
           ...nodeData,
           label: nodeData.label,
@@ -112,7 +142,7 @@ export const WorkflowBuilder = () => {
       setNodes((nds) => nds.concat(newNode));
       toast.success(`${nodeData.label} node added to workflow!`);
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance, setNodes, nodes]
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -147,6 +177,40 @@ export const WorkflowBuilder = () => {
       )
     );
   }, [setNodes]);
+
+  // Auto-arrange nodes for better layout
+  const autoArrangeNodes = useCallback(() => {
+    if (nodes.length === 0) return;
+
+    const triggers = nodes.filter(n => n.type === 'trigger' || n.type === 'add-trigger');
+    const actions = nodes.filter(n => n.type === 'action');
+    const conditions = nodes.filter(n => n.type === 'condition' || n.type === 'split-condition');
+
+    const arrangedNodes = nodes.map((node, index) => {
+      let newPosition = { ...node.position };
+
+      if (triggers.includes(node)) {
+        // Arrange triggers vertically on the left
+        const triggerIndex = triggers.indexOf(node);
+        newPosition = { x: 50, y: 100 + triggerIndex * 180 };
+      } else if (conditions.includes(node)) {
+        // Arrange conditions in the center
+        const conditionIndex = conditions.indexOf(node);
+        newPosition = { x: 400, y: 100 + conditionIndex * 200 };
+      } else if (actions.includes(node)) {
+        // Arrange actions on the right, both horizontally and vertically
+        const actionIndex = actions.indexOf(node);
+        const row = Math.floor(actionIndex / 2);
+        const col = actionIndex % 2;
+        newPosition = { x: 750 + col * 220, y: 100 + row * 180 };
+      }
+
+      return { ...node, position: newPosition };
+    });
+
+    setNodes(arrangedNodes);
+    toast.success('Nodes auto-arranged for optimal layout!');
+  }, [nodes, setNodes]);
 
   const executeWorkflow = useCallback(() => {
     if (nodes.length === 0) {
@@ -210,9 +274,16 @@ export const WorkflowBuilder = () => {
               style: { strokeWidth: 2, stroke: '#6366f1' },
               type: 'smoothstep',
             }}
+            snapToGrid={true}
+            snapGrid={[20, 20]}
           >
             <Background gap={20} size={1} color="#e5e7eb" />
-            <Controls className="bg-white border border-gray-200 rounded-lg shadow-sm" />
+            <Controls 
+              className="bg-white border border-gray-200 rounded-lg shadow-sm" 
+              showZoom={true}
+              showFitView={true}
+              showInteractive={true}
+            />
             <MiniMap
               className="bg-white border border-gray-200 rounded-lg shadow-sm"
               nodeColor={(node) => {
@@ -227,6 +298,17 @@ export const WorkflowBuilder = () => {
               }}
             />
           </ReactFlow>
+          
+          {/* Auto-arrange button */}
+          <button
+            onClick={autoArrangeNodes}
+            className="absolute top-4 right-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg transition-colors z-10 flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            Auto Arrange
+          </button>
         </div>
 
         {selectedNode && (

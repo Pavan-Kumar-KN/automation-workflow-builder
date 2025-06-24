@@ -112,10 +112,17 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
 
   return (
     <div className={`bg-white border-2 ${classes.border} rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]`}>
+      {/* Multiple input connection points */}
       <Handle
         type="target"
         position={Position.Left}
         className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+      />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+        style={{ left: '50%' }}
       />
 
       <div className={`bg-gradient-to-r ${classes.bg} px-4 py-3 rounded-t-lg border-b ${classes.border}`}>
@@ -138,10 +145,17 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
         )}
       </div>
 
+      {/* Multiple output connection points */}
       <Handle
         type="source"
         position={Position.Right}
         className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+        style={{ left: '50%' }}
       />
     </div>
   );
