@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ArrowRight, ArrowDown, Move } from 'lucide-react';
+import { ArrowRight, ArrowDown } from 'lucide-react';
 
-export type LayoutMode = 'horizontal' | 'vertical' | 'freeform';
+export type LayoutMode = 'horizontal' | 'vertical';
 
 interface LayoutModeSelectorProps {
   layoutMode: LayoutMode;
@@ -38,14 +38,6 @@ export const LayoutModeSelector: React.FC<LayoutModeSelectorProps> = ({
         >
           <ArrowDown className="w-3 h-3" />
           Vertical
-        </ToggleGroupItem>
-        <ToggleGroupItem 
-          value="freeform" 
-          size="sm"
-          className="flex items-center gap-1 text-xs px-2 py-1"
-        >
-          <Move className="w-3 h-3" />
-          Free Form
         </ToggleGroupItem>
       </ToggleGroup>
     </div>
