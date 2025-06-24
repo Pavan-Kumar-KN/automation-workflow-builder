@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +22,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
   onExecute,
 }) => {
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">

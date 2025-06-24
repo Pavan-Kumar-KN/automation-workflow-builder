@@ -137,7 +137,7 @@ export const WorkflowBuilder = () => {
   }, [workflowName, nodes, edges, isActive]);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <WorkflowHeader
         workflowName={workflowName}
         setWorkflowName={setWorkflowName}
@@ -147,10 +147,10 @@ export const WorkflowBuilder = () => {
         onExecute={executeWorkflow}
       />
       
-      <div className="flex flex-1">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         
-        <div className="flex-1 relative" ref={reactFlowWrapper}>
+        <div className="flex-1 relative overflow-hidden" ref={reactFlowWrapper}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
