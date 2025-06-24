@@ -44,7 +44,7 @@ export const AddTriggerNode: React.FC<AddTriggerNodeProps> = ({ data }) => {
         className="w-3 h-3 bg-blue-500 border-2 border-white shadow-md hover:bg-blue-600 transition-colors"
       />
       
-      {/* Secondary output handle for flexibility */}
+      {/* Secondary output handle for flexibility - only in horizontal mode */}
       {!isVertical && (
         <Handle
           type="source"

@@ -58,10 +58,10 @@ export const ConditionNode: React.FC<ConditionNodeProps> = ({ data }) => {
         )}
       </div>
 
-      {/* Output handles - arranged for vertical or horizontal flow */}
+      {/* Output handles - positioned based on layout mode */}
       {isVertical ? (
         <>
-          {/* Vertical layout: True handle on bottom-left, False handle on bottom-right */}
+          {/* Vertical layout: Both handles at bottom, side by side */}
           <Handle
             type="source"
             position={Position.Bottom}

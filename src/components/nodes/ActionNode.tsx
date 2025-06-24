@@ -9,6 +9,7 @@ interface ActionNodeProps {
     id: string;
     icon?: keyof typeof LucideIcons;
     description?: string;
+    layoutMode?: string;
   };
 }
 
@@ -56,6 +57,7 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
 
   const IconComponent = getIcon();
   const color = getColor();
+  const isVertical = data.layoutMode === 'vertical';
   
   const colorClasses = {
     blue: {
@@ -112,18 +114,20 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
 
   return (
     <div className={`bg-white border-2 ${classes.border} rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]`}>
-      {/* Multiple input connection points */}
+      {/* Input connection points - positioned based on layout mode */}
       <Handle
         type="target"
-        position={Position.Left}
+        position={isVertical ? Position.Top : Position.Left}
         className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
       />
-      <Handle
-        type="target"
-        position={Position.Top}
-        className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-        style={{ left: '50%' }}
-      />
+      {!isVertical && (
+        <Handle
+          type="target"
+          position={Position.Top}
+          className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+          style={{ left: '50%' }}
+        />
+      )}
 
       <div className={`bg-gradient-to-r ${classes.bg} px-4 py-3 rounded-t-lg border-b ${classes.border}`}>
         <div className="flex items-center space-x-2">
@@ -145,18 +149,20 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
         )}
       </div>
 
-      {/* Multiple output connection points */}
+      {/* Output connection points - positioned based on layout mode */}
       <Handle
         type="source"
-        position={Position.Right}
+        position={isVertical ? Position.Bottom : Position.Right}
         className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
       />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-        style={{ left: '50%' }}
-      />
+      {!isVertical && (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+          style={{ left: '50%' }}
+        />
+      )}
     </div>
   );
 };
