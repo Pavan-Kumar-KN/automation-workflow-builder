@@ -74,10 +74,10 @@ export const WorkflowBuilder = () => {
     }
 
     if (layoutMode === 'freeform') {
-      // For freeform, use basic positioning
-      const rightmostX = Math.max(...existingNodes.map(n => n.position.x + 200));
+      // For freeform, use basic positioning with some randomness
+      const rightmostX = Math.max(...existingNodes.map(n => n.position.x + 220));
       const bottommostY = Math.max(...existingNodes.map(n => n.position.y));
-      return { x: rightmostX + 50, y: bottommostY - 50 };
+      return { x: rightmostX + 50, y: bottommostY - 50 + Math.random() * 100 };
     }
 
     // Calculate positions based on layout mode
@@ -86,26 +86,22 @@ export const WorkflowBuilder = () => {
     const conditions = existingNodes.filter(n => n.type === 'condition' || n.type === 'split-condition');
 
     if (layoutMode === 'horizontal') {
-      // Horizontal layout: flows left to right
+      // Horizontal layout: flows left to right in columns
       if (type === 'trigger' || type === 'add-trigger') {
-        return { x: 50, y: 100 + triggers.length * 180 };
+        return { x: 50, y: 100 + triggers.length * 200 };
       } else if (type === 'condition' || type === 'split-condition') {
-        return { x: 400, y: 100 + conditions.length * 200 };
+        return { x: 400, y: 100 + conditions.length * 220 };
       } else {
-        const row = Math.floor(actions.length / 2);
-        const col = actions.length % 2;
-        return { x: 750 + col * 220, y: 100 + row * 180 };
+        return { x: 750, y: 100 + actions.length * 200 };
       }
     } else {
-      // Vertical layout: flows top to bottom
+      // Vertical layout: flows top to bottom in rows
       if (type === 'trigger' || type === 'add-trigger') {
-        return { x: 100 + triggers.length * 250, y: 50 };
+        return { x: 200 + triggers.length * 280, y: 50 };
       } else if (type === 'condition' || type === 'split-condition') {
-        return { x: 100 + conditions.length * 250, y: 300 };
+        return { x: 200 + conditions.length * 280, y: 350 };
       } else {
-        const col = Math.floor(actions.length / 2);
-        const row = actions.length % 2;
-        return { x: 100 + col * 250, y: 550 + row * 150 };
+        return { x: 200 + actions.length * 280, y: 650 };
       }
     }
   };
@@ -128,8 +124,8 @@ export const WorkflowBuilder = () => {
         y: event.clientY,
       });
 
-      // Use smart positioning based on layout mode, unless explicitly dropped in a specific position
-      const finalPosition = layoutMode === 'freeform' || (event.clientX > 100 && event.clientY > 100)
+      // Use smart positioning for organized layouts, screen position for freeform
+      const finalPosition = layoutMode === 'freeform' 
         ? position 
         : getSmartPosition(type, nodes);
 
@@ -198,7 +194,7 @@ export const WorkflowBuilder = () => {
     );
   }, [setNodes]);
 
-  // Enhanced auto-arrange nodes based on layout mode
+  // Enhanced auto-arrange nodes based on layout mode with proper spacing
   const autoArrangeNodes = useCallback(() => {
     if (nodes.length === 0) return;
 
@@ -210,32 +206,28 @@ export const WorkflowBuilder = () => {
       let newPosition = { ...node.position };
 
       if (layoutMode === 'horizontal') {
-        // Horizontal arrangement
+        // Horizontal arrangement: left to right flow
         if (triggers.includes(node)) {
           const triggerIndex = triggers.indexOf(node);
-          newPosition = { x: 50, y: 100 + triggerIndex * 180 };
+          newPosition = { x: 50, y: 100 + triggerIndex * 200 };
         } else if (conditions.includes(node)) {
           const conditionIndex = conditions.indexOf(node);
-          newPosition = { x: 400, y: 100 + conditionIndex * 200 };
+          newPosition = { x: 400, y: 100 + conditionIndex * 220 };
         } else if (actions.includes(node)) {
           const actionIndex = actions.indexOf(node);
-          const row = Math.floor(actionIndex / 2);
-          const col = actionIndex % 2;
-          newPosition = { x: 750 + col * 220, y: 100 + row * 180 };
+          newPosition = { x: 750, y: 100 + actionIndex * 200 };
         }
       } else if (layoutMode === 'vertical') {
-        // Vertical arrangement
+        // Vertical arrangement: top to bottom flow
         if (triggers.includes(node)) {
           const triggerIndex = triggers.indexOf(node);
-          newPosition = { x: 100 + triggerIndex * 250, y: 50 };
+          newPosition = { x: 200 + triggerIndex * 280, y: 50 };
         } else if (conditions.includes(node)) {
           const conditionIndex = conditions.indexOf(node);
-          newPosition = { x: 100 + conditionIndex * 250, y: 300 };
+          newPosition = { x: 200 + conditionIndex * 280, y: 350 };
         } else if (actions.includes(node)) {
           const actionIndex = actions.indexOf(node);
-          const col = Math.floor(actionIndex / 2);
-          const row = actionIndex % 2;
-          newPosition = { x: 100 + col * 250, y: 550 + row * 150 };
+          newPosition = { x: 200 + actionIndex * 280, y: 650 };
         }
       }
       // For freeform, keep existing positions
@@ -244,13 +236,72 @@ export const WorkflowBuilder = () => {
     });
 
     setNodes(arrangedNodes);
+    
+    // Fit view after arrangement for better user experience
+    setTimeout(() => {
+      if (reactFlowInstance) {
+        reactFlowInstance.fitView({ padding: 50, duration: 800 });
+      }
+    }, 100);
+    
     toast.success(`Nodes auto-arranged in ${layoutMode} layout!`);
-  }, [nodes, setNodes, layoutMode]);
+  }, [nodes, setNodes, layoutMode, reactFlowInstance]);
 
   const handleLayoutModeChange = useCallback((mode: LayoutMode) => {
     setLayoutMode(mode);
     toast.success(`Layout mode changed to ${mode.charAt(0).toUpperCase() + mode.slice(1)}!`);
-  }, []);
+    
+    // Auto-arrange nodes when layout mode changes for better UX
+    setTimeout(() => {
+      if (nodes.length > 0) {
+        const triggers = nodes.filter(n => n.type === 'trigger' || n.type === 'add-trigger');
+        const actions = nodes.filter(n => n.type === 'action');
+        const conditions = nodes.filter(n => n.type === 'condition' || n.type === 'split-condition');
+
+        const arrangedNodes = nodes.map((node) => {
+          let newPosition = { ...node.position };
+
+          if (mode === 'horizontal') {
+            // Horizontal arrangement: left to right flow
+            if (triggers.includes(node)) {
+              const triggerIndex = triggers.indexOf(node);
+              newPosition = { x: 50, y: 100 + triggerIndex * 200 };
+            } else if (conditions.includes(node)) {
+              const conditionIndex = conditions.indexOf(node);
+              newPosition = { x: 400, y: 100 + conditionIndex * 220 };
+            } else if (actions.includes(node)) {
+              const actionIndex = actions.indexOf(node);
+              newPosition = { x: 750, y: 100 + actionIndex * 200 };
+            }
+          } else if (mode === 'vertical') {
+            // Vertical arrangement: top to bottom flow
+            if (triggers.includes(node)) {
+              const triggerIndex = triggers.indexOf(node);
+              newPosition = { x: 200 + triggerIndex * 280, y: 50 };
+            } else if (conditions.includes(node)) {
+              const conditionIndex = conditions.indexOf(node);
+              newPosition = { x: 200 + conditionIndex * 280, y: 350 };
+            } else if (actions.includes(node)) {
+              const actionIndex = actions.indexOf(node);
+              newPosition = { x: 200 + actionIndex * 280, y: 650 };
+            }
+          }
+          // For freeform, keep existing positions
+
+          return { ...node, position: newPosition };
+        });
+
+        setNodes(arrangedNodes);
+        
+        // Fit view after layout change
+        setTimeout(() => {
+          if (reactFlowInstance) {
+            reactFlowInstance.fitView({ padding: 50, duration: 800 });
+          }
+        }, 100);
+      }
+    }, 100);
+  }, [nodes, setNodes, reactFlowInstance]);
 
   const executeWorkflow = useCallback(() => {
     if (nodes.length === 0) {
@@ -316,9 +367,13 @@ export const WorkflowBuilder = () => {
               type: 'smoothstep',
             }}
             snapToGrid={layoutMode !== 'freeform'}
-            snapGrid={[20, 20]}
+            snapGrid={layoutMode === 'vertical' ? [40, 40] : [20, 20]}
           >
-            <Background gap={20} size={1} color="#e5e7eb" />
+            <Background 
+              gap={layoutMode === 'vertical' ? 40 : 20} 
+              size={1} 
+              color="#e5e7eb" 
+            />
             <Controls 
               className="bg-white border border-gray-200 rounded-lg shadow-sm" 
               showZoom={true}
