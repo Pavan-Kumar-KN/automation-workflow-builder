@@ -169,7 +169,7 @@ export const WorkflowBuilder = () => {
               type: 'smoothstep',
             }}
           >
-            <Background variant="dots" gap={20} size={1} color="#e5e7eb" />
+            <Background variant="cross" gap={20} size={1} color="#e5e7eb" />
             <Controls className="bg-white border border-gray-200 rounded-lg shadow-sm" />
             <MiniMap
               className="bg-white border border-gray-200 rounded-lg shadow-sm"

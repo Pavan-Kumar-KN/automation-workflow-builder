@@ -17,12 +17,24 @@ interface NodeConfigPanelProps {
   onUpdate: (nodeId: string, data: any) => void;
 }
 
+interface NodeConfig {
+  label?: string;
+  webhookUrl?: string;
+  enabled?: boolean;
+  actionType?: string;
+  targetService?: string;
+  configData?: string;
+  field?: string;
+  operator?: string;
+  value?: string;
+}
+
 export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   node,
   onClose,
   onUpdate,
 }) => {
-  const [config, setConfig] = useState(node.data);
+  const [config, setConfig] = useState<NodeConfig>(node.data as NodeConfig);
 
   const handleSave = () => {
     onUpdate(node.id, config);
