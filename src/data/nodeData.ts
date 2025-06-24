@@ -40,7 +40,7 @@ import {
   Facebook,
   Twitter,
   Slack,
-  Trello
+  Instagram
 } from 'lucide-react';
 
 export interface NodeData {
@@ -698,7 +698,7 @@ export const externalAppNodes: NodeData[] = [
   { 
     id: 'instagram-business-app', 
     label: 'Instagram for Business', 
-    icon: Users,
+    icon: Instagram,
     description: 'Connect with Instagram for Business',
     color: 'bg-pink-50 border-pink-200'
   },
@@ -802,7 +802,7 @@ export const externalAppNodes: NodeData[] = [
     label: 'Stripe', 
     icon: CreditCard,
     description: 'Connect with Stripe payments',
-    color: 'bg-blue-50 border-blue-200'
+    color: 'bg-indigo-50 border-indigo-200'
   },
   { 
     id: 'razorpay-app', 
@@ -853,7 +853,7 @@ export const externalAppNodes: NodeData[] = [
   { 
     id: 'trello-app', 
     label: 'Trello', 
-    icon: Trello,
+    icon: FileText,
     description: 'Connect with Trello',
     color: 'bg-blue-50 border-blue-200'
   },
