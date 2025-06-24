@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef } from 'react';
 import {
   ReactFlow,
@@ -15,7 +16,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { Sidebar } from './Sidebar';
-import { NodeConfigPanel } from './NodeConfigPanel';
+import { NodeConfigPanel } from './node-config/NodeConfigPanel';
 import { WorkflowHeader } from './WorkflowHeader';
 import { TriggerNode } from './nodes/TriggerNode';
 import { ActionNode } from './nodes/ActionNode';
