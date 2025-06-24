@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef } from 'react';
 import {
   ReactFlow,
@@ -18,6 +17,7 @@ import '@xyflow/react/dist/style.css';
 import { Sidebar } from './Sidebar';
 import { NodeConfigPanel } from './node-config/NodeConfigPanel';
 import { WorkflowHeader } from './WorkflowHeader';
+import { LayoutModeSelector, LayoutMode } from './LayoutModeSelector';
 import { TriggerNode } from './nodes/TriggerNode';
 import { ActionNode } from './nodes/ActionNode';
 import { ConditionNode } from './nodes/ConditionNode';
@@ -42,6 +42,7 @@ export const WorkflowBuilder = () => {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [workflowName, setWorkflowName] = useState('My workflow');
   const [isActive, setIsActive] = useState(false);
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('horizontal');
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
@@ -66,27 +67,46 @@ export const WorkflowBuilder = () => {
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  // Smart positioning logic for better UX
+  // Enhanced smart positioning logic based on layout mode
   const getSmartPosition = (type: string, existingNodes: Node[]) => {
     if (existingNodes.length === 0) {
       return { x: 250, y: 100 };
     }
 
-    // Find the rightmost and bottommost positions
-    const rightmostX = Math.max(...existingNodes.map(n => n.position.x + 200));
-    const bottommostY = Math.max(...existingNodes.map(n => n.position.y));
-    const leftmostX = Math.min(...existingNodes.map(n => n.position.x));
-
-    // Smart positioning based on node type and existing layout
-    if (type === 'trigger' || type === 'add-trigger') {
-      // Place triggers at the beginning (left side)
-      return { x: leftmostX - 250, y: bottommostY + 150 };
-    } else if (type === 'condition' || type === 'split-condition') {
-      // Place conditions in the center with vertical spacing
-      return { x: rightmostX + 100, y: bottommostY + 50 };
-    } else {
-      // Place actions to the right with horizontal flow
+    if (layoutMode === 'freeform') {
+      // For freeform, use basic positioning
+      const rightmostX = Math.max(...existingNodes.map(n => n.position.x + 200));
+      const bottommostY = Math.max(...existingNodes.map(n => n.position.y));
       return { x: rightmostX + 50, y: bottommostY - 50 };
+    }
+
+    // Calculate positions based on layout mode
+    const triggers = existingNodes.filter(n => n.type === 'trigger' || n.type === 'add-trigger');
+    const actions = existingNodes.filter(n => n.type === 'action');
+    const conditions = existingNodes.filter(n => n.type === 'condition' || n.type === 'split-condition');
+
+    if (layoutMode === 'horizontal') {
+      // Horizontal layout: flows left to right
+      if (type === 'trigger' || type === 'add-trigger') {
+        return { x: 50, y: 100 + triggers.length * 180 };
+      } else if (type === 'condition' || type === 'split-condition') {
+        return { x: 400, y: 100 + conditions.length * 200 };
+      } else {
+        const row = Math.floor(actions.length / 2);
+        const col = actions.length % 2;
+        return { x: 750 + col * 220, y: 100 + row * 180 };
+      }
+    } else {
+      // Vertical layout: flows top to bottom
+      if (type === 'trigger' || type === 'add-trigger') {
+        return { x: 100 + triggers.length * 250, y: 50 };
+      } else if (type === 'condition' || type === 'split-condition') {
+        return { x: 100 + conditions.length * 250, y: 300 };
+      } else {
+        const col = Math.floor(actions.length / 2);
+        const row = actions.length % 2;
+        return { x: 100 + col * 250, y: 550 + row * 150 };
+      }
     }
   };
 
@@ -108,10 +128,10 @@ export const WorkflowBuilder = () => {
         y: event.clientY,
       });
 
-      // Use smart positioning if dropped in empty area, otherwise use drop position
-      const finalPosition = event.clientX < 100 || event.clientY < 100 
-        ? getSmartPosition(type, nodes) 
-        : position;
+      // Use smart positioning based on layout mode, unless explicitly dropped in a specific position
+      const finalPosition = layoutMode === 'freeform' || (event.clientX > 100 && event.clientY > 100)
+        ? position 
+        : getSmartPosition(type, nodes);
 
       // Handle special case for "Add New Trigger" node
       if (nodeData.id === 'add-new-trigger') {
@@ -142,7 +162,7 @@ export const WorkflowBuilder = () => {
       setNodes((nds) => nds.concat(newNode));
       toast.success(`${nodeData.label} node added to workflow!`);
     },
-    [reactFlowInstance, setNodes, nodes]
+    [reactFlowInstance, setNodes, nodes, layoutMode]
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -178,7 +198,7 @@ export const WorkflowBuilder = () => {
     );
   }, [setNodes]);
 
-  // Auto-arrange nodes for better layout
+  // Enhanced auto-arrange nodes based on layout mode
   const autoArrangeNodes = useCallback(() => {
     if (nodes.length === 0) return;
 
@@ -186,31 +206,51 @@ export const WorkflowBuilder = () => {
     const actions = nodes.filter(n => n.type === 'action');
     const conditions = nodes.filter(n => n.type === 'condition' || n.type === 'split-condition');
 
-    const arrangedNodes = nodes.map((node, index) => {
+    const arrangedNodes = nodes.map((node) => {
       let newPosition = { ...node.position };
 
-      if (triggers.includes(node)) {
-        // Arrange triggers vertically on the left
-        const triggerIndex = triggers.indexOf(node);
-        newPosition = { x: 50, y: 100 + triggerIndex * 180 };
-      } else if (conditions.includes(node)) {
-        // Arrange conditions in the center
-        const conditionIndex = conditions.indexOf(node);
-        newPosition = { x: 400, y: 100 + conditionIndex * 200 };
-      } else if (actions.includes(node)) {
-        // Arrange actions on the right, both horizontally and vertically
-        const actionIndex = actions.indexOf(node);
-        const row = Math.floor(actionIndex / 2);
-        const col = actionIndex % 2;
-        newPosition = { x: 750 + col * 220, y: 100 + row * 180 };
+      if (layoutMode === 'horizontal') {
+        // Horizontal arrangement
+        if (triggers.includes(node)) {
+          const triggerIndex = triggers.indexOf(node);
+          newPosition = { x: 50, y: 100 + triggerIndex * 180 };
+        } else if (conditions.includes(node)) {
+          const conditionIndex = conditions.indexOf(node);
+          newPosition = { x: 400, y: 100 + conditionIndex * 200 };
+        } else if (actions.includes(node)) {
+          const actionIndex = actions.indexOf(node);
+          const row = Math.floor(actionIndex / 2);
+          const col = actionIndex % 2;
+          newPosition = { x: 750 + col * 220, y: 100 + row * 180 };
+        }
+      } else if (layoutMode === 'vertical') {
+        // Vertical arrangement
+        if (triggers.includes(node)) {
+          const triggerIndex = triggers.indexOf(node);
+          newPosition = { x: 100 + triggerIndex * 250, y: 50 };
+        } else if (conditions.includes(node)) {
+          const conditionIndex = conditions.indexOf(node);
+          newPosition = { x: 100 + conditionIndex * 250, y: 300 };
+        } else if (actions.includes(node)) {
+          const actionIndex = actions.indexOf(node);
+          const col = Math.floor(actionIndex / 2);
+          const row = actionIndex % 2;
+          newPosition = { x: 100 + col * 250, y: 550 + row * 150 };
+        }
       }
+      // For freeform, keep existing positions
 
       return { ...node, position: newPosition };
     });
 
     setNodes(arrangedNodes);
-    toast.success('Nodes auto-arranged for optimal layout!');
-  }, [nodes, setNodes]);
+    toast.success(`Nodes auto-arranged in ${layoutMode} layout!`);
+  }, [nodes, setNodes, layoutMode]);
+
+  const handleLayoutModeChange = useCallback((mode: LayoutMode) => {
+    setLayoutMode(mode);
+    toast.success(`Layout mode changed to ${mode.charAt(0).toUpperCase() + mode.slice(1)}!`);
+  }, []);
 
   const executeWorkflow = useCallback(() => {
     if (nodes.length === 0) {
@@ -234,12 +274,13 @@ export const WorkflowBuilder = () => {
       nodes,
       edges,
       isActive,
+      layoutMode,
       updatedAt: new Date().toISOString(),
     };
     
     localStorage.setItem('workflow', JSON.stringify(workflowData));
     toast.success('Workflow saved successfully!');
-  }, [workflowName, nodes, edges, isActive]);
+  }, [workflowName, nodes, edges, isActive, layoutMode]);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
@@ -274,7 +315,7 @@ export const WorkflowBuilder = () => {
               style: { strokeWidth: 2, stroke: '#6366f1' },
               type: 'smoothstep',
             }}
-            snapToGrid={true}
+            snapToGrid={layoutMode !== 'freeform'}
             snapGrid={[20, 20]}
           >
             <Background gap={20} size={1} color="#e5e7eb" />
@@ -299,16 +340,23 @@ export const WorkflowBuilder = () => {
             />
           </ReactFlow>
           
-          {/* Auto-arrange button */}
-          <button
-            onClick={autoArrangeNodes}
-            className="absolute top-4 right-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg transition-colors z-10 flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            Auto Arrange
-          </button>
+          {/* Layout controls */}
+          <div className="absolute top-4 right-4 flex items-center gap-3 z-10">
+            <LayoutModeSelector
+              layoutMode={layoutMode}
+              onLayoutModeChange={handleLayoutModeChange}
+            />
+            <button
+              onClick={autoArrangeNodes}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg transition-colors flex items-center gap-2"
+              disabled={nodes.length === 0}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              Auto Arrange
+            </button>
+          </div>
         </div>
 
         {selectedNode && (
