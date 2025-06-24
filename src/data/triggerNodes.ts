@@ -1,4 +1,3 @@
-
 import { 
   MessageSquare, 
   Database, 
@@ -17,10 +16,20 @@ import {
   GraduationCap,
   BookOpen,
   ShoppingCart,
+  Plus,
 } from 'lucide-react';
 import { NodeData } from './types';
 
 export const triggerNodes: NodeData[] = [
+  // Add New Trigger Option
+  { 
+    id: 'add-new-trigger', 
+    label: 'Add New Trigger', 
+    icon: Plus,
+    description: 'Add another trigger to your workflow',
+    color: 'bg-blue-50 border-blue-200'
+  },
+  
   // Form Triggers
   { 
     id: 'form-trigger', 

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef } from 'react';
 import {
   ReactFlow,
@@ -22,6 +21,7 @@ import { TriggerNode } from './nodes/TriggerNode';
 import { ActionNode } from './nodes/ActionNode';
 import { ConditionNode } from './nodes/ConditionNode';
 import { SplitNode } from './nodes/SplitNode';
+import { AddTriggerNode } from './nodes/AddTriggerNode';
 import { toast } from 'sonner';
 
 const nodeTypes = {
@@ -29,6 +29,7 @@ const nodeTypes = {
   action: ActionNode,
   condition: ConditionNode,
   'split-condition': SplitNode,
+  'add-trigger': AddTriggerNode,
 };
 
 const initialNodes: Node[] = [];
@@ -82,6 +83,22 @@ export const WorkflowBuilder = () => {
         y: event.clientY,
       });
 
+      // Handle special case for "Add New Trigger" node
+      if (nodeData.id === 'add-new-trigger') {
+        const newNode: Node = {
+          id: `add-trigger-${Date.now()}`,
+          type: 'add-trigger',
+          position,
+          data: {
+            ...nodeData,
+            label: nodeData.label,
+          },
+        };
+        setNodes((nds) => nds.concat(newNode));
+        toast.success(`${nodeData.label} placeholder added! Click to convert to a trigger.`);
+        return;
+      }
+
       const newNode: Node = {
         id: `${type}-${Date.now()}`,
         type,
@@ -99,8 +116,29 @@ export const WorkflowBuilder = () => {
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    // Special handling for add-trigger nodes - convert them to regular trigger nodes
+    if (node.type === 'add-trigger') {
+      const updatedNode: Node = {
+        ...node,
+        type: 'trigger',
+        data: {
+          ...node.data,
+          label: 'New Trigger',
+          description: 'Configure this trigger',
+        },
+      };
+      
+      setNodes((nds) =>
+        nds.map((n) => (n.id === node.id ? updatedNode : n))
+      );
+      
+      setSelectedNode(updatedNode);
+      toast.success('Add Trigger converted to Trigger node!');
+      return;
+    }
+    
     setSelectedNode(node);
-  }, []);
+  }, [setNodes]);
 
   const updateNodeData = useCallback((nodeId: string, newData: any) => {
     setNodes((nds) =>
@@ -183,6 +221,7 @@ export const WorkflowBuilder = () => {
                   case 'action': return '#3b82f6';
                   case 'condition': return '#f59e0b';
                   case 'split-condition': return '#f59e0b';
+                  case 'add-trigger': return '#3b82f6';
                   default: return '#6b7280';
                 }
               }}
