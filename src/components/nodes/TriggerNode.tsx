@@ -49,14 +49,12 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
         <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
           {data.label}
         </h3>
-        {data.description && (
+        {/* {data.description && (
           <p className="text-xs text-gray-500 leading-relaxed mb-2">
             {data.description}
           </p>
-        )}
-        <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200">
-          <span className="font-medium">→ One Action Only</span>
-        </div>
+        )} */}
+
       </div>
 
       {/* Single output handle - position depends on layout mode */}

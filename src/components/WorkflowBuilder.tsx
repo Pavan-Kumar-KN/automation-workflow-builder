@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Node, Connection } from '@xyflow/react';
 import { Menu, X } from 'lucide-react';
 
@@ -8,7 +8,6 @@ import { NodeConfigPanel } from './node-config/NodeConfigPanel';
 import { WorkflowHeader } from './WorkflowHeader';
 import { WorkflowCanvas } from './workflow/WorkflowCanvas';
 import { WorkflowControls } from './workflow/WorkflowControls';
-import { ConnectionRulesHelp } from './ConnectionRulesHelp';
 import { Button } from '@/components/ui/button';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWorkflowStore, useReactFlowWrapper, LayoutMode } from '@/hooks/useWorkflowState';
@@ -201,7 +200,7 @@ export const WorkflowBuilder = () => {
 
       setNodes((nds) => nds.concat(newNode));
       toast.success(`${nodeData.label} node added to workflow!`);
-      
+
       if (isMobile) {
         setSidebarOpen(false);
       }
@@ -221,18 +220,36 @@ export const WorkflowBuilder = () => {
           layoutMode,
         },
       };
-      
+
       setNodes((nds) =>
         nds.map((n) => (n.id === node.id ? updatedNode : n))
       );
-      
+
       setSelectedNode(updatedNode);
       toast.success('Add Trigger converted to Trigger node!');
       return;
     }
-    
+
     setSelectedNode(node);
   }, [setNodes, layoutMode, setSelectedNode]);
+
+
+  // Here we are trying to show the plus icons if there are no nodes are there
+  const [isShow, setIsShow] = useState<boolean>(false);
+
+  useEffect(() => {
+
+    if (nodes.length === 0) {
+      console.log("Now the node length is 0");
+
+      setIsShow(true);
+
+    }
+    console.log("The lenth of the nodes is  = ", nodes.length);
+
+  }, [setNodes, nodes])
+
+
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
@@ -244,7 +261,7 @@ export const WorkflowBuilder = () => {
         onSave={saveWorkflow}
         onExecute={executeWorkflow}
       />
-      
+
       <div className="flex flex-1 overflow-hidden relative">
         {isMobile && (
           <Button
@@ -258,7 +275,7 @@ export const WorkflowBuilder = () => {
         )}
 
         <div className={`
-          ${isMobile 
+          ${isMobile
             ? `absolute inset-y-0 left-0 z-10 transform transition-transform duration-300 ease-in-out
                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
             : 'relative'
@@ -269,13 +286,14 @@ export const WorkflowBuilder = () => {
         </div>
 
         {isMobile && sidebarOpen && (
-          <div 
+          <div
             className="absolute inset-0 bg-black bg-opacity-50 z-5"
             onClick={() => setSidebarOpen(false)}
           />
         )}
-        
-        <WorkflowCanvas
+
+
+     <WorkflowCanvas
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
@@ -289,7 +307,10 @@ export const WorkflowBuilder = () => {
           reactFlowWrapper={reactFlowWrapper}
           onConnect={onConnect}
         />
-        
+       
+
+
+
         <WorkflowControls
           layoutMode={layoutMode}
           onLayoutModeChange={onLayoutModeChangeWrapper}
@@ -299,8 +320,8 @@ export const WorkflowBuilder = () => {
 
         {selectedNode && (
           <div className={`
-            ${isMobile 
-              ? 'absolute inset-x-0 bottom-0 h-1/2 z-20' 
+            ${isMobile
+              ? 'absolute inset-x-0 bottom-0 h-1/2 z-20'
               : 'relative w-80 lg:w-96'
             }
           `}>
@@ -312,8 +333,7 @@ export const WorkflowBuilder = () => {
           </div>
         )}
 
-        {/* Connection Rules Help */}
-        <ConnectionRulesHelp />
+
       </div>
     </div>
   );

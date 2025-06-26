@@ -47,11 +47,11 @@ export const ConditionNode: React.FC<ConditionNodeProps> = ({ data }) => {
         <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
           {data.label}
         </h3>
-        {data.description && (
+        {/* {data.description && (
           <p className="text-xs text-gray-500 leading-relaxed mb-2">
             {data.description}
           </p>
-        )}
+        )} */}
         {data.field && data.operator && (
           <p className="text-xs text-gray-600 font-mono bg-gray-50 px-2 py-1 rounded">
             If {data.field} {data.operator} {data.value || '...'}

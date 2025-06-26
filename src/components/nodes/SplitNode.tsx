@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { Split } from 'lucide-react';
+import { Split, Plus } from 'lucide-react';
 
 interface SplitNodeProps {
   data: {
@@ -41,11 +41,11 @@ export const SplitNode: React.FC<SplitNodeProps> = ({ data }) => {
         <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
           {data.label}
         </h3>
-        {data.description && (
+        {/* {data.description && (
           <p className="text-xs text-gray-500 leading-relaxed mb-3">
             {data.description}
           </p>
-        )}
+        )} */}
         
         <div className="space-y-2">
           {paths.map((path, index) => (
@@ -54,6 +54,14 @@ export const SplitNode: React.FC<SplitNodeProps> = ({ data }) => {
               <span className="text-purple-600 font-semibold">{path.percentage}%</span>
             </div>
           ))}
+
+          {/* Add Path Button */}
+          <div className="flex items-center justify-center pt-2">
+            <button className="flex items-center space-x-1 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 px-2 py-1 rounded transition-colors">
+              <Plus className="w-3 h-3" />
+              <span>Add Path</span>
+            </button>
+          </div>
         </div>
       </div>
 

@@ -5,10 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, Settings } from 'lucide-react';
 import { toast } from 'sonner';
-import { TriggerConfig } from './TriggerConfig';
-import { ActionConfig } from './ActionConfig';
-import { ConditionConfig } from './ConditionConfig';
-import { SplitConfig } from './SplitConfig';
+import { DynamicNodeConfig } from './DynamicNodeConfig';
 import { NodeConfig } from './types';
 
 interface NodeConfigPanelProps {
@@ -31,18 +28,13 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   };
 
   const renderConfigForm = () => {
-    switch (node.type) {
-      case 'trigger':
-        return <TriggerConfig config={config} setConfig={setConfig} />;
-      case 'action':
-        return <ActionConfig config={config} setConfig={setConfig} />;
-      case 'condition':
-        return <ConditionConfig config={config} setConfig={setConfig} />;
-      case 'split-condition':
-        return <SplitConfig config={config} setConfig={setConfig} />;
-      default:
-        return null;
-    }
+    return (
+      <DynamicNodeConfig
+        node={node}
+        onUpdate={onUpdate}
+        onClose={onClose}
+      />
+    );
   };
 
   const getNodeIcon = () => {
@@ -51,6 +43,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
       case 'action': return '⚡';
       case 'condition': return '🎯';
       case 'split-condition': return '🔀';
+      case 'goto-node': return '🧭';
       default: return '⚙️';
     }
   };

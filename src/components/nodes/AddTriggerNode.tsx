@@ -30,11 +30,11 @@ export const AddTriggerNode: React.FC<AddTriggerNodeProps> = ({ data }) => {
         <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
           {data.label}
         </h3>
-        {data.description && (
+        {/* {data.description && (
           <p className="text-xs text-gray-500 leading-relaxed">
             {data.description}
           </p>
-        )}
+        )} */}
       </div>
 
       {/* Primary output handle - position depends on layout mode */}

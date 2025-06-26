@@ -185,15 +185,12 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
         <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
           {data.label}
         </h3>
-        {data.description && (
+        {/* {data.description && (
           <p className="text-xs text-gray-500 leading-relaxed mb-2">
             {data.description}
           </p>
-        )}
-        <div className={`text-xs ${classes.textColor} bg-opacity-50 px-2 py-1 rounded border border-opacity-50`}
-             style={{ backgroundColor: classes.iconBg, borderColor: classes.border.replace('border-', '') }}>
-          <span className="font-medium">← Multiple Triggers OK</span>
-        </div>
+        )} */}
+
       </div>
 
       {/* Output connection points - positioned based on layout mode */}

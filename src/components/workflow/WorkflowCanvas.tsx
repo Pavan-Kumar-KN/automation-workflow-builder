@@ -18,8 +18,8 @@ import { ActionNode } from '../nodes/ActionNode';
 import { ConditionNode } from '../nodes/ConditionNode';
 import { SplitNode } from '../nodes/SplitNode';
 import { AddTriggerNode } from '../nodes/AddTriggerNode';
+import { GotoNode } from '../nodes/GotoNode';
 import { PlusButtonOverlay } from '../PlusButtonOverlay';
-import { toast } from 'sonner';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { LayoutMode } from '@/hooks/useWorkflowState';
 
@@ -29,6 +29,7 @@ const nodeTypes = {
   condition: ConditionNode,
   'split-condition': SplitNode,
   'add-trigger': AddTriggerNode,
+  'goto-node': GotoNode,
 };
 
 interface WorkflowCanvasProps {
@@ -78,11 +79,13 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         connectionMode={ConnectionMode.Loose}
         connectOnClick={false}
         deleteKeyCode={['Backspace', 'Delete']}
+
         // fitView
         className="bg-gray-100"
         style={{
           '--rf-zoom-speed': '0.3', // Reduce zoom speed
         } as React.CSSProperties}
+        
         defaultEdgeOptions={{
           style: { strokeWidth: 2, stroke: '#6366f1' },
           type: layoutMode === 'vertical' ? 'straight' : 'smoothstep',
@@ -114,7 +117,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         />
         <MiniMap
           className={`bg-white border border-gray-200 rounded-lg shadow-sm ${
-            isMobile ? 'w-24 h-16' : 'w-32 h-20'
+            isMobile ? 'w-24 h-16' : 'w-fit h-fit'
           }`}
           position={isMobile ? 'top-right' : 'bottom-left'}
           nodeColor={(node) => {

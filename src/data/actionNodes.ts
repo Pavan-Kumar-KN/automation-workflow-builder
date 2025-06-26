@@ -1,5 +1,5 @@
 
-import { 
+import {
   Mail,
   MessageSquare,
   Phone,
@@ -28,6 +28,7 @@ import {
   Webhook,
   Globe,
   Bell,
+  Navigation,
 } from 'lucide-react';
 import { NodeData } from './types';
 
@@ -291,11 +292,18 @@ export const actionNodes: NodeData[] = [
     description: 'Send internal notification',
     color: 'bg-gray-50 border-gray-200'
   },
-  { 
-    id: 'register-webinar-action', 
-    label: 'Register to Webinar', 
+  {
+    id: 'register-webinar-action',
+    label: 'Register to Webinar',
     icon: Users,
     description: 'Register contact for webinar',
     color: 'bg-gray-50 border-gray-200'
+  },
+  {
+    id: 'goto-node',
+    label: 'Goto Node',
+    icon: Navigation,
+    description: 'Redirect flow to any existing node when condition fails',
+    color: 'bg-indigo-50 border-indigo-200'
   },
 ];
