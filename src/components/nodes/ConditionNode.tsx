@@ -22,7 +22,7 @@ export const ConditionNode: React.FC<ConditionNodeProps> = ({ data }) => {
   };
 
   const IconComponent = getIcon();
-  const isVertical = data.layoutMode === 'vertical';
+  const isVertical = data.layoutMode === 'vertical' || data.layoutMode === 'freeform';
 
   return (
     <div className="bg-white border-2 border-orange-200 rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">

@@ -22,14 +22,15 @@ import { GotoNode } from '../nodes/GotoNode';
 import { PlusButtonOverlay } from '../PlusButtonOverlay';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { LayoutMode } from '@/hooks/useWorkflowState';
+import { JSONDebugPanel } from '../JSONDebugPanel';
 
 const nodeTypes = {
   trigger: TriggerNode,
   action: ActionNode,
   condition: ConditionNode,
-  'split-condition': SplitNode,
+  // 'split-condition': SplitNode,
   'add-trigger': AddTriggerNode,
-  'goto-node': GotoNode,
+  // 'goto-node': GotoNode,
 };
 
 interface WorkflowCanvasProps {
@@ -88,10 +89,10 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         
         defaultEdgeOptions={{
           style: { strokeWidth: 2, stroke: '#6366f1' },
-          type: layoutMode === 'vertical' ? 'straight' : 'smoothstep',
+          type: (layoutMode === 'vertical' || layoutMode === 'freeform') ? 'straight' : 'smoothstep',
         }}
         snapToGrid={layoutMode !== 'freeform'}
-        snapGrid={layoutMode === 'vertical' ? [40, 40] : [20, 20]}
+        snapGrid={(layoutMode === 'vertical' || layoutMode === 'freeform') ? [40, 40] : [20, 20]}
         panOnDrag={!isMobile || !sidebarOpen}
         zoomOnScroll={!isMobile}
         zoomOnPinch={true}
@@ -134,6 +135,9 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
         {/* Plus Button Overlay */}
         <PlusButtonOverlay nodes={nodes} />
+
+        {/* JSON Debug Panel - Inside ReactFlow context */}
+        {/* <JSONDebugPanel /> */}
       </ReactFlow>
     </div>
   );

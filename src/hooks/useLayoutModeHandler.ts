@@ -2,6 +2,7 @@
 import { useCallback } from 'react';
 import { useMediaQuery } from './useMediaQuery';
 import { useWorkflowStore, LayoutMode } from './useWorkflowState';
+import { useHorizontalFlow } from './useHorizontalFlow';
 import { toast } from 'sonner';
 
 export const useLayoutModeHandler = () => {
@@ -14,6 +15,8 @@ export const useLayoutModeHandler = () => {
 
   const isMobile = useMediaQuery('(max-width: 768px)');
   const isTablet = useMediaQuery('(max-width: 1024px)');
+
+  const { arrangeHorizontalFlow } = useHorizontalFlow();
 
   const handleLayoutModeChange = useCallback((mode: LayoutMode) => {
     toast.success(`Layout mode changed to ${mode === 'freeform' ? 'Free Form' : mode.charAt(0).toUpperCase() + mode.slice(1)}!`);
@@ -28,7 +31,7 @@ export const useLayoutModeHandler = () => {
     setEdges((eds) =>
       eds.map((edge) => ({
         ...edge,
-        type: mode === 'vertical' ? 'straight' : 'smoothstep',
+        type: (mode === 'vertical' || mode === 'freeform') ? 'straight' : 'smoothstep',
       }))
     );
     

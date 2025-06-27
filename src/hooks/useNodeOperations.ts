@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { Node, NodeChange, EdgeChange, applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
 import { useMediaQuery } from './useMediaQuery';
 import { useWorkflowStore } from './useWorkflowState';
+import { useHorizontalFlow } from './useHorizontalFlow';
 import { toast } from 'sonner';
 
 export const useNodeOperations = () => {
@@ -16,6 +17,8 @@ export const useNodeOperations = () => {
 
   const isMobile = useMediaQuery('(max-width: 768px)');
   const isTablet = useMediaQuery('(max-width: 1024px)');
+
+  const { arrangeHorizontalFlow, getHorizontalPosition } = useHorizontalFlow();
 
   // Handle node changes (position, selection, etc.)
   const onNodesChange = useCallback((changes: NodeChange[]) => {
@@ -52,13 +55,8 @@ export const useNodeOperations = () => {
     const columnSpacing = isMobile ? 180 : isTablet ? 220 : 280;
 
     if (layoutMode === 'horizontal') {
-      if (type === 'trigger' || type === 'add-trigger') {
-        return { x: 30, y: 50 + triggers.length * verticalSpacing };
-      } else if (type === 'condition' || type === 'split-condition') {
-        return { x: horizontalSpacing, y: 50 + conditions.length * (verticalSpacing + 20) };
-      } else {
-        return { x: horizontalSpacing * 2, y: 50 + actions.length * verticalSpacing };
-      }
+      // Use the new horizontal flow positioning
+      return getHorizontalPosition(type, existingNodes);
     } else {
       if (type === 'trigger' || type === 'add-trigger') {
         return { x: 100 + triggers.length * columnSpacing, y: 30 };
@@ -68,7 +66,7 @@ export const useNodeOperations = () => {
         return { x: 100 + actions.length * columnSpacing, y: isMobile ? 450 : 650 };
       }
     }
-  }, [layoutMode, isMobile, isTablet, nodes]);
+  }, [layoutMode, isMobile, isTablet, nodes, getHorizontalPosition]);
 
   const updateNodeData = useCallback((nodeId: string, newData: Record<string, unknown>) => {
     setNodes((nds) =>
@@ -87,29 +85,24 @@ export const useNodeOperations = () => {
       return;
     }
 
+    if (layoutMode === 'horizontal') {
+      // Use the new horizontal flow arrangement
+      arrangeHorizontalFlow();
+      return;
+    }
+
+    // Vertical layout arrangement (existing logic)
     const triggers = nodes.filter(n => n.type === 'trigger' || n.type === 'add-trigger');
     const actions = nodes.filter(n => n.type === 'action');
     const conditions = nodes.filter(n => n.type === 'condition' || n.type === 'split-condition');
 
-    const horizontalSpacing = isMobile ? 200 : isTablet ? 300 : 350;
     const verticalSpacing = isMobile ? 150 : 200;
     const columnSpacing = isMobile ? 180 : isTablet ? 220 : 280;
 
     const arrangedNodes = nodes.map((node) => {
       let newPosition = { ...node.position };
 
-      if (layoutMode === 'horizontal') {
-        if (triggers.includes(node)) {
-          const triggerIndex = triggers.indexOf(node);
-          newPosition = { x: 30, y: 50 + triggerIndex * verticalSpacing };
-        } else if (conditions.includes(node)) {
-          const conditionIndex = conditions.indexOf(node);
-          newPosition = { x: horizontalSpacing, y: 50 + conditionIndex * (verticalSpacing + 20) };
-        } else if (actions.includes(node)) {
-          const actionIndex = actions.indexOf(node);
-          newPosition = { x: horizontalSpacing * 2, y: 50 + actionIndex * verticalSpacing };
-        }
-      } else if (layoutMode === 'vertical') {
+      if (layoutMode === 'vertical') {
         if (triggers.includes(node)) {
           const triggerIndex = triggers.indexOf(node);
           newPosition = { x: 100 + triggerIndex * columnSpacing, y: 30 };
@@ -131,7 +124,7 @@ export const useNodeOperations = () => {
 
     setNodes(arrangedNodes);
     toast.success(`Nodes auto-arranged in ${layoutMode} layout!`);
-  }, [nodes, setNodes, layoutMode, isMobile, isTablet]);
+  }, [nodes, setNodes, layoutMode, isMobile, isTablet, arrangeHorizontalFlow]);
 
   return {
     nodes,

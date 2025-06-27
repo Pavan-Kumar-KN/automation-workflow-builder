@@ -117,13 +117,31 @@ export const WorkflowBuilder = () => {
         return;
       }
 
+      // CONSTRAINT: One action can only have ONE outgoing connection
+      if (sourceNode.type === 'action') {
+        // Check if this action already has an outgoing connection
+        const actionHasOutgoing = edges.find(
+          (edge) => edge.source === params.source
+        );
+
+        if (actionHasOutgoing) {
+          const connectedNode = nodes.find(node => node.id === actionHasOutgoing.target);
+          toast.error(
+            `This action is already connected to "${connectedNode?.data.label || 'another node'}". ` +
+            'Each action can only have ONE outgoing connection. Disconnect the existing connection first.',
+            { duration: 5000 }
+          );
+          return;
+        }
+      }
+
       // Create unique edge ID including handle IDs for better tracking
       const edgeId = `edge-${params.source}-${params.sourceHandle || 'default'}-${params.target}-${params.targetHandle || 'default'}`;
 
       const edge = {
         ...params,
         id: edgeId,
-        type: layoutMode === 'vertical' ? 'straight' : 'smoothstep',
+        type: (layoutMode === 'vertical' || layoutMode === 'freeform') ? 'straight' : 'smoothstep',
         animated: true,
         source: params.source!,
         target: params.target!,
@@ -332,7 +350,6 @@ export const WorkflowBuilder = () => {
             />
           </div>
         )}
-
 
       </div>
     </div>

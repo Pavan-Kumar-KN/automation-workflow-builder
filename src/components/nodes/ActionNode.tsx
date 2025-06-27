@@ -56,7 +56,7 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
 
   const IconComponent = getIcon();
   const color = getColor();
-  const isVertical = data.layoutMode === 'vertical';
+  const isVertical = data.layoutMode === 'vertical' || data.layoutMode === 'freeform';
   
   const colorClasses = {
     blue: {
@@ -114,62 +114,24 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
   return (
     <div className={`bg-white border-2 ${classes.border} rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]`}>
       {/* Input connection points - positioned based on layout mode */}
-      {/* Multiple input handles to accept connections from multiple triggers */}
+      {/* Horizontal layout: receive from top (trigger outputs from bottom) */}
+      {/* Vertical layout: receive from left (trigger outputs from right) */}
       {isVertical ? (
-        <>
-          <Handle
-            type="target"
-            position={Position.Top}
-            id="input-top-center"
-            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-            style={{ left: '50%' }}
-          />
-          <Handle
-            type="target"
-            position={Position.Top}
-            id="input-top-left"
-            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-            style={{ left: '30%' }}
-          />
-          <Handle
-            type="target"
-            position={Position.Top}
-            id="input-top-right"
-            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-            style={{ left: '70%' }}
-          />
-        </>
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="input-left-center"
+          className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+          style={{ top: '50%' }}
+        />
       ) : (
-        <>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="input-left-center"
-            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-            style={{ top: '50%' }}
-          />
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="input-left-top"
-            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-            style={{ top: '30%' }}
-          />
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="input-left-bottom"
-            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-            style={{ top: '70%' }}
-          />
-          <Handle
-            type="target"
-            position={Position.Top}
-            id="input-top"
-            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-            style={{ left: '50%' }}
-          />
-        </>
+        <Handle
+          type="target"
+          position={Position.Top}
+          id="input-top-center"
+          className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+          style={{ left: '50%' }}
+        />
       )}
 
       <div className={`bg-gradient-to-r ${classes.bg} px-4 py-3 rounded-t-lg border-b ${classes.border}`}>
@@ -185,39 +147,29 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
         <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
           {data.label}
         </h3>
-        {/* {data.description && (
-          <p className="text-xs text-gray-500 leading-relaxed mb-2">
-            {data.description}
-          </p>
-        )} */}
 
       </div>
 
       {/* Output connection points - positioned based on layout mode */}
+      {/* Horizontal layout: output from bottom, Vertical layout: output from right */}
       {isVertical ? (
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="output-right"
+          className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
+          style={{ top: '50%' }}
+          // Note: Connection limit (1 outgoing connection) enforced in WorkflowBuilder onConnect
+        />
+      ) : (
         <Handle
           type="source"
           position={Position.Bottom}
           id="output-bottom"
           className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
           style={{ left: '50%' }}
+          // Note: Connection limit (1 outgoing connection) enforced in WorkflowBuilder onConnect
         />
-      ) : (
-        <>
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="output-right"
-            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-          />
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            id="output-bottom"
-            className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-            style={{ left: '50%' }}
-          />
-        </>
       )}
     </div>
   );

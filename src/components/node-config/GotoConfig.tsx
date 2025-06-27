@@ -98,7 +98,7 @@ export const GotoConfig: React.FC<GotoConfigProps> = ({ node, onUpdate, onClose 
               <div className="flex items-center space-x-2">
                 <Target className="w-4 h-4 text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-800">
-                  Will redirect to: {selectedTargetNode?.data?.label}
+                  Will redirect to: {selectedTargetNode.data?.label}
                 </span>
               </div>
               <div className="mt-1 text-xs text-indigo-600">

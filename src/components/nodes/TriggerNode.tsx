@@ -32,7 +32,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
   };
 
   const IconComponent = getIcon();
-  const isVertical = data.layoutMode === 'vertical';
+  const isVertical = data.layoutMode === 'vertical' || data.layoutMode === 'freeform';
 
   return (
     <div className="bg-white border-2 border-red-200 rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
@@ -58,11 +58,13 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
       </div>
 
       {/* Single output handle - position depends on layout mode */}
+      {/* Horizontal layout: output from bottom, Vertical layout: output from right */}
       <Handle
         type="source"
-        position={isVertical ? Position.Bottom : Position.Right}
-        id="primary-output"
+        position={isVertical ? Position.Right : Position.Bottom}
+        id={isVertical ? "output-right" : "output-bottom"}
         className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
+        style={isVertical ? { top: '50%' } : { left: '50%' }}
       />
     </div>
   );
