@@ -1,96 +1,60 @@
-import { useCallback } from 'react';
-import { Node, Edge } from '@xyflow/react';
-import { useWorkflowStore } from '@/hooks/useWorkflowState';
-import {
-  FrontendJSONConstructor,
-  BackendJSONConstructor,
-  FrontendWorkflowJSON,
-  BackendWorkflowJSON
-} from '@/utils/jsonConstructors';
-import { toast } from 'sonner';
+import { useEffect, useCallback } from 'react';
+import { useWorkflowStore } from './useWorkflowState';
+import { WorkflowConverter, BackendWorkflowJSON } from '@/utils/workflowConverter';
 
+/**
+ * Hook for real-time workflow JSON generation
+ *
+ * This hook automatically generates backend JSON whenever nodes or edges change.
+ * Perfect for real-time updates and debugging.
+ */
 export const useWorkflowJSON = () => {
-  const {
-    nodes,
-    edges,
-    workflowName,
-    layoutMode,
-    isActive
-  } = useWorkflowStore();
+  const { nodes, edges, workflowName } = useWorkflowStore();
 
   /**
-   * Generate Frontend JSON (for workflow builder state)
+   * Generate backend JSON
    */
-  const generateFrontendJSON = useCallback((viewport = { x: 0, y: 0, zoom: 1 }): FrontendWorkflowJSON => {
-    const frontendJSON = FrontendJSONConstructor.construct(
+  const generateJSON = useCallback((): BackendWorkflowJSON => {
+    return WorkflowConverter.convertToBackendJSON(
       nodes,
       edges,
       workflowName,
-      viewport,
-      { layoutMode, isActive }
+      54 // Default user ID
     );
-
-    console.log('📋 Frontend JSON Generated:', frontendJSON);
-    return frontendJSON;
-  }, [nodes, edges, workflowName, layoutMode, isActive]);
-
-  /**
-   * Generate Backend JSON (for API submission)
-   */
-  const generateBackendJSON = useCallback((userId: number = 54): BackendWorkflowJSON => {
-    const backendJSON = BackendJSONConstructor.construct(
-      nodes,
-      edges,
-      workflowName,
-      userId
-    );
-
-    console.log('🚀 Backend JSON Generated:', backendJSON);
-    return backendJSON;
   }, [nodes, edges, workflowName]);
 
   /**
-   * Save Frontend JSON to file/localStorage
+   * Get current JSON (for immediate use)
    */
-  const saveFrontendJSON = useCallback((viewport = { x: 0, y: 0, zoom: 1 }) => {
-    try {
-      const json = generateFrontendJSON(viewport);
-      FrontendJSONConstructor.save(json);
-      toast.success('Frontend JSON saved successfully!');
-      return json;
-    } catch (error) {
-      console.error('❌ Failed to save Frontend JSON:', error);
-      toast.error('Failed to save Frontend JSON');
-      return null;
-    }
-  }, [generateFrontendJSON]);
+  const getCurrentJSON = useCallback(() => {
+    return generateJSON();
+  }, [generateJSON]);
 
   /**
-   * Save Backend JSON to file
+   * Save JSON to file (for debugging)
    */
-  const saveBackendJSON = useCallback((userId?: number) => {
-    try {
-      const json = generateBackendJSON(userId);
-      BackendJSONConstructor.save(json);
-      toast.success('Backend JSON saved successfully!');
-      return json;
-    } catch (error) {
-      console.error('❌ Failed to save Backend JSON:', error);
-      toast.error('Failed to save Backend JSON');
-      return null;
-    }
-  }, [generateBackendJSON]);
+  const saveJSON = useCallback(() => {
+    const json = generateJSON();
+    const blob = new Blob([JSON.stringify(json, null, 2)], {
+      type: 'application/json'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${workflowName.replace(/\s+/g, '_')}_workflow.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [generateJSON, workflowName]);
 
   /**
-   * Send Backend JSON to API
+   * Submit to backend API
    */
-  const submitToBackend = useCallback(async (userId?: number) => {
+  const submitToBackend = useCallback(async () => {
+    const json = generateJSON();
+
     try {
-      const json = generateBackendJSON(userId);
-      
-      console.log('🚀 Submitting to Backend API...', json);
-      
-      // Replace with your actual API endpoint
       const response = await fetch('/api/workflows', {
         method: 'POST',
         headers: {
@@ -100,124 +64,48 @@ export const useWorkflowJSON = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        throw new Error(`API Error: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('✅ Backend API Response:', result);
-      toast.success('Workflow submitted to backend successfully!');
-      
+      console.log('✅ Workflow submitted successfully:', result);
       return result;
+
     } catch (error) {
-      console.error('❌ Backend submission failed:', error);
-      toast.error('Failed to submit workflow to backend');
+      console.error('❌ Failed to submit workflow:', error);
       throw error;
     }
-  }, [generateBackendJSON]);
+  }, [generateJSON]);
 
   /**
-   * Get workflow statistics
+   * Debug current workflow
    */
-  const getWorkflowStats = useCallback(() => {
-    const triggerCount = nodes.filter(node => 
-      node.type === 'trigger' || node.type.includes('trigger')
-    ).length;
-    
-    const actionCount = nodes.filter(node => 
-      node.type === 'action' || node.type.includes('action')
-    ).length;
-    
-    const conditionCount = nodes.filter(node => 
-      node.type === 'condition' || node.type.includes('condition')
-    ).length;
-
-    return {
-      totalNodes: nodes.length,
-      totalEdges: edges.length,
-      triggers: triggerCount,
-      actions: actionCount,
-      conditions: conditionCount,
-      isValid: triggerCount > 0 && actionCount > 0,
-      hasConnections: edges.length > 0
-    };
+  const debugWorkflow = useCallback(() => {
+    WorkflowConverter.debugConversion(nodes, edges);
   }, [nodes, edges]);
 
   /**
-   * Validate workflow before submission
+   * Auto-generate JSON on changes (for debugging)
    */
-  const validateWorkflow = useCallback(() => {
-    const stats = getWorkflowStats();
-    const errors: string[] = [];
-
-    if (stats.triggers === 0) {
-      errors.push('Workflow must have at least one trigger');
+  useEffect(() => {
+    if (nodes.length > 0) {
+      const json = generateJSON();
+      console.log('🔄 Workflow JSON Updated:', json);
     }
-
-    if (stats.actions === 0) {
-      errors.push('Workflow must have at least one action');
-    }
-
-    if (stats.hasConnections === false && stats.totalNodes > 1) {
-      errors.push('Nodes must be connected with edges');
-    }
-
-    // Check for orphaned nodes
-    const connectedNodeIds = new Set([
-      ...edges.map(e => e.source),
-      ...edges.map(e => e.target)
-    ]);
-
-    const orphanedNodes = nodes.filter(node => 
-      !connectedNodeIds.has(node.id) && nodes.length > 1
-    );
-
-    if (orphanedNodes.length > 0) {
-      errors.push(`${orphanedNodes.length} nodes are not connected`);
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      stats
-    };
-  }, [nodes, edges, getWorkflowStats]);
-
-  /**
-   * Debug: Log both JSON formats
-   */
-  const debugJSON = useCallback((viewport = { x: 0, y: 0, zoom: 1 }) => {
-    console.group('🔍 Workflow JSON Debug');
-
-    const frontendJSON = generateFrontendJSON(viewport);
-    const backendJSON = generateBackendJSON();
-    const validation = validateWorkflow();
-
-    console.log('📋 Frontend JSON:', frontendJSON);
-    console.log('🚀 Backend JSON:', backendJSON);
-    console.log('✅ Validation:', validation);
-
-    console.groupEnd();
-
-    return { frontendJSON, backendJSON, validation };
-  }, [generateFrontendJSON, generateBackendJSON, validateWorkflow]);
+  }, [nodes, edges, generateJSON]);
 
   return {
     // JSON Generation
-    generateFrontendJSON,
-    generateBackendJSON,
-    
+    generateJSON,
+    getCurrentJSON,
+
     // File Operations
-    saveFrontendJSON,
-    saveBackendJSON,
-    
+    saveJSON,
+
     // API Operations
     submitToBackend,
-    
-    // Validation & Stats
-    validateWorkflow,
-    getWorkflowStats,
-    
+
     // Debug
-    debugJSON
+    debugWorkflow
   };
 };

@@ -1,5 +1,5 @@
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { Node, Connection } from '@xyflow/react';
 import { Menu, X } from 'lucide-react';
 
@@ -14,6 +14,8 @@ import { useWorkflowStore, useReactFlowWrapper, LayoutMode } from '@/hooks/useWo
 import { useNodeOperations } from '@/hooks/useNodeOperations';
 import { useWorkflowActions } from '@/hooks/useWorkflowActions';
 import { useLayoutModeHandler } from '@/hooks/useLayoutModeHandler';
+import { NodeSelectionModal } from './NodeSelectionModal';
+import { useWorkflowJSON } from '@/hooks/useWorkflowJSON';
 import { toast } from 'sonner';
 
 export const WorkflowBuilder = () => {
@@ -36,12 +38,15 @@ export const WorkflowBuilder = () => {
     setEdges,
   } = useWorkflowStore();
 
+  // Modal state for embedded plus buttons
+  const [showNodeModal, setShowNodeModal] = useState(false);
+  const [modalSourceNode, setModalSourceNode] = useState<Node | null>(null);
+
   const reactFlowWrapper = useReactFlowWrapper();
 
   const {
     onNodesChange,
     onEdgesChange,
-    getSmartPosition,
     updateNodeData,
     autoArrangeNodes,
   } = useNodeOperations();
@@ -51,6 +56,17 @@ export const WorkflowBuilder = () => {
   const { executeWorkflow, saveWorkflow } = useWorkflowActions();
 
   const { handleLayoutModeChange } = useLayoutModeHandler();
+
+  // JSON generation (auto-updates on node/edge changes)
+  const { generateJSON } = useWorkflowJSON();
+
+  // Debug: Log JSON when nodes change (for development)
+  useEffect(() => {
+    if (nodes.length > 0) {
+      const json = generateJSON();
+      console.log('🔄 Current Workflow JSON:', json);
+    }
+  }, [nodes.length, generateJSON]);
 
   const isMobile = useMediaQuery('(max-width: 768px)');
 
@@ -166,6 +182,170 @@ export const WorkflowBuilder = () => {
     handleLayoutModeChange(mode);
   }, [setLayoutMode, handleLayoutModeChange]);
 
+  // Modal handlers for embedded plus buttons
+  const openNodeModal = useCallback((sourceNode: Node) => {
+    console.log('🔥 Opening node modal for:', sourceNode);
+    setModalSourceNode(sourceNode);
+    setShowNodeModal(true);
+  }, []);
+
+  const closeNodeModal = useCallback(() => {
+    setShowNodeModal(false);
+    setModalSourceNode(null);
+  }, []);
+
+  const getSourceHandle = useCallback((nodeType: string): string => {
+    const isHorizontalFlow = layoutMode === 'horizontal';
+    switch (nodeType) {
+      case 'trigger': return isHorizontalFlow ? 'output-right' : 'output-bottom';
+      case 'action': return isHorizontalFlow ? 'output-right' : 'output-bottom';
+      case 'condition': return 'true';
+      default: return isHorizontalFlow ? 'output-right' : 'output-bottom';
+    }
+  }, [layoutMode]);
+
+  const getTargetHandle = useCallback((nodeType: string): string => {
+    const isHorizontalFlow = layoutMode === 'horizontal';
+    switch (nodeType) {
+      case 'action': return isHorizontalFlow ? 'input-left-center' : 'input-top-center';
+      case 'condition': return 'input'; // Condition node input handle ID
+      case 'split-condition': return 'input';
+      default: return 'input';
+    }
+  }, [layoutMode]);
+
+  const getValidNodeTypes = useCallback((sourceNode: Node) => {
+    // Return all valid node types that can be connected from this source
+    if (sourceNode.type === 'trigger') {
+      return ['action', 'condition'];
+    }
+    return ['action', 'condition'];
+  }, []);
+
+  const handleNodeSelection = useCallback((nodeType: string, nodeData:Node) => {
+    if (!modalSourceNode) return;
+
+    const selectedSourceNode = modalSourceNode;
+
+    // Get the specific source handle (important for condition nodes with true/false paths)
+    const specificSourceHandle = (selectedSourceNode as any).sourceHandle;
+
+    // Find existing outgoing edge from this node (considering specific handle for conditions)
+    const existingOutgoingEdge = edges.find(edge =>
+      edge.source === selectedSourceNode.id &&
+      (specificSourceHandle ? edge.sourceHandle === specificSourceHandle : true)
+    );
+
+    // Calculate position for new node
+    const sourcePosition = selectedSourceNode.position;
+    const isHorizontalFlow = layoutMode === 'horizontal';
+
+    let newPosition: { x: number; y: number };
+    if (existingOutgoingEdge) {
+      // If there's an existing connection, position the new node between source and target
+      const targetNode = nodes.find(node => node.id === existingOutgoingEdge.target);
+      if (targetNode) {
+        const targetPosition = targetNode.position;
+        newPosition = {
+          x: (sourcePosition.x + targetPosition.x) / 2,
+          y: (sourcePosition.y + targetPosition.y) / 2,
+        };
+      } else {
+        // Fallback if target node not found
+        newPosition = {
+          x: isHorizontalFlow ? sourcePosition.x + 300 : sourcePosition.x,
+          y: isHorizontalFlow ? sourcePosition.y : sourcePosition.y + 200,
+        };
+      }
+    } else {
+      // No existing connection, use standard positioning
+      newPosition = {
+        x: isHorizontalFlow ? sourcePosition.x + 300 : sourcePosition.x,
+        y: isHorizontalFlow ? sourcePosition.y : sourcePosition.y + 200,
+      };
+    }
+
+    // Create new node
+    const newNode = {
+      id: `${nodeType}-${Date.now()}`,
+      type: nodeType,
+      position: newPosition,
+      data: {
+        ...nodeData,
+        layoutMode,
+        openNodeModal, // Pass the modal handler to new nodes
+      },
+    };
+
+    // Add the new node
+    setNodes((nds) => [...nds, newNode]);
+
+    // Handle edge connections
+    if (existingOutgoingEdge) {
+      // Remove the existing edge and create two new edges
+      const sourceHandle = specificSourceHandle || getSourceHandle(selectedSourceNode.type);
+      const newNodeTargetHandle = getTargetHandle(nodeType);
+      const newNodeSourceHandle = getSourceHandle(nodeType);
+      const targetNode = nodes.find(n => n.id === existingOutgoingEdge.target);
+      const finalTargetHandle = getTargetHandle(targetNode?.type || 'action');
+
+      setEdges((eds) => [
+        ...eds.filter(edge => edge.id !== existingOutgoingEdge.id),
+        {
+          id: `${selectedSourceNode.id}-${newNode.id}`,
+          source: selectedSourceNode.id,
+          target: newNode.id,
+          sourceHandle,
+          targetHandle: newNodeTargetHandle,
+          type: (layoutMode === 'vertical' || layoutMode === 'freeform') ? 'straight' : 'smoothstep',
+        },
+        {
+          id: `${newNode.id}-${existingOutgoingEdge.target}`,
+          source: newNode.id,
+          target: existingOutgoingEdge.target,
+          sourceHandle: newNodeSourceHandle,
+          targetHandle: finalTargetHandle,
+          type: (layoutMode === 'vertical' || layoutMode === 'freeform') ? 'straight' : 'smoothstep',
+        },
+      ]);
+    } else {
+      // Create a single new edge
+      const sourceHandle = specificSourceHandle || getSourceHandle(selectedSourceNode.type);
+      const targetHandle = getTargetHandle(nodeType);
+
+      setEdges((eds) => [
+        ...eds,
+        {
+          id: `${selectedSourceNode.id}-${newNode.id}`,
+          source: selectedSourceNode.id,
+          target: newNode.id,
+          sourceHandle,
+          targetHandle,
+          type: (layoutMode === 'vertical' || layoutMode === 'freeform') ? 'straight' : 'smoothstep',
+        },
+      ]);
+    }
+
+    closeNodeModal();
+  }, [modalSourceNode, edges, nodes, layoutMode, setNodes, setEdges, closeNodeModal, getSourceHandle, getTargetHandle, openNodeModal]);
+
+  // Update existing nodes with modal handler - run only once
+  const hasUpdatedNodesRef = useRef(false);
+  useEffect(() => {
+    if (nodes.length > 0 && !hasUpdatedNodesRef.current) {
+      hasUpdatedNodesRef.current = true;
+      setNodes((nds) =>
+        nds.map((node) => ({
+          ...node,
+          data: {
+            ...node.data,
+            openNodeModal,
+          },
+        }))
+      );
+    }
+  }, [nodes.length, openNodeModal, setNodes]);
+
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
@@ -184,7 +364,13 @@ export const WorkflowBuilder = () => {
         return;
       }
 
-      const finalPosition = getSmartPosition(type, nodes);
+      // Get the actual drop position from mouse coordinates
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      const finalPosition = position;
 
       if (nodeData.id === 'add-new-trigger') {
         const newNode: Node = {
@@ -213,6 +399,7 @@ export const WorkflowBuilder = () => {
           ...nodeData,
           label: nodeData.label,
           layoutMode,
+          openNodeModal,
         },
       };
 
@@ -223,7 +410,7 @@ export const WorkflowBuilder = () => {
         setSidebarOpen(false);
       }
     },
-    [reactFlowInstance, setNodes, nodes, layoutMode, isMobile, getSmartPosition, setSidebarOpen]
+    [reactFlowInstance, setNodes, layoutMode, isMobile, setSidebarOpen, openNodeModal]
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -281,7 +468,6 @@ export const WorkflowBuilder = () => {
         )}
 
         {/* Old code  */}
-
         {/* <div className={`
           ${isMobile
             ? `absolute inset-y-0 left-0 z-10 transform transition-transform duration-300 ease-in-out
@@ -295,14 +481,15 @@ export const WorkflowBuilder = () => {
 
 
         {/* New Code to toggle sidebar */}
-
-        <button
+      <div className='relative bg-blue-900  h-screen w-11'>
+          <button
           onClick={() => setIsShow(!isShow)}
-          className="absolute top-4 left-2 z-30 flex items-center px-2 py-2 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition duration-200"
+          className="absolute top-4 left-2 z-30 flex items-center px-2 py-2 rounded-full bg-white text-black shadow-lg transition duration-200"
         >
           {isShow ? <X className="h-5 w-4" /> : <Menu className="h-5 w-4" />}
           <span className="hidden sm:inline"></span>
         </button>
+      </div>
 
 
         {
@@ -343,8 +530,6 @@ export const WorkflowBuilder = () => {
         />
 
 
-
-
         <WorkflowControls
           layoutMode={layoutMode}
           onLayoutModeChange={onLayoutModeChangeWrapper}
@@ -368,7 +553,16 @@ export const WorkflowBuilder = () => {
         )}
 
       </div>
+
+      {/* Node Selection Modal for embedded plus buttons - Rendered at top level */}
+      <NodeSelectionModal
+        isOpen={showNodeModal && !!modalSourceNode}
+        onClose={closeNodeModal}
+        onSelectNode={handleNodeSelection}
+        validNodeTypes={modalSourceNode ? getValidNodeTypes(modalSourceNode) : []}
+        sourceNode={modalSourceNode || { id: '', type: 'action', position: { x: 0, y: 0 }, data: {} }}
+      />
     </div>
-    
+
   );
 };

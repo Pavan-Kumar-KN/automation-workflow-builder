@@ -1,7 +1,10 @@
 
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { Plus } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
 
 interface TriggerNodeProps {
   data: {
@@ -10,10 +13,13 @@ interface TriggerNodeProps {
     icon?: keyof typeof LucideIcons;
     description?: string;
     layoutMode?: string;
+    openNodeModal?: (node: any) => void;
   };
 }
 
 export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
+  const { edges, nodes } = useWorkflowStore();
+
   const getIcon = () => {
     if (data.icon && data.icon in LucideIcons) {
       return LucideIcons[data.icon] as React.ComponentType<React.SVGProps<SVGSVGElement>>;
@@ -32,7 +38,23 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
   };
 
   const IconComponent = getIcon();
-  const isVertical = data.layoutMode === 'vertical' || data.layoutMode === 'freeform';
+  const isHorizontalFlow = data.layoutMode === 'horizontal';
+
+  const handleAddNode = () => {
+    console.log('🎯 TriggerNode handleAddNode clicked!');
+    // Find the current node and call the modal handler from props
+    const currentNode = nodes.find(n => n.data === data);
+    console.log('🎯 Found current node:', currentNode);
+    if (currentNode && data.openNodeModal) {
+      console.log('🎯 Calling openNodeModal...');
+      data.openNodeModal(currentNode);
+    } else {
+      console.log('🎯 Missing currentNode or openNodeModal:', { currentNode: !!currentNode, openNodeModal: !!data.openNodeModal });
+    }
+  };
+
+  // Check if this node already has an outgoing connection
+  const hasOutgoingConnection = edges.some(edge => edge.source === data.id);
 
   return (
     <div className="bg-white border-2 border-red-200 rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
@@ -58,14 +80,40 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
       </div>
 
       {/* Single output handle - position depends on layout mode */}
-      {/* Horizontal layout: output from bottom, Vertical layout: output from right */}
+      {/* Horizontal mode: output to RIGHT, Vertical/Freeform mode: output to BOTTOM */}
       <Handle
         type="source"
-        position={isVertical ? Position.Right : Position.Bottom}
-        id={isVertical ? "output-right" : "output-bottom"}
+        position={isHorizontalFlow ? Position.Right : Position.Bottom}
+        id={isHorizontalFlow ? "output-right" : "output-bottom"}
         className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
-        style={isVertical ? { top: '50%' } : { left: '50%' }}
+        style={isHorizontalFlow ? { top: '50%' } : { left: '50%' }}
       />
+
+      {/* Embedded Plus Button - Only show if no outgoing connection */}
+      {!hasOutgoingConnection && (
+        <div
+          className="absolute pointer-events-auto z-10"
+          style={{
+            right: isHorizontalFlow ? '-35px' : 'auto',
+            bottom: !isHorizontalFlow ? '-35px' : 'auto',
+            top: isHorizontalFlow ? '50%' : 'auto',
+            left: !isHorizontalFlow ? '50%' : 'auto',
+            transform: isHorizontalFlow ? 'translateY(-50%)' : 'translateX(-50%)',
+          }}
+        >
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 w-8 p-0 rounded-full text-xs bg-white hover:bg-gray-50 text-blue-600 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-200"
+            onClick={handleAddNode}
+            title="Add next node"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Modal is now handled at WorkflowBuilder level */}
     </div>
   );
 };

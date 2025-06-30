@@ -23,6 +23,9 @@ export const NodeSelectionModal: React.FC<NodeSelectionModalProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Don't render if not open
+  if (!isOpen) return null;
+
   if (!isOpen) return null;
 
   const getAvailableNodes = (): NodeData[] => {

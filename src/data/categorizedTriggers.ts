@@ -41,39 +41,33 @@ export interface TriggerCategory {
 export const categorizedTriggers: TriggerCategory[] = [
   {
     id: 'form-triggers',
-    name: 'Form Triggers',
+    name: 'Forms',
     icon: FormInput,
     description: 'Triggers based on form interactions',
     color: 'bg-blue-50 border-blue-200',
     triggers: [
       {
-        id: 'contact-updated-trigger',
-        label: 'Contact Updated',
-        icon: UserCheck,
-        description: 'Triggers when a contact is updated in any form',
-        color: 'bg-green-50 border-green-200'
+        id: 'product-enquiry-trigger',
+        label: 'Product Enquired',
+        icon: ShoppingCart,
+        description: 'When product enquiry form is submitted',
+        color: 'bg-red-50 border-red-200'
       },
       {
         id: 'form-submitted-trigger',
-        label: 'Form Submitted',
+        label: 'Forms',
         icon: FileText,
         description: 'Triggers when any form is submitted',
         color: 'bg-blue-50 border-blue-200'
       },
+
       {
-        id: 'form-viewed-trigger',
-        label: 'Form Viewed',
-        icon: Target,
-        description: 'Triggers when a form is viewed by a visitor',
-        color: 'bg-purple-50 border-purple-200'
+        id: 'facebook-form-trigger',
+        label: 'Facebook Form',
+        icon: UserCheck,
+        description: 'Triggers when a contact is updated in any form',
+        color: 'bg-green-50 border-green-200'
       },
-      {
-        id: 'form-abandoned-trigger',
-        label: 'Form Abandoned',
-        icon: XCircle,
-        description: 'Triggers when a form is started but not completed',
-        color: 'bg-red-50 border-red-200'
-      }
     ]
   },
   {
@@ -103,13 +97,6 @@ export const categorizedTriggers: TriggerCategory[] = [
         icon: XCircle,
         description: 'Triggers when a contact unsubscribes',
         color: 'bg-red-50 border-red-200'
-      },
-      {
-        id: 'contact-birthday-trigger',
-        label: 'Contact Birthday',
-        icon: Calendar,
-        description: 'Triggers on contact birthday',
-        color: 'bg-pink-50 border-pink-200'
       }
     ]
   },
@@ -134,13 +121,7 @@ export const categorizedTriggers: TriggerCategory[] = [
         description: 'Triggers when a product page is viewed',
         color: 'bg-blue-50 border-blue-200'
       },
-      {
-        id: 'product-enquiry-trigger',
-        label: 'Product Enquiry Form',
-        icon: ShoppingCart,
-        description: 'When product enquiry form is submitted',
-        color: 'bg-red-50 border-red-200'
-      },
+
       {
         id: 'product-reviewed-trigger',
         label: 'Product Reviewed',

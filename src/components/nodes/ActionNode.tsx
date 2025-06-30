@@ -1,6 +1,9 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { Plus } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
 
 interface ActionNodeProps {
   data: {
@@ -9,10 +12,13 @@ interface ActionNodeProps {
     icon?: keyof typeof LucideIcons;
     description?: string;
     layoutMode?: string;
+    openNodeModal?: (node: any) => void;
   };
 }
 
 export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
+  const { edges, nodes } = useWorkflowStore();
+
   const getIcon = () => {
     if (data.icon && data.icon in LucideIcons) {
       return LucideIcons[data.icon] as React.ComponentType<React.SVGProps<SVGSVGElement>>;
@@ -37,26 +43,61 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
   };
 
   const getColor = () => {
+    // Check both ID and label for color determination
+    const idLower = data.id?.toLowerCase() || '';
+    const labelLower = data.label?.toLowerCase() || '';
+
+    console.log('🎨 Node color detection:', { id: data.id, label: data.label, idLower, labelLower });
+
     // Communication actions
-    if (data.id?.includes('whatsapp')) return 'green';
-    if (data.id?.includes('sms') || data.id?.includes('phone')) return 'purple';
-    
+    if (idLower.includes('whatsapp') || labelLower.includes('whatsapp')) {
+      console.log('🎨 Returning GREEN for WhatsApp');
+      return 'green';
+    }
+    if (idLower.includes('sms') || idLower.includes('phone') || labelLower.includes('sms') || labelLower.includes('phone')) {
+      console.log('🎨 Returning PURPLE for SMS/Phone');
+      return 'purple';
+    }
+    if (idLower.includes('email') || idLower.includes('mail') || labelLower.includes('email') || labelLower.includes('mail')) {
+      console.log('🎨 Returning BLUE for Email');
+      return 'blue';
+    }
+
     // Time-based actions
-    if (data.id?.includes('delay') || data.id?.includes('schedule')) return 'yellow';
-    
+    if (idLower.includes('delay') || idLower.includes('schedule') || labelLower.includes('delay') || labelLower.includes('schedule')) {
+      console.log('🎨 Returning YELLOW for Delay/Schedule');
+      return 'yellow';
+    }
+
     // Condition actions
-    if (data.id?.includes('condition') || data.id?.includes('evaluate')) return 'orange';
-    
+    if (idLower.includes('condition') || idLower.includes('evaluate') || labelLower.includes('condition') || labelLower.includes('evaluate')) {
+      console.log('🎨 Returning ORANGE for Condition');
+      return 'orange';
+    }
+
     // Course/Community actions
-    if (data.id?.includes('course') || data.id?.includes('community')) return 'indigo';
-    
-    // Default blue for most actions
+    if (idLower.includes('course') || idLower.includes('community') || labelLower.includes('course') || labelLower.includes('community')) {
+      console.log('🎨 Returning INDIGO for Course/Community');
+      return 'indigo';
+    }
+
+    // Tag actions
+    if (idLower.includes('tag') || labelLower.includes('tag')) {
+      console.log('🎨 Returning PURPLE for Tag');
+      return 'purple';
+    }
+
+    console.log('🎨 Returning DEFAULT BLUE');
     return 'blue';
   };
 
   const IconComponent = getIcon();
   const color = getColor();
-  const isVertical = data.layoutMode === 'vertical' || data.layoutMode === 'freeform';
+  // Handle positioning logic:
+  // Horizontal mode: left/right handles (left-to-right flow)
+  // Vertical mode: top/bottom handles (top-to-bottom flow)
+  // Freeform mode: use vertical style (top/bottom handles)
+  const isHorizontalFlow = data.layoutMode === 'horizontal';
   
   const colorClasses = {
     blue: {
@@ -111,14 +152,30 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
 
   const classes = colorClasses[color as keyof typeof colorClasses];
 
+  const handleAddNode = () => {
+    console.log('🎯 ActionNode handleAddNode clicked!');
+    // Find the current node and call the modal handler from props
+    const currentNode = nodes.find(n => n.data === data);
+    console.log('🎯 Found current node:', currentNode);
+    if (currentNode && data.openNodeModal) {
+      console.log('🎯 Calling openNodeModal...');
+      data.openNodeModal(currentNode);
+    } else {
+      console.log('🎯 Missing currentNode or openNodeModal:', { currentNode: !!currentNode, openNodeModal: !!data.openNodeModal });
+    }
+  };
+
+  // Check if this node already has an outgoing connection
+  const hasOutgoingConnection = edges.some(edge => edge.source === data.id);
+
   return (
     <div className={`bg-white border-2 ${classes.border} rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]`}>
 
       {/* Input connection points - positioned based on layout mode */}
-      {/* Horizontal layout: receive from top (trigger outputs from bottom) */}
-      {/* Vertical layout: receive from left (trigger outputs from right) */}
+      {/* Horizontal mode: receive from LEFT (previous node outputs to right) */}
+      {/* Vertical/Freeform mode: receive from TOP (previous node outputs to bottom) */}
 
-      {isVertical ? (
+      {isHorizontalFlow ? (
         <Handle
           type="target"
           position={Position.Left}
@@ -153,8 +210,9 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
       </div>
 
       {/* Output connection points - positioned based on layout mode */}
-      {/* Horizontal layout: output from bottom, Vertical layout: output from right */}
-       {isVertical ? (
+      {/* Horizontal mode: output to RIGHT (next node receives from left) */}
+      {/* Vertical/Freeform mode: output to BOTTOM (next node receives from top) */}
+      {isHorizontalFlow ? (
         <Handle
           type="source"
           position={Position.Right}
@@ -172,7 +230,33 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
           style={{ left: '50%' }}
           // Note: Connection limit (1 outgoing connection) enforced in WorkflowBuilder onConnect
         />
-      )} 
+      )}
+
+      {/* Embedded Plus Button - Only show if no outgoing connection */}
+      {!hasOutgoingConnection && (
+        <div
+          className="absolute pointer-events-auto z-10"
+          style={{
+            right: isHorizontalFlow ? '-35px' : 'auto',
+            bottom: !isHorizontalFlow ? '-35px' : 'auto',
+            top: isHorizontalFlow ? '50%' : 'auto',
+            left: !isHorizontalFlow ? '50%' : 'auto',
+            transform: isHorizontalFlow ? 'translateY(-50%)' : 'translateX(-50%)',
+          }}
+        >
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 w-8 p-0 rounded-full text-xs bg-white hover:bg-gray-50 text-blue-600 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-200"
+            onClick={handleAddNode}
+            title="Add next node"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Modal is now handled at WorkflowBuilder level */}
     </div>
   );
 };

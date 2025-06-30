@@ -1,7 +1,8 @@
-
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { GitBranch, CheckCircle, XCircle, Filter } from 'lucide-react';
+import { GitBranch, CheckCircle, XCircle, Filter, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
 
 interface ConditionNodeProps {
   data: {
@@ -12,119 +13,129 @@ interface ConditionNodeProps {
     value?: string;
     description?: string;
     layoutMode?: string;
+    openNodeModal?: (node: any) => void;
   };
 }
 
 export const ConditionNode: React.FC<ConditionNodeProps> = ({ data }) => {
+  const { edges, nodes } = useWorkflowStore();
+
   const getIcon = () => {
     if (data.id?.includes('filter')) return Filter;
     return GitBranch;
   };
 
   const IconComponent = getIcon();
-  const isVertical = data.layoutMode === 'vertical' || data.layoutMode === 'freeform';
+
+  // Check if true/false handles have outgoing connections
+  const hasTrueConnection = edges.some(edge => edge.source === data.id && edge.sourceHandle === 'true');
+  const hasFalseConnection = edges.some(edge => edge.source === data.id && edge.sourceHandle === 'false');
+
+  // Handle adding nodes for true/false paths
+  const handleAddTrueNode = () => {
+    const currentNode = nodes.find(n => n.data === data);
+    if (currentNode && data.openNodeModal) {
+      data.openNodeModal({ ...currentNode, sourceHandle: 'true' });
+    }
+  };
+
+  const handleAddFalseNode = () => {
+    const currentNode = nodes.find(n => n.data === data);
+    if (currentNode && data.openNodeModal) {
+      data.openNodeModal({ ...currentNode, sourceHandle: 'false' });
+    }
+  };
 
   return (
-    <div className="bg-white border-2 border-orange-200 rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
-      {/* Input connection point - position depends on layout mode */}
+    <div className="relative bg-white rounded-full shadow-md w-[120px] h-[120px] hover:shadow-lg transition-all duration-200">
+      {/* Input handle - Left side */}
       <Handle
         type="target"
-        position={isVertical ? Position.Top : Position.Left}
+        position={Position.Left}
         id="input"
-        className="w-3 h-3 bg-orange-500 border-2 border-white shadow-md hover:bg-orange-600 transition-colors"
+        className="w-3 h-3 bg-orange-500 border-2 border-white shadow-sm hover:bg-orange-600 transition-colors"
+        style={{ top: '50%' }}
       />
 
-      <div className="bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-3 rounded-t-lg border-b border-orange-200">
-        <div className="flex items-center space-x-2">
-          <div className="p-1.5 bg-orange-100 rounded-md shadow-sm">
-            <IconComponent className="w-4 h-4 text-orange-600" />
-          </div>
-          <span className="text-sm font-bold text-orange-800 tracking-wide">CONDITION</span>
+      {/* Main content - centered in circle */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        {/* Router icon */}
+        <div className="w-8 h-8 mb-1 bg-orange-100 rounded-full flex items-center justify-center">
+          <IconComponent className="w-4 h-4 text-orange-600" />
         </div>
-      </div>
-      
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
-          {data.label}
-        </h3>
-        {/* {data.description && (
-          <p className="text-xs text-gray-500 leading-relaxed mb-2">
-            {data.description}
-          </p>
-        )} */}
-        {data.field && data.operator && (
-          <p className="text-xs text-gray-600 font-mono bg-gray-50 px-2 py-1 rounded">
-            If {data.field} {data.operator} {data.value || '...'}
-          </p>
+
+        {/* Label */}
+        <div className="text-xs font-medium text-gray-700">Router</div>
+
+        {/* Condition info if available */}
+        {data.field && (
+          <div className="text-xs text-gray-400 truncate max-w-[80px]">
+            {data.field}
+          </div>
         )}
       </div>
 
-      {/* Output handles - positioned based on layout mode */}
-      {isVertical ? (
-        <>
-          {/* Vertical layout: Both handles at bottom, side by side */}
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            id="true"
-            className="w-3 h-3 bg-green-500 border-2 border-white shadow-md hover:bg-green-600 transition-colors"
-            style={{ left: '30%' }}
-          />
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            id="false"
-            className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
-            style={{ left: '70%' }}
-          />
-          
-          {/* Labels for vertical layout */}
-          <div className="absolute bottom-2 left-8 text-xs">
-            <div className="flex items-center space-x-1 text-green-600 font-medium">
-              <CheckCircle className="w-3 h-3" />
-              <span>True</span>
-            </div>
-          </div>
-          <div className="absolute bottom-2 right-8 text-xs">
-            <div className="flex items-center space-x-1 text-red-600 font-medium">
-              <XCircle className="w-3 h-3" />
-              <span>False</span>
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Horizontal layout: True handle on right, False handle on bottom */}
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="true"
-            className="w-3 h-3 bg-green-500 border-2 border-white shadow-md hover:bg-green-600 transition-colors"
-            style={{ top: '40%' }}
-          />
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            id="false"
-            className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
-            style={{ left: '50%' }}
-          />
+      {/* TRUE handle - Right side, upper position */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="true"
+        className="w-3 h-3 bg-green-500 border-2 border-white shadow-sm hover:bg-green-600 transition-colors"
+        style={{ top: '30%' }}
+      />
 
-          {/* Labels for horizontal layout */}
-          <div className="absolute right-4 top-10 text-xs">
-            <div className="flex items-center space-x-1 text-green-600 font-medium">
-              <CheckCircle className="w-3 h-3" />
-              <span>True</span>
-            </div>
-          </div>
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs">
-            <div className="flex items-center space-x-1 text-red-600 font-medium">
-              <XCircle className="w-3 h-3" />
-              <span>False</span>
-            </div>
-          </div>
-        </>
+      {/* FALSE handle - Right side, lower position */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="false"
+        className="w-3 h-3 bg-red-500 border-2 border-white shadow-sm hover:bg-red-600 transition-colors"
+        style={{ top: '70%' }}
+      />
+
+      {/* TRUE path plus button and label */}
+      {!hasTrueConnection && (
+        <div className="absolute flex items-center pointer-events-auto z-50"
+             style={{ right: '-60px', top: '30%', transform: 'translateY(-50%)' }}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 w-6 p-0 rounded-full text-xs bg-white hover:bg-gray-50 text-green-600 border border-green-300 shadow-sm hover:shadow-md transition-all duration-200 mr-2"
+            onClick={handleAddTrueNode}
+            title="Add node for true path"
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+          <span className="text-xs font-medium text-green-600 whitespace-nowrap">Yes</span>
+        </div>
       )}
+
+      {/* FALSE path plus button and label */}
+      {!hasFalseConnection && (
+        <div className="absolute flex items-center pointer-events-auto z-50"
+             style={{ right: '-60px', top: '70%', transform: 'translateY(-50%)' }}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 w-6 p-0 rounded-full text-xs bg-white hover:bg-gray-50 text-red-600 border border-red-300 shadow-sm hover:shadow-md transition-all duration-200 mr-2"
+            onClick={handleAddFalseNode}
+            title="Add node for false path"
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+          <span className="text-xs font-medium text-red-600 whitespace-nowrap">No</span>
+        </div>
+      )}
+
+      {/* Path indicators on the node itself */}
+      <div className="absolute text-xs font-medium text-green-600" 
+           style={{ right: '-15px', top: '30%' }}>
+        Y
+      </div>
+      <div className="absolute text-xs font-medium text-red-600" 
+           style={{ right: '-15px', top: '60%' }}>
+        N
+      </div>
     </div>
   );
 };

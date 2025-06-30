@@ -13,7 +13,7 @@ import { SplitConfig } from './SplitConfig';
 import { GotoConfig } from './GotoConfig';
 
 import { NodeConfig } from './types';
-import ProductEnquiredConfig from './products/ProductEnquiredConfig';
+import ProductEnquiredConfig from './triggers/forms/ProductEnquiredConfig';
 
 interface DynamicNodeConfigProps {
   node: Node;

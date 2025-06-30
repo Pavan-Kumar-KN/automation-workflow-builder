@@ -19,7 +19,7 @@ import { ConditionNode } from '../nodes/ConditionNode';
 import { SplitNode } from '../nodes/SplitNode';
 import { AddTriggerNode } from '../nodes/AddTriggerNode';
 import { GotoNode } from '../nodes/GotoNode';
-import { PlusButtonOverlay } from '../PlusButtonOverlay';
+// import { PlusButtonOverlay } from '../PlusButtonOverlay'; // Now using embedded plus buttons
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { LayoutMode } from '@/hooks/useWorkflowState';
 import { JSONDebugPanel } from '../JSONDebugPanel';
@@ -90,9 +90,10 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         defaultEdgeOptions={{
           style: { strokeWidth: 2, stroke: '#6366f1' },
           type: (layoutMode === 'vertical' || layoutMode === 'freeform') ? 'straight' : 'smoothstep',
+          animated: true,
         }}
-        snapToGrid={layoutMode !== 'freeform'}
-        snapGrid={(layoutMode === 'vertical' || layoutMode === 'freeform') ? [40, 40] : [20, 20]}
+        snapToGrid={false}
+        snapGrid={[15, 15]}
         panOnDrag={!isMobile || !sidebarOpen}
         zoomOnScroll={!isMobile}
         zoomOnPinch={true}
@@ -101,6 +102,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         maxZoom={1.5}
         zoomActivationKeyCode={null}
         panActivationKeyCode={null}
+        fitView
       >
         <Background 
           gap={layoutMode === 'freeform' ? 15 : layoutMode === 'vertical' ? 40 : 20} 
@@ -133,8 +135,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           }}
         />
 
-        {/* Plus Button Overlay */}
-        <PlusButtonOverlay nodes={nodes} />
+        {/* Plus buttons are now embedded in each node */}
 
         {/* JSON Debug Panel - Inside ReactFlow context */}
         {/* <JSONDebugPanel /> */}

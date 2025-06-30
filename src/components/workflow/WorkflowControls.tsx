@@ -32,7 +32,7 @@ export const WorkflowControls: React.FC<WorkflowControlsProps> = ({
       />
       <Button
         onClick={autoArrangeNodes}
-        className={`bg-blue-500 hover:bg-blue-600 text-white shadow-lg transition-colors flex items-center gap-2 ${
+        className={`bg-blue-900 hover:bg-blue-900 text-white shadow-lg transition-colors flex items-center gap-2 ${
           isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'
         }`}
         disabled={nodes.length === 0 || layoutMode === 'freeform'}
