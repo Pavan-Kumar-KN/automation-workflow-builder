@@ -113,9 +113,11 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
 
   return (
     <div className={`bg-white border-2 ${classes.border} rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]`}>
+
       {/* Input connection points - positioned based on layout mode */}
       {/* Horizontal layout: receive from top (trigger outputs from bottom) */}
       {/* Vertical layout: receive from left (trigger outputs from right) */}
+
       {isVertical ? (
         <Handle
           type="target"
@@ -152,7 +154,7 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
 
       {/* Output connection points - positioned based on layout mode */}
       {/* Horizontal layout: output from bottom, Vertical layout: output from right */}
-      {isVertical ? (
+       {isVertical ? (
         <Handle
           type="source"
           position={Position.Right}
@@ -170,7 +172,7 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
           style={{ left: '50%' }}
           // Note: Connection limit (1 outgoing connection) enforced in WorkflowBuilder onConnect
         />
-      )}
+      )} 
     </div>
   );
 };

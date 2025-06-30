@@ -98,6 +98,7 @@ export const Sidebar = () => {
         setIsOpen={setConditionsOpen}
         onDragStart={onDragStart}
       />
+      
       {/* <NodeCategory
         title="External Apps"
         nodes={filteredExternalApps}

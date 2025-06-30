@@ -197,6 +197,7 @@ export const PlusButtonOverlay: React.FC<PlusButtonOverlayProps> = ({ nodes }) =
       return true;
     });
   }, [nodes, edges, getValidNodeTypes]);
+  
 
   const getPlusButtonPosition = (node: Node) => {
     const isVertical = layoutMode === 'vertical' || layoutMode === 'freeform';

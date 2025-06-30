@@ -135,10 +135,10 @@ export const categorizedTriggers: TriggerCategory[] = [
         color: 'bg-blue-50 border-blue-200'
       },
       {
-        id: 'cart-abandoned-trigger',
-        label: 'Cart Abandoned',
-        icon: XCircle,
-        description: 'Triggers when items are left in cart',
+        id: 'product-enquiry-trigger',
+        label: 'Product Enquiry Form',
+        icon: ShoppingCart,
+        description: 'When product enquiry form is submitted',
         color: 'bg-red-50 border-red-200'
       },
       {

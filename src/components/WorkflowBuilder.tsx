@@ -255,18 +255,6 @@ export const WorkflowBuilder = () => {
   // Here we are trying to show the plus icons if there are no nodes are there
   const [isShow, setIsShow] = useState<boolean>(false);
 
-  useEffect(() => {
-
-    if (nodes.length === 0) {
-      console.log("Now the node length is 0");
-
-      setIsShow(true);
-
-    }
-    console.log("The lenth of the nodes is  = ", nodes.length);
-
-  }, [setNodes, nodes])
-
 
 
   return (
@@ -292,16 +280,44 @@ export const WorkflowBuilder = () => {
           </Button>
         )}
 
-        <div className={`
+        {/* Old code  */}
+
+        {/* <div className={`
           ${isMobile
             ? `absolute inset-y-0 left-0 z-10 transform transition-transform duration-300 ease-in-out
-               ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
+               ${sidebarOpen ? 'translate-x-0' : '-transl ate-x-full'}`
             : 'relative'
           }
           ${isMobile ? 'w-80' : 'w-64 lg:w-80'}
         `}>
           <Sidebar />
-        </div>
+        </div> */}
+
+
+        {/* New Code to toggle sidebar */}
+
+        <button
+          onClick={() => setIsShow(!isShow)}
+          className="absolute top-4 left-2 z-30 flex items-center px-2 py-2 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition duration-200"
+        >
+          {isShow ? <X className="h-5 w-4" /> : <Menu className="h-5 w-4" />}
+          <span className="hidden sm:inline"></span>
+        </button>
+
+
+        {
+          isShow && (
+            <div className={`
+          ${isMobile
+                ? `absolute inset-y-0 left-0 z-10 transform transition-transform duration-300 ease-in-out
+               ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
+                : 'relative'
+              }
+          ${isMobile ? 'w-80' : 'w-64 lg:w-80'}
+        `}>
+              <Sidebar />
+            </div>)
+        }
 
         {isMobile && sidebarOpen && (
           <div
@@ -311,7 +327,7 @@ export const WorkflowBuilder = () => {
         )}
 
 
-     <WorkflowCanvas
+        <WorkflowCanvas
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
@@ -325,7 +341,7 @@ export const WorkflowBuilder = () => {
           reactFlowWrapper={reactFlowWrapper}
           onConnect={onConnect}
         />
-       
+
 
 
 
@@ -353,5 +369,6 @@ export const WorkflowBuilder = () => {
 
       </div>
     </div>
+    
   );
 };

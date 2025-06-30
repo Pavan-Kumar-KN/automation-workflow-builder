@@ -13,6 +13,7 @@ import { SplitConfig } from './SplitConfig';
 import { GotoConfig } from './GotoConfig';
 
 import { NodeConfig } from './types';
+import ProductEnquiredConfig from './products/ProductEnquiredConfig';
 
 interface DynamicNodeConfigProps {
   node: Node;
@@ -39,6 +40,15 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
           </div>
         );
       
+      case 'product-enquiry-trigger':
+        return (
+          <ProductEnquiredConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+
       case 'form-submitted-trigger':
         return (
           <div className="space-y-4">
