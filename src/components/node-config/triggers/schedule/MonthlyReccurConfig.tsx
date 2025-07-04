@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 
-const MonthlyReccurConfig = ({ config = { label: 'Monthly recurring', description: 'Schedule your campaign to automatically send on a monthly basis, on a particular day of the month' }, setConfig = () => {} }) => {
+const MonthlyReccurConfig = ({ config , setConfig}) => {
     const [contactGroups, setContactGroups] = useState([]);
     const [selectedForm, setSelectedForm] = useState('');
     const [selectedDate, setSelectedDate] = useState('');

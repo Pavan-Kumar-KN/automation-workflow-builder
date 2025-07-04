@@ -49,17 +49,22 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   };
 
   return (
-    <div className="w-96 bg-white border-l border-gray-200 shadow-xl">
+    <div className="w-96 bg-white border-l border-gray-200 shadow-xl relative z-20">
       <Card className="h-full rounded-none border-0">
-        <CardHeader className="border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-lg">{getNodeIcon()}</span>
-              <CardTitle className="text-lg">
+        <CardHeader className="border-b border-gray-200 relative px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center space-x-2 flex-1 min-w-0">
+              {/* <span className="text-lg">{getNodeIcon()}</span> */}
+              <CardTitle className="text-lg truncate">
                 Configure {node.type === 'split-condition' ? 'Split' : node.type?.charAt(0).toUpperCase() + node.type?.slice(1)}
               </CardTitle>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="z-30 hover:bg-gray-100 flex-shrink-0 h-8 w-8 p-0"
+              onClick={onClose}
+            >
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -70,11 +75,10 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             {renderConfigForm()}
             
             <div className="flex space-x-3 pt-4">
-              {/* <Button onClick={handleSave} className="flex-1">
-                <Settings className="w-4 h-4 mr-2" />
-                Save Configuration
-              </Button> */}
-              <Button variant="outline" onClick={onClose}>
+              <Button
+                variant="outline"
+                onClick={onClose}
+              >
                 Cancel
               </Button>
             </div>

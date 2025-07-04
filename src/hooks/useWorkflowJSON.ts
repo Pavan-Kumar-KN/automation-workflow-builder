@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useWorkflowStore } from './useWorkflowState';
-import { WorkflowConverter, BackendWorkflowJSON } from '@/utils/workflowConverter';
+import { BackendJSONConstructor, BackendWorkflowJSON } from '@/utils/jsonConstructors';
 
 /**
  * Hook for real-time workflow JSON generation
@@ -12,10 +12,10 @@ export const useWorkflowJSON = () => {
   const { nodes, edges, workflowName } = useWorkflowStore();
 
   /**
-   * Generate backend JSON
+   * Generate backend JSON (matching learn.json format)
    */
   const generateJSON = useCallback((): BackendWorkflowJSON => {
-    return WorkflowConverter.convertToBackendJSON(
+    return BackendJSONConstructor.construct(
       nodes,
       edges,
       workflowName,
@@ -78,11 +78,50 @@ export const useWorkflowJSON = () => {
   }, [generateJSON]);
 
   /**
+   * Submit configuration update to backend (after node config submission)
+   */
+  const submitConfigToBackend = useCallback(async (nodeId: string, automationId: string): Promise<any> => {
+    try {
+      const json = generateJSON();
+
+      console.log('🔧 === CONFIG SUBMISSION TO BACKEND ===', {
+        nodeId,
+        automationId,
+        timestamp: new Date().toISOString(),
+        json
+      });
+
+      // Update specific automation with new configuration
+      const response = await fetch(`/api/workflows/${automationId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(json)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Config update response:', result);
+
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to submit config update:', error);
+      throw error;
+    }
+  }, [generateJSON]);
+
+  /**
    * Debug current workflow
    */
   const debugWorkflow = useCallback(() => {
-    WorkflowConverter.debugConversion(nodes, edges);
-  }, [nodes, edges]);
+    console.log('🔍 === WORKFLOW DEBUG ===');
+    const json = generateJSON();
+    console.log('Current JSON:', json);
+  }, [generateJSON]);
 
   /**
    * Auto-generate JSON on changes (for debugging)
@@ -104,6 +143,7 @@ export const useWorkflowJSON = () => {
 
     // API Operations
     submitToBackend,
+    submitConfigToBackend,
 
     // Debug
     debugWorkflow

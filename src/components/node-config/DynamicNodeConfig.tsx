@@ -1,10 +1,6 @@
 import React from 'react';
 import { Node } from '@xyflow/react';
 
-// Import specific config components
-import { SendEmailConfig } from './specific/SendEmailConfig';
-import { SendSMSConfig } from './specific/SendSMSConfig';
-
 // Import generic config components
 import { TriggerConfig } from './TriggerConfig';
 import { ActionConfig } from './ActionConfig';
@@ -33,6 +29,10 @@ import SpecificDateConfig from './triggers/schedule/SpecificDateConfig';
 import MonthlyReccurConfig from './triggers/schedule/MonthlyReccurConfig';
 import WeeklyReccurConfig from './triggers/schedule/WeeklyReccurConfig';
 import EventDateConfig from './triggers/schedule/EventDateConfig';
+import SendMailConfig from './actions/communication/SendMailConfig';
+import SendWhatsappConfig from './actions/communication/SendWhatsaapConfig';
+import SmsConfig from './actions/communication/SmsConfig';
+import DelayConfig from './actions/DelayConfig';
 
 interface DynamicNodeConfigProps {
   node: Node;
@@ -42,6 +42,9 @@ interface DynamicNodeConfigProps {
 
 export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUpdate, onClose }) => {
   // For specific node configurations based on node ID
+
+  console.log('Node data in DynamicNodeConfig:', node.data);
+
   const getSpecificConfig = () => {
     const nodeId = node.data?.id;
 
@@ -340,6 +343,39 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
           />
         );
 
+        // ******************************* ACTION CONFIGs ***************************************
+        case 'send-email-action':
+        return (
+          <SendMailConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+        case 'send-whatsapp-action':
+        return (
+          <SendWhatsappConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+        case 'send-sms-action':
+        return (
+          <SmsConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+        case 'delay-action':
+        return (
+          <DelayConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
       // Add more specific configs as needed
       default:
         return null;
@@ -396,6 +432,8 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
 
   // Try specific config first, fall back to generic
   const specificConfig = getSpecificConfig();
+
+  console.log('Specific config:', specificConfig);
 
   return (
     <div className="p-6">

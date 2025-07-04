@@ -535,13 +535,14 @@ export const WorkflowBuilder = () => {
           onLayoutModeChange={onLayoutModeChangeWrapper}
           autoArrangeNodes={autoArrangeNodes}
           nodes={nodes}
+          isConfigPanelOpen={!!selectedNode}
         />
 
         {selectedNode && (
           <div className={`
             ${isMobile
-              ? 'absolute inset-x-0 bottom-0 h-1/2 z-20'
-              : 'relative w-80 lg:w-96'
+              ? 'absolute inset-x-0 bottom-0 h-1/2 z-30'
+              : 'relative w-80 lg:w-96 z-20'
             }
           `}>
             <NodeConfigPanel

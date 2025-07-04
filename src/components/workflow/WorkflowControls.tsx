@@ -10,6 +10,7 @@ interface WorkflowControlsProps {
   onLayoutModeChange: (mode: LayoutMode) => void;
   autoArrangeNodes: () => void;
   nodes: Node[];
+  isConfigPanelOpen?: boolean;
 }
 
 export const WorkflowControls: React.FC<WorkflowControlsProps> = ({
@@ -17,14 +18,17 @@ export const WorkflowControls: React.FC<WorkflowControlsProps> = ({
   onLayoutModeChange,
   autoArrangeNodes,
   nodes,
+  isConfigPanelOpen = false,
 }) => {
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   return (
     <div className={`absolute z-10 flex items-center gap-2 ${
-      isMobile 
+      isMobile
         ? 'top-16 right-4 flex-col'
-        : 'top-4 right-4 flex-row gap-3'
+        : isConfigPanelOpen
+          ? 'top-4 right-[25rem] flex-row gap-3' // Move left when config panel is open
+          : 'top-4 right-4 flex-row gap-3'
     }`}>
       <LayoutModeSelector
         layoutMode={layoutMode}
