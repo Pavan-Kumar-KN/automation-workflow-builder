@@ -70,10 +70,10 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             {renderConfigForm()}
             
             <div className="flex space-x-3 pt-4">
-              <Button onClick={handleSave} className="flex-1">
+              {/* <Button onClick={handleSave} className="flex-1">
                 <Settings className="w-4 h-4 mr-2" />
                 Save Configuration
-              </Button>
+              </Button> */}
               <Button variant="outline" onClick={onClose}>
                 Cancel
               </Button>

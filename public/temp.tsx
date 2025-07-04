@@ -59,11 +59,6 @@ const ProductEnquiredConfig: React.FC<ConfigComponentProps> = ({ config, setConf
     }
   };
   
-  useEffect(() => {
-    fetchProductForms();
-  
-  }, [])
-  
     return (
         <div className="space-y-4">
             <div>

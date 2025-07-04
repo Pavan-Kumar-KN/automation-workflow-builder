@@ -14,6 +14,25 @@ import { GotoConfig } from './GotoConfig';
 
 import { NodeConfig } from './types';
 import ProductEnquiredConfig from './triggers/forms/ProductEnquiredConfig';
+import FormConfig from './triggers/forms/FormConfig';
+import FacebookConfig from './triggers/forms/FacebookConfig';
+import ContactSourceConfig from './triggers/contact/ContactSourceConfig';
+import ContactUpdatedConfig from './triggers/contact/ContactUpdatedConfig';
+import ContactTaggedConfig from './triggers/contact/ContactTaggedConfig';
+import HappyBirthdayConfig from './triggers/contact/HappyBirthdayConfig';
+import NoteAddedConfig from './triggers/crm/NoteAddedConfig';
+import AddedPipelineConfig from './triggers/crm/AddedPipelineConfig';
+import StageChangedConfig from './triggers/crm/StageChangedConfig';
+import FollowUpConfig from './triggers/crm/FollowUpConfig';
+import Calendar from '../../components/node-config/triggers/calendar/Calendar';
+import FinanceConfig from './triggers/finance/FinanceConfig';
+import LessonConfig from './triggers/lms/LessonConfig';
+import Course from './triggers/lms/Course';
+import ApiConfig from './triggers/api/ApiConfig';
+import SpecificDateConfig from './triggers/schedule/SpecificDateConfig';
+import MonthlyReccurConfig from './triggers/schedule/MonthlyReccurConfig';
+import WeeklyReccurConfig from './triggers/schedule/WeeklyReccurConfig';
+import EventDateConfig from './triggers/schedule/EventDateConfig';
 
 interface DynamicNodeConfigProps {
   node: Node;
@@ -25,21 +44,9 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
   // For specific node configurations based on node ID
   const getSpecificConfig = () => {
     const nodeId = node.data?.id;
-    
+
     switch (nodeId) {
-      // Trigger-specific configs
-      case 'contact-updated-trigger':
-        return (
-          <div className="space-y-4">
-            <h3 className="font-semibold">Contact Updated Trigger</h3>
-            <p className="text-sm text-gray-600">Configure which form and fields to monitor for contact updates</p>
-            <TriggerConfig
-              config={node.data as NodeConfig}
-              setConfig={(config) => onUpdate(node.id, config)}
-            />
-          </div>
-        );
-      
+
       case 'product-enquiry-trigger':
         return (
           <ProductEnquiredConfig
@@ -48,61 +55,289 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
           />
         );
 
-
       case 'form-submitted-trigger':
         return (
-          <div className="space-y-4">
-            <h3 className="font-semibold">Form Submitted Trigger</h3>
-            <p className="text-sm text-gray-600">Configure which form to monitor for submissions</p>
-            {/* Add form selection logic here */}
-            <TriggerConfig 
-              config={node.data as NodeConfig}
-              setConfig={(config) => onUpdate(node.id, config)}
-            />
-          </div>
-        );
-
-      // Action-specific configs  
-      case 'send-email-action':
-        return (
-          <SendEmailConfig 
-            config={node.data as NodeConfig}
-            setConfig={(config) => onUpdate(node.id, config)}
-          />
-        );
-        
-      case 'send-sms-action':
-        return (
-          <SendSMSConfig
+          // {/* Add form selection logic here */}
+          <FormConfig
             config={node.data as NodeConfig}
             setConfig={(config) => onUpdate(node.id, config)}
           />
         );
 
-      case 'update-contact-action':
+      case 'facebook-form-trigger':
         return (
-          <div className="space-y-4">
-            <h3 className="font-semibold">Update Contact Action</h3>
-            <p className="text-sm text-gray-600">Configure which contact fields to update</p>
-            {/* Add contact update config here */}
-            <ActionConfig 
-              config={node.data as NodeConfig}
-              setConfig={(config) => onUpdate(node.id, config)}
-            />
-          </div>
+          <FacebookConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
         );
 
-      case 'add-to-list-action':
+      // Contact module triggers
+      case 'contact-source-trigger':
         return (
-          <div className="space-y-4">
-            <h3 className="font-semibold">Add to List Action</h3>
-            <p className="text-sm text-gray-600">Select which list to add the contact to</p>
-            {/* Add list selection config here */}
-            <ActionConfig 
-              config={node.data as NodeConfig}
-              setConfig={(config) => onUpdate(node.id, config)}
-            />
-          </div>
+          <ContactSourceConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'contact-updated-trigger':
+        return (
+          <ContactUpdatedConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'contact-tagged-trigger':
+        return (
+          <ContactTaggedConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'happy-birthday-trigger':
+        return (
+          <HappyBirthdayConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      // CRM module triggers
+      case 'notes-added-trigger':
+        return (
+          <NoteAddedConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'added-to-pipeline-trigger':
+        return (
+          <AddedPipelineConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'stage-changed-trigger':
+        return (
+          <StageChangedConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'follow-up-trigger':
+        return (
+          <FollowUpConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      // Calendar module triggers
+      case 'appointment-booked-trigger':
+        return (
+          <Calendar
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+            name="Appointment Booked"
+            description="When an appointment is booked, the workflow will trigger."
+          />
+        );
+
+      case 'appointment-cancelled-trigger':
+        return (
+          <Calendar
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+            name="Appointment Cancelled"
+            description="Appointment cancelled will run the workflow."
+          />
+        );
+
+      case 'appointment-rescheduled-trigger':
+        return (
+          <Calendar
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+            name="Appointment Rescheduled"
+            description="Appointment rescheduled will run the workflow."
+          />
+        );
+
+      case 'no-show-trigger':
+        return (
+          <Calendar
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+            name="No-Show Appointment"
+            description="No-show appointment will run the workflow."
+          />
+        );
+
+      case 'show-up-trigger':
+        return (
+          <Calendar
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+            name="Show Up Appointment"
+            description="Show Appointment within 24 hours will run the workflow."
+          />
+        );
+
+
+      // Finance Config
+      case 'subcription-created-trigger':
+        return (
+          <FinanceConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'subcription-overdue-trigger':
+        return (
+          <FinanceConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'subcription-paid-trigger':
+        return (
+          <FinanceConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'subcription-cancelled-trigger':
+        return (
+          <FinanceConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'installment-created-trigger':
+        return (
+          <FinanceConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'installment-paid-trigger':
+        return (
+          <FinanceConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'installment-overdue-trigger':
+        return (
+          <FinanceConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'installment-cancelled-trigger':
+        return (
+          <FinanceConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+
+      case 'payment-failed-trigger':
+        return (
+          <FinanceConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+      case 'invoice-paid-trigger':
+        return (
+          <FinanceConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+
+      case 'lesson-completed-trigger':
+        return (
+          <LessonConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'course-completed-trigger':
+        return (
+          <Course
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'comment-added-trigger':
+        return (
+          <Course
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+
+        // api trigger
+      case 'api-trigger':
+        return (
+          <ApiConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+
+      case 'specific-date-trigger':
+        return (
+          <SpecificDateConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+        case 'weekly-recurring-trigger':
+        return (
+          <WeeklyReccurConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+        case 'monthly-recurring-trigger':
+        return (
+          <MonthlyReccurConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        );
+
+        case 'event-date-trigger':
+        return (
+          <EventDateConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
         );
 
       // Add more specific configs as needed
@@ -116,35 +351,35 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
     switch (node.type) {
       case 'trigger':
         return (
-          <TriggerConfig 
+          <TriggerConfig
             config={node.data as NodeConfig}
             setConfig={(config) => onUpdate(node.id, config)}
           />
         );
       case 'action':
         return (
-          <ActionConfig 
+          <ActionConfig
             config={node.data as NodeConfig}
             setConfig={(config) => onUpdate(node.id, config)}
           />
         );
       case 'condition':
         return (
-          <ConditionConfig 
+          <ConditionConfig
             config={node.data as NodeConfig}
             setConfig={(config) => onUpdate(node.id, config)}
           />
         );
       case 'split-condition':
         return (
-          <SplitConfig 
+          <SplitConfig
             config={node.data as NodeConfig}
             setConfig={(config) => onUpdate(node.id, config)}
           />
         );
       case 'goto-node':
         return (
-          <GotoConfig 
+          <GotoConfig
             node={node}
             onUpdate={onUpdate}
             onClose={onClose}
@@ -161,7 +396,7 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
 
   // Try specific config first, fall back to generic
   const specificConfig = getSpecificConfig();
-  
+
   return (
     <div className="p-6">
       {specificConfig || getGenericConfig()}

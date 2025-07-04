@@ -1,28 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { ConfigComponentProps } from '../../types';
 
-const ProductEnquiredConfig: React.FC<ConfigComponentProps> = ({ config, setConfig }) => {
-    const [products, setProducts] = useState([]);
+const Calendar: React.FC<ConfigComponentProps> = ({ config, setConfig, name, description }) => {
+    const [calendars, setCalendars] = useState([]);
     const [selectedForm, setSelectedForm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Fetch product forms from API
-    const fetchProductForms = async () => {
+    const fetchCalendars = async () => {
         setIsLoading(true);
         try {
             // Simulating API call for demo purposes
             await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-            setProducts([
-                'Product Enquiry Form 1',
-                'Product Enquiry Form 2',
-                'Product Enquiry Form 3',
-                'Advanced Product Form',
-                'Quick Enquiry Form'
+            setCalendars([
+                'Calendar 1',
+                'Calendar 2',
+                'Calendar 3',
+                'Calendar 4',
+                'Calendar 5'
             ]);
         } catch (error) {
             alert('Failed to fetch product forms');
@@ -31,44 +30,44 @@ const ProductEnquiredConfig: React.FC<ConfigComponentProps> = ({ config, setConf
         }
     };
 
- // Handle form submission
-  const handleSubmit = async () => {
-    if (!config.formType || !selectedForm) {
-      alert('Please select both form type and product form');
-      return;
-    }
+    // Handle form submission
+    const handleSubmit = async () => {
+        if (!config.formType || !selectedForm) {
+            alert('Please select both form type and product form');
+            return;
+        }
 
-    setIsSubmitting(true);
-    try {
-      // Simulate API submission
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Update config with final values
-      setConfig({ 
-        ...config, 
-        selectedForm,
-        submitted: true,
-        submittedAt: new Date().toISOString()
-      });
-      
-      alert('Configuration saved successfully!');
-    } catch (error) {
-      alert('Failed to save configuration');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  useEffect(() => {
-    fetchProductForms();
-  
-  }, [])
-  
+        setIsSubmitting(true);
+        try {
+            // Simulate API submission
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Update config with final values
+            setConfig({
+                ...config,
+                selectedForm,
+                submitted: true,
+                submittedAt: new Date().toISOString()
+            });
+
+            alert('Configuration saved successfully!');
+        } catch (error) {
+            alert('Failed to save configuration');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchCalendars();
+
+    }, [])
+
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="font-semibold text-gray-900">Product Enquiry Trigger</h3>
-                <p className="text-sm text-gray-500">Configure which form to monitor for product enquiries</p>
+                <h3 className="font-semibold text-gray-900">{name}</h3>
+                <p className="text-sm text-gray-500">{description}.</p>
             </div>
 
             <div>
@@ -82,7 +81,7 @@ const ProductEnquiredConfig: React.FC<ConfigComponentProps> = ({ config, setConf
             </div>
             <div className="space-y-2">
                 <Label htmlFor="product-form" className="text-sm font-medium text-gray-700">
-                    Product Form <span className="text-red-500">*</span>
+                    Calendars <span className="text-red-500">*</span>
                 </Label>
                 <Select
                     value={selectedForm}
@@ -90,18 +89,18 @@ const ProductEnquiredConfig: React.FC<ConfigComponentProps> = ({ config, setConf
                     disabled={isLoading}
                 >
                     <SelectTrigger className="w-full">
-                        <SelectValue placeholder={isLoading ? "Loading forms..." : "Select product form"} />
+                        <SelectValue placeholder={isLoading ? "Loading calendars..." : "Select Calendar"} />
                     </SelectTrigger>
                     <SelectContent>
-                        {products.map((product, index) => (
-                            <SelectItem key={index} value={product}>
-                                {product}
+                        {calendars.map((calendar, index) => (
+                            <SelectItem key={index} value={calendar}>
+                                {calendar}
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
                 {isLoading && (
-                    <p className="text-xs text-blue-600 animate-pulse">Loading available forms...</p>
+                    <p className="text-xs text-blue-600 animate-pulse">Loading available calendars...</p>
                 )}
             </div>
 
@@ -109,10 +108,10 @@ const ProductEnquiredConfig: React.FC<ConfigComponentProps> = ({ config, setConf
                 onClick={() => setConfig({ ...config, submitted: true })}
                 className="w-full"
             >
-                Submit
+                Confirm
             </Button>
         </div>
     );
 };
 
-export default ProductEnquiredConfig;
+export default Calendar;

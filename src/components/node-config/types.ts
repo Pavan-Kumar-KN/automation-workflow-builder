@@ -51,4 +51,8 @@ export interface NodeConfig {
 export interface ConfigComponentProps {
   config: NodeConfig;
   setConfig: (config: NodeConfig) => void;
+
+  // * this is for calendar module only
+  name?: string;
+  description?: string;
 }

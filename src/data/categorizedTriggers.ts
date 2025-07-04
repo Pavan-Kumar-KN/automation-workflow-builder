@@ -6,25 +6,28 @@ import {
   Webhook,
   UserCheck,
   UserPlus,
+  UserX,
   Tag,
-  Target,
-  RefreshCw,
   Clock,
-  CheckCircle,
   XCircle,
-  AlertCircle,
-  CreditCard,
-  GraduationCap,
-  BookOpen,
   ShoppingCart,
-  Plus,
   FormInput,
   User,
   Package,
-  Mail,
-  Globe,
-  Settings,
-  Star,
+  ArrowRight,
+  Banknote,
+  CalendarX,
+  FilePlus,
+  BadgeCheck,
+  Ban,
+  Receipt,
+  CreditCard,
+  GraduationCap,
+  CheckCircle,
+  Server,
+  CalendarClock,
+  Repeat,
+  CalendarRange,
   Zap
 } from 'lucide-react';
 import { NodeData } from './types';
@@ -39,6 +42,8 @@ export interface TriggerCategory {
 }
 
 export const categorizedTriggers: TriggerCategory[] = [
+
+  // Form Triggers
   {
     id: 'form-triggers',
     name: 'Forms',
@@ -70,6 +75,8 @@ export const categorizedTriggers: TriggerCategory[] = [
       },
     ]
   },
+
+  // Contact Triggers
   {
     id: 'contact-triggers',
     name: 'Contact Triggers',
@@ -78,154 +85,302 @@ export const categorizedTriggers: TriggerCategory[] = [
     color: 'bg-green-50 border-green-200',
     triggers: [
       {
-        id: 'contact-created-trigger',
-        label: 'Contact Created',
+        id: 'contact-source-trigger',
+        label: 'Contact Source',
         icon: UserPlus,
-        description: 'Triggers when a new contact is created',
+        description: 'When new contact added via the selected source to send welcome message and more',
+        color: 'bg-green-50 border-green-200'
+      },
+
+      {
+        id: 'contact-updated-trigger',
+        label: 'Contact Update',
+        icon: UserPlus,
+        description: 'Send a cheer message to contact whenever contact is updated in system even with other automation',
         color: 'bg-green-50 border-green-200'
       },
       {
         id: 'contact-tagged-trigger',
         label: 'Contact Tagged',
         icon: Tag,
-        description: 'Triggers when a contact is tagged',
+        description: 'When a contact is tagged automation will trigger',
         color: 'bg-yellow-50 border-yellow-200'
       },
       {
-        id: 'contact-unsubscribed-trigger',
-        label: 'Contact Unsubscribed',
-        icon: XCircle,
-        description: 'Triggers when a contact unsubscribes',
-        color: 'bg-red-50 border-red-200'
-      }
+        id: 'happy-birthday-trigger',
+        label: 'Say "Happy Birthday" ',
+        icon: UserPlus,
+        description: 'Celebrate with an exclusive offer or cheerful message that sends based on the birthday field in your audience',
+        color: 'bg-green-50 border-green-200'
+      },
+
     ]
   },
+
+  // CRM Triggers
   {
-    id: 'product-triggers',
-    name: 'Product Triggers',
+    id: 'crm-triggers',
+    name: 'CRM',
     icon: Package,
     description: 'Triggers based on product interactions',
     color: 'bg-orange-50 border-orange-200',
     triggers: [
       {
-        id: 'product-purchased-trigger',
-        label: 'Product Purchased',
-        icon: ShoppingCart,
-        description: 'Triggers when a product is purchased',
+        id: 'added-to-pipeline-trigger',
+        label: 'Added to Pipeline',
+        icon: UserPlus,
+        description: 'When a contact is added to selected pipeline automation will trigger',
         color: 'bg-green-50 border-green-200'
       },
       {
-        id: 'product-viewed-trigger',
-        label: 'Product Viewed',
-        icon: Target,
-        description: 'Triggers when a product page is viewed',
+        id: 'stage-changed-trigger',
+        label: 'Stage Changed',
+        icon: ArrowRight,
+        description: 'When a contact stage is changed in selected pipeline automation will trigger',
         color: 'bg-blue-50 border-blue-200'
       },
 
       {
-        id: 'product-reviewed-trigger',
-        label: 'Product Reviewed',
-        icon: Star,
-        description: 'Triggers when a product is reviewed',
+        id: 'follow-up-trigger',
+        label: 'Follow UP',
+        icon: Clock,
+        description: 'Triggers after a specified time period for follow-up actions',
+        color: 'bg-yellow-50 border-yellow-200'
+      },
+      {
+        id: 'notes-added-trigger',
+        label: 'Note Added',
+        icon: FileText,
+        description: 'When a note added to contact automation will trigger',
         color: 'bg-yellow-50 border-yellow-200'
       }
     ]
   },
+
+  // Calendar Triggers
   {
-    id: 'email-triggers',
-    name: 'Email Triggers',
-    icon: Mail,
-    description: 'Triggers based on email activities',
+    id: 'calendar-triggers',
+    name: 'Calendar',
+    icon: Calendar, // ✅ Fixed: was Package
+    description: 'Triggers based on appointments',
     color: 'bg-purple-50 border-purple-200',
     triggers: [
       {
-        id: 'email-opened-trigger',
-        label: 'Email Opened',
-        icon: Mail,
-        description: 'Triggers when an email is opened',
-        color: 'bg-blue-50 border-blue-200'
-      },
-      {
-        id: 'email-clicked-trigger',
-        label: 'Email Link Clicked',
-        icon: Target,
-        description: 'Triggers when a link in email is clicked',
+        id: 'appointment-booked-trigger',
+        label: 'Appointment Booked',
+        icon: UserPlus,
+        description: 'Appointment booked will run the workflow',
         color: 'bg-green-50 border-green-200'
       },
       {
-        id: 'email-bounced-trigger',
-        label: 'Email Bounced',
+        id: 'appointment-cancelled-trigger',
+        label: 'Appointment Cancelled',
         icon: XCircle,
-        description: 'Triggers when an email bounces',
+        description: 'Appointment cancelled will run the workflow',
         color: 'bg-red-50 border-red-200'
       },
       {
-        id: 'email-replied-trigger',
-        label: 'Email Replied',
-        icon: MessageSquare,
-        description: 'Triggers when someone replies to an email',
-        color: 'bg-purple-50 border-purple-200'
+        id: 'appointment-rescheduled-trigger',
+        label: 'Appointment Rescheduled',
+        icon: Calendar,
+        description: 'Appointment rescheduled will run the workflow',
+        color: 'bg-blue-50 border-blue-200'
+      },
+      {
+        id: 'no-show-trigger',
+        label: 'No-Show Appointment',
+        icon: UserX,
+        description: 'No-show appointment will run the workflow',
+        color: 'bg-orange-50 border-orange-200'
+      },
+
+      {
+        id: 'show-up-trigger',
+        label: 'Show Up Appointment',
+        icon: UserCheck,
+        description: 'Show Appointment within 24 hours will run the workflow',
+        color: 'bg-green-50 border-green-200'
+      },
+
+    ]
+  },
+
+  // Finance Triggers
+  {
+    id: 'finance-triggers',
+    name: 'Finance',
+    icon: Banknote,
+    description: 'Triggers based on finance',
+    color: 'bg-emerald-50 border-emerald-200',
+    triggers: [
+      {
+        id: 'subcription-created-trigger',
+        label: 'Subscription Created',
+        icon: FilePlus,
+        description: 'Select the product/plan where subscription is created and you want to automate',
+        color: 'bg-green-50 border-green-200'
+      },
+      {
+        id: 'subcription-overdue-trigger',
+        label: 'Subscription Overdue',
+        icon: CalendarX,
+        description: 'Select the product/plan where subscription is overdue and you want to automate',
+        color: 'bg-red-50 border-red-200'
+      },
+      {
+        id: 'subcription-paid-trigger',
+        label: 'Subscription Paid',
+        icon: BadgeCheck,
+        description: 'Select the product/plan where subscription is paid and you want to automate',
+        color: 'bg-green-50 border-green-200'
+      },
+      {
+        id: 'subcription-cancelled-trigger',
+        label: 'Subscription Cancelled',
+        icon: Ban,
+        description: 'Select the product/plan where subscription is cancelled and you want to automate',
+        color: 'bg-red-50 border-red-200'
+      },
+
+      // Installment Triggers
+      {
+        id: 'installment-created-trigger',
+        label: 'Instalment Created',
+        icon: FilePlus,
+        description: 'Select the product/plan where instalment is created and you want to automate',
+        color: 'bg-green-50 border-green-200'
+      },
+      {
+        id: 'installment-paid-trigger',
+        label: 'Instalment Paid',
+        icon: BadgeCheck,
+        description: 'Select the product/plan where instalment is paid and you want to automate',
+        color: 'bg-green-50 border-green-200'
+      },
+      {
+        id: 'installment-overdue-trigger',
+        label: 'Instalment Overdue',
+        icon: CalendarX,
+        description: 'Select the product/plan where instalment is overdue and you want to automate',
+        color: 'bg-red-50 border-red-200'
+      },
+      {
+        id: 'installment-cancelled-trigger',
+        label: 'Instalment Cancelled',
+        icon: Ban,
+        description: 'Select the product/plan where instalment is cancelled and you want to automate',
+        color: 'bg-red-50 border-red-200'
+      },
+
+      // Payment and Invoice Triggers
+      {
+        id: 'payment-failed-trigger',
+        label: 'Payment Failed',
+        icon: CreditCard,
+        description: 'Select the product/plan where payment failed and you want to automate',
+        color: 'bg-red-50 border-red-200'
+      },
+      {
+        id: 'invoice-paid-trigger',
+        label: 'Invoice Paid',
+        icon: Receipt,
+        description: 'Select the product which you need to automate when invoice paid',
+        color: 'bg-green-50 border-green-200'
       }
     ]
   },
+
+  // LMS 
   {
-    id: 'time-triggers',
-    name: 'Time & Schedule',
-    icon: Clock,
-    description: 'Time-based and scheduled triggers',
+    id: 'lms-triggers',
+    name: 'LMS',
+    icon: GraduationCap, // <- needs update
+    description: 'Triggers based on LMS',
     color: 'bg-indigo-50 border-indigo-200',
     triggers: [
       {
-        id: 'schedule-trigger',
-        label: 'Schedule',
-        icon: Calendar,
-        description: 'Triggers at specific times or intervals',
-        color: 'bg-indigo-50 border-indigo-200'
+        id: 'lesson-completed-trigger',
+        label: 'Lesson Completed',
+        icon: CheckCircle,
+        description: 'Select the course which lessons is completed',
+        color: 'bg-green-50 border-green-200'
+      },
+
+      {
+        id: 'course-completed-trigger',
+        label: 'Course Completed',
+        icon: GraduationCap,
+        description: 'Select the course which is completed you want to automate',
+        color: 'bg-green-50 border-green-200'
       },
       {
-        id: 'delay-trigger',
-        label: 'Delay',
-        icon: Clock,
-        description: 'Adds a delay before next action',
-        color: 'bg-gray-50 border-gray-200'
-      },
+        id: 'comment-added-trigger',
+        label: 'Comment Added',
+        icon: MessageSquare,
+        description: 'Select the course where comment is added and you want to automate',
+        color: 'bg-yellow-50 border-yellow-200'
+      }
+    ]
+  },
+
+  // API
+  {
+    id: 'api-triggers',
+    name: 'API',
+    icon: Server, // <- needs update
+    description: 'Triggers based on API',
+    color: 'bg-indigo-50 border-indigo-200',
+    triggers: [
       {
-        id: 'date-trigger',
-        label: 'Specific Date',
-        icon: Calendar,
-        description: 'Triggers on a specific date',
+        id: 'api-trigger',
+        label: 'API 1.0',
+        icon: Webhook,
+        description: 'Automation is triggered manually or from another application using API 1.0. Make an HTTP POST request to the API endpoint below',
         color: 'bg-blue-50 border-blue-200'
       }
     ]
   },
+
+  // Schedule
   {
-    id: 'webhook-triggers',
-    name: 'Webhooks & API',
-    icon: Globe,
-    description: 'External system triggers',
-    color: 'bg-teal-50 border-teal-200',
+    id: 'schedule-triggers',
+    name: 'Schedule',
+    icon: Clock, // <- needs update
+    description: 'Triggers based on schedule',
+    color: 'bg-indigo-50 border-indigo-200',
     triggers: [
       {
-        id: 'webhook-trigger',
-        label: 'Webhook',
-        icon: Webhook,
-        description: 'Triggers from external webhook calls',
-        color: 'bg-teal-50 border-teal-200'
-      },
-      {
-        id: 'api-trigger',
-        label: 'API Call',
-        icon: Globe,
-        description: 'Triggers from API endpoint calls',
+        id: 'specific-date-trigger',
+        label: 'Specific date',
+        icon: CalendarClock,
+        description: 'Start a marketing campaign immediately or schedule it for a particular date/time. Automation will be triggered accordingly for all contacts in the selected contact group',
         color: 'bg-blue-50 border-blue-200'
       },
       {
-        id: 'zapier-trigger',
-        label: 'Zapier Integration',
-        icon: Zap,
-        description: 'Triggers from Zapier workflows',
-        color: 'bg-orange-50 border-orange-200'
+        id: 'weekly-recurring-trigger',
+        label: 'Weekly Recurring',
+        icon: Repeat,
+        description: 'Select the days of the week and time to run the workflow',
+        color: 'bg-green-50 border-green-200'
       }
+      ,
+
+      {
+        id: 'monthly-recurring-trigger',
+        label: 'Monthly Recurring',
+        icon: CalendarRange,
+        description: 'Select the days of the month and time to run the workflow',
+        color: 'bg-yellow-50 border-yellow-200'
+      }
+      ,
+      {
+        id: 'event-date-trigger',
+        label: 'Event date',
+        icon: Zap,
+        description: 'Start now or schedule — automation runs for all selected contacts',
+        color: 'bg-purple-50 border-purple-200'
+      }
+
     ]
   }
 ];
