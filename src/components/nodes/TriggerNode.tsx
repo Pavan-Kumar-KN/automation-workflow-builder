@@ -14,6 +14,7 @@ interface TriggerNodeProps {
     description?: string;
     layoutMode?: string;
     openNodeModal?: (node: any) => void;
+    color?: string; // Add color property from node data
   };
 }
 
@@ -24,7 +25,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
     if (data.icon && data.icon in LucideIcons) {
       return LucideIcons[data.icon] as React.ComponentType<React.SVGProps<SVGSVGElement>>;
     }
-    
+
     // Fallback based on ID patterns
     if (data.id?.includes('form')) return LucideIcons.FileText;
     if (data.id?.includes('contact')) return LucideIcons.Users;
@@ -37,7 +38,29 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
     return LucideIcons.Zap;
   };
 
+  const parseNodeColor = () => {
+    // Use the actual color from node data if available
+    if (data.color) {
+      console.log('🎨 Using node color data:', data.color);
+
+      // Parse Tailwind color classes to determine the color theme
+      if (data.color.includes('red')) return 'red';
+      if (data.color.includes('green')) return 'green';
+      if (data.color.includes('blue')) return 'blue';
+      if (data.color.includes('yellow')) return 'yellow';
+      if (data.color.includes('purple')) return 'purple';
+      if (data.color.includes('indigo')) return 'indigo';
+      if (data.color.includes('orange')) return 'orange';
+      if (data.color.includes('pink')) return 'pink';
+      if (data.color.includes('emerald')) return 'green'; // Map emerald to green
+    }
+
+    console.log('🎨 No color data found, using default red');
+    return 'red';
+  };
+
   const IconComponent = getIcon();
+  const color = parseNodeColor();
   const isHorizontalFlow = data.layoutMode === 'horizontal';
 
   const handleAddNode = () => {
@@ -56,28 +79,89 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
   // Check if this node already has an outgoing connection
   const hasOutgoingConnection = edges.some(edge => edge.source === data.id);
 
+  // Color mappings for different trigger types
+  const colorClasses = {
+    red: {
+      border: 'border-red-200',
+      bg: 'from-red-50 to-red-100',
+      borderB: 'border-red-200',
+      iconBg: 'bg-red-100',
+      iconText: 'text-red-600',
+      handle: 'bg-red-500 hover:bg-red-600'
+    },
+    green: {
+      border: 'border-green-200',
+      bg: 'from-green-50 to-green-100',
+      borderB: 'border-green-200',
+      iconBg: 'bg-green-100',
+      iconText: 'text-green-600',
+      handle: 'bg-green-500 hover:bg-green-600'
+    },
+    blue: {
+      border: 'border-blue-200',
+      bg: 'from-blue-50 to-blue-100',
+      borderB: 'border-blue-200',
+      iconBg: 'bg-blue-100',
+      iconText: 'text-blue-600',
+      handle: 'bg-blue-500 hover:bg-blue-600'
+    },
+    yellow: {
+      border: 'border-yellow-200',
+      bg: 'from-yellow-50 to-yellow-100',
+      borderB: 'border-yellow-200',
+      iconBg: 'bg-yellow-100',
+      iconText: 'text-yellow-600',
+      handle: 'bg-yellow-500 hover:bg-yellow-600'
+    },
+    purple: {
+      border: 'border-purple-200',
+      bg: 'from-purple-50 to-purple-100',
+      borderB: 'border-purple-200',
+      iconBg: 'bg-purple-100',
+      iconText: 'text-purple-600',
+      handle: 'bg-purple-500 hover:bg-purple-600'
+    },
+    indigo: {
+      border: 'border-indigo-200',
+      bg: 'from-indigo-50 to-indigo-100',
+      borderB: 'border-indigo-200',
+      iconBg: 'bg-indigo-100',
+      iconText: 'text-indigo-600',
+      handle: 'bg-indigo-500 hover:bg-indigo-600'
+    },
+    orange: {
+      border: 'border-orange-200',
+      bg: 'from-orange-50 to-orange-100',
+      borderB: 'border-orange-200',
+      iconBg: 'bg-orange-100',
+      iconText: 'text-orange-600',
+      handle: 'bg-orange-500 hover:bg-orange-600'
+    },
+    pink: {
+      border: 'border-pink-200',
+      bg: 'from-pink-50 to-pink-100',
+      borderB: 'border-pink-200',
+      iconBg: 'bg-pink-100',
+      iconText: 'text-pink-600',
+      handle: 'bg-pink-500 hover:bg-pink-600'
+    }
+  };
+
+  const currentColors = colorClasses[color as keyof typeof colorClasses] || colorClasses.red;
+
   return (
-    <div className="bg-white border-2 border-red-200 rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
-      <div className="bg-gradient-to-r from-red-50 to-red-100 px-4 py-3 rounded-t-lg border-b border-red-200">
+    <div className={`bg-white border-2 ${currentColors.border} rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]`}>
+      <div className={`bg-gradient-to-r ${currentColors.bg} px-4 py-3 rounded-t-lg border-b ${currentColors.borderB}`}>
         <div className="flex items-center space-x-2">
-          <div className="p-1.5 bg-red-100 rounded-md shadow-sm">
-            <IconComponent className="w-4 h-4 text-red-600" />
+          <div className={`p-1.5 ${currentColors.iconBg} rounded-md shadow-sm`}>
+            <IconComponent className={`w-4 h-4 ${currentColors.iconText}`} />
           </div>
-          <span className="text-sm font-bold text-red-800 tracking-wide">TRIGGER</span>
+          <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
+            {data.label}
+          </h3>
         </div>
       </div>
 
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
-          {data.label}
-        </h3>
-        {/* {data.description && (
-          <p className="text-xs text-gray-500 leading-relaxed mb-2">
-            {data.description}
-          </p>
-        )} */}
-
-      </div>
 
       {/* Single output handle - position depends on layout mode */}
       {/* Horizontal mode: output to RIGHT, Vertical/Freeform mode: output to BOTTOM */}
@@ -85,7 +169,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data }) => {
         type="source"
         position={isHorizontalFlow ? Position.Right : Position.Bottom}
         id={isHorizontalFlow ? "output-right" : "output-bottom"}
-        className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
+        className={`w-3 h-3 ${currentColors.handle} border-2 border-white shadow-md transition-colors`}
         style={isHorizontalFlow ? { top: '50%' } : { left: '50%' }}
       />
 

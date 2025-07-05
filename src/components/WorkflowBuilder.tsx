@@ -157,7 +157,7 @@ export const WorkflowBuilder = () => {
       const edge = {
         ...params,
         id: edgeId,
-        type: (layoutMode === 'vertical' || layoutMode === 'freeform') ? 'straight' : 'smoothstep',
+        type: 'smoothstep', // Use smoothstep for all layouts for better visual appearance
         animated: true,
         source: params.source!,
         target: params.target!,
@@ -297,7 +297,7 @@ export const WorkflowBuilder = () => {
           target: newNode.id,
           sourceHandle,
           targetHandle: newNodeTargetHandle,
-          type: (layoutMode === 'vertical' || layoutMode === 'freeform') ? 'straight' : 'smoothstep',
+          type: 'smoothstep', // Use smoothstep for better visual appearance
         },
         {
           id: `${newNode.id}-${existingOutgoingEdge.target}`,
@@ -305,7 +305,7 @@ export const WorkflowBuilder = () => {
           target: existingOutgoingEdge.target,
           sourceHandle: newNodeSourceHandle,
           targetHandle: finalTargetHandle,
-          type: (layoutMode === 'vertical' || layoutMode === 'freeform') ? 'straight' : 'smoothstep',
+          type: 'smoothstep', // Use smoothstep for better visual appearance
         },
       ]);
     } else {
@@ -321,7 +321,7 @@ export const WorkflowBuilder = () => {
           target: newNode.id,
           sourceHandle,
           targetHandle,
-          type: (layoutMode === 'vertical' || layoutMode === 'freeform') ? 'straight' : 'smoothstep',
+          type: 'smoothstep', // Use smoothstep for better visual appearance
         },
       ]);
     }

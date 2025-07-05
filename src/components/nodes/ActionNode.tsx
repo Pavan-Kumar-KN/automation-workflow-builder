@@ -13,6 +13,7 @@ interface ActionNodeProps {
     description?: string;
     layoutMode?: string;
     openNodeModal?: (node: any) => void;
+    color?: string; // Add color property from node data
   };
 }
 
@@ -42,57 +43,29 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
     return LucideIcons.Settings;
   };
 
-  const getColor = () => {
-    // Check both ID and label for color determination
-    const idLower = data.id?.toLowerCase() || '';
-    const labelLower = data.label?.toLowerCase() || '';
+  const parseNodeColor = () => {
+    // Use the actual color from node data if available
+    if (data.color) {
+      console.log('🎨 Using action node color data:', data.color);
 
-    console.log('🎨 Node color detection:', { id: data.id, label: data.label, idLower, labelLower });
-
-    // Communication actions
-    if (idLower.includes('whatsapp') || labelLower.includes('whatsapp')) {
-      console.log('🎨 Returning GREEN for WhatsApp');
-      return 'green';
-    }
-    if (idLower.includes('sms') || idLower.includes('phone') || labelLower.includes('sms') || labelLower.includes('phone')) {
-      console.log('🎨 Returning PURPLE for SMS/Phone');
-      return 'purple';
-    }
-    if (idLower.includes('email') || idLower.includes('mail') || labelLower.includes('email') || labelLower.includes('mail')) {
-      console.log('🎨 Returning BLUE for Email');
-      return 'blue';
+      // Parse Tailwind color classes to determine the color theme
+      if (data.color.includes('red')) return 'red';
+      if (data.color.includes('green')) return 'green';
+      if (data.color.includes('blue')) return 'blue';
+      if (data.color.includes('yellow')) return 'yellow';
+      if (data.color.includes('purple')) return 'purple';
+      if (data.color.includes('indigo')) return 'indigo';
+      if (data.color.includes('orange')) return 'orange';
+      if (data.color.includes('pink')) return 'pink';
+      if (data.color.includes('emerald')) return 'green'; // Map emerald to green
     }
 
-    // Time-based actions
-    if (idLower.includes('delay') || idLower.includes('schedule') || labelLower.includes('delay') || labelLower.includes('schedule')) {
-      console.log('🎨 Returning YELLOW for Delay/Schedule');
-      return 'yellow';
-    }
-
-    // Condition actions
-    if (idLower.includes('condition') || idLower.includes('evaluate') || labelLower.includes('condition') || labelLower.includes('evaluate')) {
-      console.log('🎨 Returning ORANGE for Condition');
-      return 'orange';
-    }
-
-    // Course/Community actions
-    if (idLower.includes('course') || idLower.includes('community') || labelLower.includes('course') || labelLower.includes('community')) {
-      console.log('🎨 Returning INDIGO for Course/Community');
-      return 'indigo';
-    }
-
-    // Tag actions
-    if (idLower.includes('tag') || labelLower.includes('tag')) {
-      console.log('🎨 Returning PURPLE for Tag');
-      return 'purple';
-    }
-
-    console.log('🎨 Returning DEFAULT BLUE');
+    console.log('🎨 No action color data found, using default blue');
     return 'blue';
   };
 
   const IconComponent = getIcon();
-  const color = getColor();
+  const color = parseNodeColor();
   // Handle positioning logic:
   // Horizontal mode: left/right handles (left-to-right flow)
   // Vertical mode: top/bottom handles (top-to-bottom flow)
@@ -147,6 +120,22 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
       iconColor: 'text-indigo-600',
       textColor: 'text-indigo-800',
       handleColor: 'bg-indigo-500 hover:bg-indigo-600'
+    },
+    red: {
+      border: 'border-red-200',
+      bg: 'from-red-50 to-red-100',
+      iconBg: 'bg-red-100',
+      iconColor: 'text-red-600',
+      textColor: 'text-red-800',
+      handleColor: 'bg-red-500 hover:bg-red-600'
+    },
+    pink: {
+      border: 'border-pink-200',
+      bg: 'from-pink-50 to-pink-100',
+      iconBg: 'bg-pink-100',
+      iconColor: 'text-pink-600',
+      textColor: 'text-pink-800',
+      handleColor: 'bg-pink-500 hover:bg-pink-600'
     }
   };
 
