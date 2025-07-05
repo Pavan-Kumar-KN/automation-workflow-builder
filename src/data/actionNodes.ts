@@ -4,7 +4,6 @@
     Mail,
     MessageCircle,
     MessageSquare,
-    Phone,
   } from 'lucide-react';
   import { NodeData } from './types';
 

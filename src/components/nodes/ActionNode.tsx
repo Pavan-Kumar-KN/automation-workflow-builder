@@ -1,9 +1,11 @@
 import React from 'react';
-import { Handle, Position } from '@xyflow/react';
-import { Plus } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useWorkflowStore } from '@/hooks/useWorkflowState';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ActionNodeProps {
   data: {
@@ -12,240 +14,96 @@ interface ActionNodeProps {
     icon?: keyof typeof LucideIcons;
     description?: string;
     layoutMode?: string;
+    color?: string;
+    type?: string;
     openNodeModal?: (node: any) => void;
-    color?: string; // Add color property from node data
   };
+  isSelected?: boolean;
+  onDelete?: () => void;
 }
 
-export const ActionNode: React.FC<ActionNodeProps> = ({ data }) => {
-  const { edges, nodes } = useWorkflowStore();
-
-  const getIcon = () => {
-    if (data.icon && data.icon in LucideIcons) {
-      return LucideIcons[data.icon] as React.ComponentType<React.SVGProps<SVGSVGElement>>;
-    }
-    
-    // Fallback based on ID patterns
-    if (data.id?.includes('email') || data.id?.includes('mail')) return LucideIcons.Mail;
-    if (data.id?.includes('whatsapp') || data.id?.includes('message')) return LucideIcons.MessageSquare;
-    if (data.id?.includes('sms') || data.id?.includes('phone')) return LucideIcons.Phone;
-    if (data.id?.includes('delay') || data.id?.includes('wait')) return LucideIcons.Clock;
-    if (data.id?.includes('condition') || data.id?.includes('evaluate')) return LucideIcons.GitBranch;
-    if (data.id?.includes('contact') || data.id?.includes('lead')) return LucideIcons.Users;
-    if (data.id?.includes('crm') || data.id?.includes('database')) return LucideIcons.Database;
-    if (data.id?.includes('form')) return LucideIcons.FileText;
-    if (data.id?.includes('calendar') || data.id?.includes('appointment')) return LucideIcons.Calendar;
-    if (data.id?.includes('course') || data.id?.includes('access')) return LucideIcons.GraduationCap;
-    if (data.id?.includes('community') || data.id?.includes('group')) return LucideIcons.Users;
-    if (data.id?.includes('webhook') || data.id?.includes('api')) return LucideIcons.Webhook;
-    if (data.id?.includes('automation') || data.id?.includes('execute')) return LucideIcons.PlayCircle;
-    if (data.id?.includes('tag')) return LucideIcons.Tag;
-    return LucideIcons.Settings;
-  };
-
-  const parseNodeColor = () => {
-    // Use the actual color from node data if available
-    if (data.color) {
-      console.log('🎨 Using action node color data:', data.color);
-
-      // Parse Tailwind color classes to determine the color theme
-      if (data.color.includes('red')) return 'red';
-      if (data.color.includes('green')) return 'green';
-      if (data.color.includes('blue')) return 'blue';
-      if (data.color.includes('yellow')) return 'yellow';
-      if (data.color.includes('purple')) return 'purple';
-      if (data.color.includes('indigo')) return 'indigo';
-      if (data.color.includes('orange')) return 'orange';
-      if (data.color.includes('pink')) return 'pink';
-      if (data.color.includes('emerald')) return 'green'; // Map emerald to green
-    }
-
-    console.log('🎨 No action color data found, using default blue');
-    return 'blue';
-  };
-
-  const IconComponent = getIcon();
-  const color = parseNodeColor();
-  // Handle positioning logic:
-  // Horizontal mode: left/right handles (left-to-right flow)
-  // Vertical mode: top/bottom handles (top-to-bottom flow)
-  // Freeform mode: use vertical style (top/bottom handles)
-  const isHorizontalFlow = data.layoutMode === 'horizontal';
+export const ActionNode: React.FC<ActionNodeProps> = ({ data, isSelected = false, onDelete }) => {
+  // Handle both string icon names and direct icon components
   
-  const colorClasses = {
-    blue: {
-      border: 'border-blue-200',
-      bg: 'from-blue-50 to-blue-100',
-      iconBg: 'bg-blue-100',
-      iconColor: 'text-blue-600',
-      textColor: 'text-blue-800',
-      handleColor: 'bg-blue-500 hover:bg-blue-600'
-    },
-    green: {
-      border: 'border-green-200',
-      bg: 'from-green-50 to-green-100',
-      iconBg: 'bg-green-100',
-      iconColor: 'text-green-600',
-      textColor: 'text-green-800',
-      handleColor: 'bg-green-500 hover:bg-green-600'
-    },
-    yellow: {
-      border: 'border-yellow-200',
-      bg: 'from-yellow-50 to-yellow-100',
-      iconBg: 'bg-yellow-100',
-      iconColor: 'text-yellow-600',
-      textColor: 'text-yellow-800',
-      handleColor: 'bg-yellow-500 hover:bg-yellow-600'
-    },
-    purple: {
-      border: 'border-purple-200',
-      bg: 'from-purple-50 to-purple-100',
-      iconBg: 'bg-purple-100',
-      iconColor: 'text-purple-600',
-      textColor: 'text-purple-800',
-      handleColor: 'bg-purple-500 hover:bg-purple-600'
-    },
-    orange: {
-      border: 'border-orange-200',
-      bg: 'from-orange-50 to-orange-100',
-      iconBg: 'bg-orange-100',
-      iconColor: 'text-orange-600',
-      textColor: 'text-orange-800',
-      handleColor: 'bg-orange-500 hover:bg-orange-600'
-    },
-    indigo: {
-      border: 'border-indigo-200',
-      bg: 'from-indigo-50 to-indigo-100',
-      iconBg: 'bg-indigo-100',
-      iconColor: 'text-indigo-600',
-      textColor: 'text-indigo-800',
-      handleColor: 'bg-indigo-500 hover:bg-indigo-600'
-    },
-    red: {
-      border: 'border-red-200',
-      bg: 'from-red-50 to-red-100',
-      iconBg: 'bg-red-100',
-      iconColor: 'text-red-600',
-      textColor: 'text-red-800',
-      handleColor: 'bg-red-500 hover:bg-red-600'
-    },
-    pink: {
-      border: 'border-pink-200',
-      bg: 'from-pink-50 to-pink-100',
-      iconBg: 'bg-pink-100',
-      iconColor: 'text-pink-600',
-      textColor: 'text-pink-800',
-      handleColor: 'bg-pink-500 hover:bg-pink-600'
+  const IconComponent = React.useMemo(() => {
+    if (!data.icon) {
+      return LucideIcons.Phone as React.ComponentType<any>;
     }
-  };
 
-  const classes = colorClasses[color as keyof typeof colorClasses];
-
-  const handleAddNode = () => {
-    console.log('🎯 ActionNode handleAddNode clicked!');
-    // Find the current node and call the modal handler from props
-    const currentNode = nodes.find(n => n.data === data);
-    console.log('🎯 Found current node:', currentNode);
-    if (currentNode && data.openNodeModal) {
-      console.log('🎯 Calling openNodeModal...');
-      data.openNodeModal(currentNode);
-    } else {
-      console.log('🎯 Missing currentNode or openNodeModal:', { currentNode: !!currentNode, openNodeModal: !!data.openNodeModal });
+    if (typeof data.icon === 'string') {
+      return (LucideIcons[data.icon as keyof typeof LucideIcons] || LucideIcons.Phone) as React.ComponentType<any>;
     }
-  };
 
-  // Check if this node already has an outgoing connection
-  const hasOutgoingConnection = edges.some(edge => edge.source === data.id);
+    if (typeof data.icon === 'function') {
+      return data.icon as React.ComponentType<any>;
+    }
+
+    if (React.isValidElement(data.icon)) {
+      // If it's already a React element, wrap it in a component
+      return () => data.icon;
+    }
+
+    // If it's an object with displayName or name (Lucide icon component)
+    if (data.icon && typeof data.icon === 'object' && ((data.icon as any).displayName || (data.icon as any).name)) {
+      return data.icon as React.ComponentType<any>;
+    }
+
+    return LucideIcons.Phone as React.ComponentType<any>;
+  }, [data.icon]);
 
   return (
-    <div className={`bg-white border-2 ${classes.border} rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]`}>
+    <div className="relative">
+      {/* Main Node - Exact ActivePieces Style */}
+      <div className={`bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 px-6 py-6 w-[360px] cursor-pointer ${
+        isSelected
+          ? 'border-blue-500 ring-2 ring-blue-200 shadow-lg'
+          : 'border-gray-200 hover:border-gray-300'
+      }`}>
+        {/* Node Content */}
+        <div className="flex items-center gap-3">
+          {/* Step Number and Icon */}
+          <div className="flex items-center gap-3">
+            {/* <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100">
+              {/* {data?.icon} */}
+            {/* </div>   */}
+              <IconComponent className={`${data.color}`} />
 
-      {/* Input connection points - positioned based on layout mode */}
-      {/* Horizontal mode: receive from LEFT (previous node outputs to right) */}
-      {/* Vertical/Freeform mode: receive from TOP (previous node outputs to bottom) */}
-
-      {isHorizontalFlow ? (
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="input-left-center"
-          className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-          style={{ top: '50%' }}
-        />
-      ) : (
-        <Handle
-          type="target"
-          position={Position.Top}
-          id="input-top-center"
-          className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-          style={{ left: '50%' }}
-        />
-      )}
-
-      <div className={`bg-gradient-to-r ${classes.bg} px-4 py-3 rounded-t-lg border-b ${classes.border}`}>
-        <div className="flex items-center space-x-2">
-          <div className={`p-1.5 ${classes.iconBg} rounded-md shadow-sm`}>
-            <IconComponent className={`w-4 h-4 ${classes.iconColor}`} />
+            <div className="text-base font-medium text-gray-700"></div>
           </div>
-          <span className={`text-sm font-bold ${classes.textColor} tracking-wide`}>ACTION</span>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="text-base font-semibold text-gray-900">
+              {data.label}
+            </div>
+          </div>
+
+          {/* Dropdown Arrow */}
+          <div className="text-gray-400">
+            <LucideIcons.ChevronDown className="w-4 h-4" />
+          </div>
+
+          {/* Delete Menu */}
+          {onDelete && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="text-gray-400 hover:text-gray-600 p-1 ml-2">
+                  <LucideIcons.MoreVertical className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={onDelete}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <LucideIcons.Trash2 className="w-4 h-4 mr-2" />
+                  Delete Action
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
-      
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
-          {data.label}
-        </h3>
-
-      </div>
-
-      {/* Output connection points - positioned based on layout mode */}
-      {/* Horizontal mode: output to RIGHT (next node receives from left) */}
-      {/* Vertical/Freeform mode: output to BOTTOM (next node receives from top) */}
-      {isHorizontalFlow ? (
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="output-right"
-          className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-          style={{ top: '50%' }}
-          // Note: Connection limit (1 outgoing connection) enforced in WorkflowBuilder onConnect
-        />
-      ) : (
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          id="output-bottom"
-          className={`w-3 h-3 ${classes.handleColor} border-2 border-white shadow-md transition-colors`}
-          style={{ left: '50%' }}
-          // Note: Connection limit (1 outgoing connection) enforced in WorkflowBuilder onConnect
-        />
-      )}
-
-      {/* Embedded Plus Button - Only show if no outgoing connection */}
-      {!hasOutgoingConnection && (
-        <div
-          className="absolute pointer-events-auto z-10"
-          style={{
-            right: isHorizontalFlow ? '-35px' : 'auto',
-            bottom: !isHorizontalFlow ? '-35px' : 'auto',
-            top: isHorizontalFlow ? '50%' : 'auto',
-            left: !isHorizontalFlow ? '50%' : 'auto',
-            transform: isHorizontalFlow ? 'translateY(-50%)' : 'translateX(-50%)',
-          }}
-        >
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 w-8 p-0 rounded-full text-xs bg-white hover:bg-gray-50 text-blue-600 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-200"
-            onClick={handleAddNode}
-            title="Add next node"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-
-      {/* Modal is now handled at WorkflowBuilder level */}
     </div>
   );
 };

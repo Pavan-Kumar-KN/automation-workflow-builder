@@ -45,21 +45,24 @@ export const triggerNodes: NodeData[] = [
     label: 'Product Enquired',
     icon: ShoppingCart,
     description: 'When product enquiry form is submitted',
-    color: 'bg-red-50 border-red-200'
+    color: 'bg-red-50 border-red-200',
+    category: 'apps'
   },
   {
     id: 'form-submitted-trigger',
     label: 'Forms',
     icon: FileText,
     description: 'Triggers when any form is submitted',
-    color: 'bg-blue-50 border-blue-200'
+    color: 'bg-blue-50 border-blue-200',
+    category: 'apps'
   },
   {
     id: 'facebook-form-trigger',
     label: 'Facebook Form',
     icon: UserCheck,
     description: 'Triggers when a contact is updated in any form',
-    color: 'bg-green-50 border-green-200'
+    color: 'bg-green-50 border-green-200',
+    category: 'apps'
   },
 
   // Contact Triggers
@@ -68,28 +71,32 @@ export const triggerNodes: NodeData[] = [
     label: 'Contact Source',
     icon: UserPlus,
     description: 'When new contact added via the selected source to send welcome message and more',
-    color: 'bg-green-50 border-green-200'
+    color: 'bg-green-50 border-green-200',
+    category: 'core'
   },
   {
     id: 'contact-updated-trigger',
     label: 'Contact Update',
     icon: UserPlus,
     description: 'Send a cheer message to contact whenever contact is updated in system even with other automation',
-    color: 'bg-green-50 border-green-200'
+    color: 'bg-green-50 border-green-200',
+    category: 'core'
   },
   {
     id: 'contact-tagged-trigger',
     label: 'Contact Tagged',
     icon: Tag,
     description: 'When a contact is tagged automation will trigger',
-    color: 'bg-yellow-50 border-yellow-200'
+    color: 'bg-yellow-50 border-yellow-200',
+    category: 'core'
   },
   {
     id: 'happy-birthday-trigger',
     label: 'Say "Happy Birthday"',
     icon: UserPlus,
     description: 'Celebrate with an exclusive offer or cheerful message that sends based on the birthday field in your audience',
-    color: 'bg-green-50 border-green-200'
+    color: 'bg-green-50 border-green-200',
+    category: 'core'
   },
 
   // CRM Triggers
@@ -264,39 +271,52 @@ export const triggerNodes: NodeData[] = [
     label: 'API 1.0',
     icon: Webhook,
     description: 'Automation is triggered manually or from another application using API 1.0. Make an HTTP POST request to the API endpoint below',
-    color: 'bg-blue-50 border-blue-200'
+    color: 'bg-blue-50 border-blue-200',
+    category: 'webhooks'
   },
 
+  // Schedule Triggers
   {
-        id: 'specific-date-trigger',
-        label: 'Specific date',
-        icon: CalendarClock,
-        description: 'Start a marketing campaign immediately or schedule it for a particular date/time. Automation will be triggered accordingly for all contacts in the selected contact group',
-        color: 'bg-blue-50 border-blue-200'
-      },
-      {
-        id: 'weekly-recurring-trigger',
-        label: 'Weekly Recurring',
-        icon: Repeat,
-        description: 'Select the days of the week and time to run the workflow',
-        color: 'bg-green-50 border-green-200'
-      }
-      ,
+    id: 'specific-date-trigger',
+    label: 'Specific date',
+    icon: CalendarClock,
+    description: 'Start a marketing campaign immediately or schedule it for a particular date/time. Automation will be triggered accordingly for all contacts in the selected contact group',
+    color: 'bg-blue-50 border-blue-200',
+    category: 'schedule'
+  },
+  {
+    id: 'weekly-recurring-trigger',
+    label: 'Weekly Recurring',
+    icon: Repeat,
+    description: 'Select the days of the week and time to run the workflow',
+    color: 'bg-green-50 border-green-200',
+    category: 'schedule'
+  },
+  {
+    id: 'monthly-recurring-trigger',
+    label: 'Monthly Recurring',
+    icon: CalendarRange,
+    description: 'Select the days of the month and time to run the workflow',
+    color: 'bg-yellow-50 border-yellow-200',
+    category: 'schedule'
+  },
+  {
+    id: 'event-date-trigger',
+    label: 'Event date',
+    icon: Zap,
+    description: 'Start now or schedule — automation runs for all selected contacts',
+    color: 'bg-purple-50 border-purple-200',
+    category: 'schedule'
+  },
 
-      {
-        id: 'monthly-recurring-trigger',
-        label: 'Monthly Recurring',
-        icon: CalendarRange,
-        description: 'Select the days of the month and time to run the workflow',
-        color: 'bg-yellow-50 border-yellow-200'
-      }
-      ,
-      {
-        id: 'event-date-trigger',
-        label: 'Event date',
-        icon: Zap,
-        description: 'Start now or schedule — automation runs for all selected contacts',
-        color: 'bg-purple-50 border-purple-200'
-      }
+  // Table Triggers
+  {
+    id: 'database-record-trigger',
+    label: 'Database Record',
+    icon: Database,
+    description: 'Trigger when a new record is added to database',
+    color: 'bg-blue-50 border-blue-200',
+    category: 'tables'
+  }
 
 ];

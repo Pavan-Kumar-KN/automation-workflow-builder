@@ -2,7 +2,8 @@ import {
   Clock,
   Mail,
   MessageCircle,
-  MessageSquare
+  MessageSquare,
+  GitBranch
 } from 'lucide-react';
 import { NodeData } from './types';
 
@@ -55,7 +56,7 @@ export const categorizedActions: ActionCategory[] = [
     ]
   },
 
-
+  // Removed Logic & Flow category to hide conditional nodes from action selection
 ];
 
 // Helper function to get all actions in a flat array

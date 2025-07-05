@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Play, Save, Share, Github, Star } from 'lucide-react';
+import { Play, Save, Share, Github, Star, RotateCcw, Activity, GitBranch, Upload } from 'lucide-react';
 
 interface WorkflowHeaderProps {
   workflowName: string;
@@ -11,6 +11,10 @@ interface WorkflowHeaderProps {
   setIsActive: (active: boolean) => void;
   onSave: () => void;
   onExecute: () => void;
+  onReset: () => void;
+  onOpenRuns?: () => void;
+  onOpenVersions?: () => void;
+  onOpenPublish?: () => void;
 }
 
 export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
@@ -20,6 +24,10 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
   setIsActive,
   onSave,
   onExecute,
+  onReset,
+  onOpenRuns,
+  onOpenVersions,
+  onOpenPublish,
 }) => {
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 px-6 py-4">
@@ -42,12 +50,36 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
         </div>
 
         <div className="flex items-center space-x-3">
-          
+          {/* Panel Buttons */}
+          <Button variant="ghost" size="sm" onClick={onOpenRuns}>
+            <Activity className="w-4 h-4 mr-2" />
+            Runs
+          </Button>
+
+          <Button variant="ghost" size="sm" onClick={onOpenVersions}>
+            <GitBranch className="w-4 h-4 mr-2" />
+            Versions
+          </Button>
+
+          <Button variant="ghost" size="sm" onClick={onOpenPublish}>
+            <Upload className="w-4 h-4 mr-2" />
+            Publish
+          </Button>
+
+          {/* Divider */}
+          <div className="w-px h-6 bg-gray-300" />
+
+          {/* Action Buttons */}
+          <Button variant="outline" size="sm" onClick={onReset}>
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reset
+          </Button>
+
           <Button size="sm" onClick={onSave}>
             <Save className="w-4 h-4 mr-2" />
             Save
           </Button>
-          
+
           <Button variant="default" size="sm" onClick={onExecute}>
             <Play className="w-4 h-4 mr-2" />
             Execute

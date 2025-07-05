@@ -231,10 +231,14 @@ export class BackendJSONConstructor {
 
     // Build actions array
     const actions = actionNodes.map(actionNode => {
+      const nextEdge = edges.find(edge => edge.source === actionNode.id);
+      const nextNode = nextEdge ? nodes.find(n => n.id === nextEdge.target) : null;
+
       return {
         id: actionNode.id,
         type: this.mapNodeTypeToBackend(actionNode.type),
         config: {
+          child: nextNode ? nextNode.id : null,
           type: this.mapNodeTypeToBackend(actionNode.type),
           options: {
             key: this.getNodeKey(actionNode.type),

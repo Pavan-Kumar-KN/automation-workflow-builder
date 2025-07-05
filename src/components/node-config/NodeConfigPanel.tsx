@@ -49,9 +49,9 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   };
 
   return (
-    <div className="w-96 bg-white border-l border-gray-200 shadow-xl relative z-20">
+    <div className="w-full h-full bg-white relative z-20">
       <Card className="h-full rounded-none border-0">
-        <CardHeader className="border-b border-gray-200 relative px-4 py-3">
+        <CardHeader className="border-b border-gray-200 relative px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center space-x-2 flex-1 min-w-0">
               {/* <span className="text-lg">{getNodeIcon()}</span> */}
@@ -69,15 +69,16 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             </Button>
           </div>
         </CardHeader>
-        
-        <CardContent className="p-6">
-          <div className="space-y-6">
+
+        <CardContent className="p-6 flex-1 overflow-y-auto">
+          <div className="space-y-6 pb-6">
             {renderConfigForm()}
-            
-            <div className="flex space-x-3 pt-4">
+
+            <div className="flex space-x-3 pt-4 border-t border-gray-200 mt-6">
               <Button
                 variant="outline"
                 onClick={onClose}
+                className="w-full"
               >
                 Cancel
               </Button>

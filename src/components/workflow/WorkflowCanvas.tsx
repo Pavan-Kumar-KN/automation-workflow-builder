@@ -2,9 +2,6 @@
 import React, { useCallback } from 'react';
 import {
   ReactFlow,
-  addEdge,
-  MiniMap,
-  Controls,
   Background,
   ConnectionMode,
   Node,
@@ -19,6 +16,8 @@ import { ConditionNode } from '../nodes/ConditionNode';
 import { SplitNode } from '../nodes/SplitNode';
 import { AddTriggerNode } from '../nodes/AddTriggerNode';
 import { GotoNode } from '../nodes/GotoNode';
+import { EndNode } from '../nodes/EndNode';
+import { Plus } from 'lucide-react';
 // import { PlusButtonOverlay } from '../PlusButtonOverlay'; // Now using embedded plus buttons
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { LayoutMode } from '@/hooks/useWorkflowState';
@@ -31,6 +30,7 @@ const nodeTypes = {
   // 'split-condition': SplitNode,
   'add-trigger': AddTriggerNode,
   // 'goto-node': GotoNode,
+  end: EndNode,
 };
 
 interface WorkflowCanvasProps {
@@ -39,13 +39,10 @@ interface WorkflowCanvasProps {
   onNodesChange: any;
   onEdgesChange: any;
   onNodeClick: (event: React.MouseEvent, node: Node) => void;
-  onDrop: (event: React.DragEvent) => void;
-  onDragOver: (event: React.DragEvent) => void;
   onInit: (instance: any) => void;
-  layoutMode: LayoutMode;
-  sidebarOpen: boolean;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
   onConnect: (params: Connection) => void;
+  openNodeModal: (sourceNode: Node) => void;
 }
 
 export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
@@ -54,91 +51,67 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   onNodesChange,
   onEdgesChange,
   onNodeClick,
-  onDrop,
-  onDragOver,
   onInit,
-  layoutMode,
-  sidebarOpen,
   reactFlowWrapper,
   onConnect,
+  openNodeModal,
 }) => {
-  const isMobile = useMediaQuery('(max-width: 768px)');
 
   return (
-    <div className="flex-1 relative overflow-hidden" ref={reactFlowWrapper}>
+    <div className="flex-1 relative overflow-hidden bg-gray-50" ref={reactFlowWrapper}>
+      {/* Empty State */}
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <button
+              onClick={() => openNodeModal({ id: 'empty-state', type: 'trigger', position: { x: 0, y: 0 }, data: {} })}
+              className="w-16 h-16 rounded-full bg-white border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 flex items-center justify-center group shadow-sm hover:shadow-md"
+              title="Add your first step"
+            >
+              <Plus className="w-8 h-8 text-gray-400 group-hover:text-blue-500" />
+            </button>
+            <p className="text-sm text-gray-500 mt-3">Click to add your first step</p>
+          </div>
+        </div>
+      )}
+
       <ReactFlow
-        nodes={nodes}
+        nodes={nodes.map(node => ({ ...node, data: { ...node.data, openNodeModal } }))}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
         onInit={onInit}
         nodeTypes={nodeTypes}
         connectionMode={ConnectionMode.Loose}
         connectOnClick={false}
         deleteKeyCode={['Backspace', 'Delete']}
-
-        // fitView
-        className="bg-gray-100"
-        style={{
-          '--rf-zoom-speed': '0.3', // Reduce zoom speed
-        } as React.CSSProperties}
-        
+        nodesDraggable={false}
+        nodesConnectable={true}
+        elementsSelectable={true}
+        className="bg-gray-50"
         defaultEdgeOptions={{
           style: { strokeWidth: 2, stroke: '#6366f1' },
-          type: (layoutMode === 'vertical' || layoutMode === 'freeform') ? 'straight' : 'smoothstep',
-          animated: true,
+          type: 'smoothstep',
+          animated: false,
         }}
         snapToGrid={false}
-        snapGrid={[15, 15]}
-        panOnDrag={!isMobile || !sidebarOpen}
-        zoomOnScroll={!isMobile}
+        panOnDrag={true}
+        zoomOnScroll={true}
         zoomOnPinch={true}
         zoomOnDoubleClick={false}
-        minZoom={0.3}
+        minZoom={0.5}
         maxZoom={1.5}
-        zoomActivationKeyCode={null}
-        panActivationKeyCode={null}
         fitView
       >
-        <Background 
-          gap={layoutMode === 'freeform' ? 15 : layoutMode === 'vertical' ? 40 : 20} 
-          size={1} 
-          color="#e5e7eb" 
+        {/* Clean minimal background */}
+        <Background
+          gap={20}
+          size={1}
+          color="#f3f4f6"
+          variant="dots"
         />
-        <Controls 
-          className={`bg-white border border-gray-200 rounded-lg shadow-sm ${
-            isMobile ? 'scale-110' : ''
-          }`}
-          showZoom={true}
-          showFitView={true}
-          showInteractive={true}
-          position={isMobile ? 'bottom-left' : 'bottom-right'}
-        />
-        <MiniMap
-          className={`bg-white border border-gray-200 rounded-lg shadow-sm ${
-            isMobile ? 'w-24 h-16' : 'w-fit h-fit'
-          }`}
-          position={isMobile ? 'top-right' : 'bottom-left'}
-          nodeColor={(node) => {
-            switch (node.type) {
-              case 'trigger': return '#ef4444';
-              case 'action': return '#3b82f6';
-              case 'condition': return '#f59e0b';
-              case 'split-condition': return '#f59e0b';
-              case 'add-trigger': return '#3b82f6';
-              default: return '#6b7280';
-            }
-          }}
-        />
-
-        {/* Plus buttons are now embedded in each node */}
-
-        {/* JSON Debug Panel - Inside ReactFlow context */}
-        {/* <JSONDebugPanel /> */}
       </ReactFlow>
     </div>
   );
