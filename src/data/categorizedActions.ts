@@ -56,7 +56,36 @@ export const categorizedActions: ActionCategory[] = [
     ]
   },
 
-  // Removed Logic & Flow category to hide conditional nodes from action selection
+  {
+    id: 'flow-actions',
+    name: 'Evaluate Condition',
+    icon: GitBranch,
+    description: 'Add conditional logic and flow control',
+    color: 'bg-orange-50 border-orange-200',
+    actions: [
+      {
+        id: 'contact-action',
+        label: 'Contact',
+        icon: GitBranch,
+        description: 'Add conditional logic to workflow',
+        color: 'bg-orange-50 border-orange-200'
+      },
+     {
+        id: 'webhook-action',
+        label: 'Webhook',
+        icon: GitBranch,
+        description: 'Add conditional logic to workflow',
+        color: 'bg-orange-50 border-orange-200'
+      },
+       {
+        id: 'webhook-advance-action',
+        label: 'Webhook (Advance)',
+        icon: GitBranch,
+        description: 'Add conditional logic to workflow',
+        color: 'bg-orange-50 border-orange-200'
+      }
+    ]
+  }
 ];
 
 // Helper function to get all actions in a flat array

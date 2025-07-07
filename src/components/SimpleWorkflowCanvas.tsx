@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Node } from '@xyflow/react';
 import { TriggerNode } from './nodes/TriggerNode';
 import { ActionNode } from './nodes/ActionNode';
-import { ConditionNode } from './nodes/ConditionNode';
+import ConditionNode  from './nodes/ConditionNode';
 import { EndNode } from './nodes/EndNode';
 import { PlusButton } from './PlusButton';
 import { NodeData } from '@/data/nodeData';
@@ -19,6 +19,9 @@ interface SimpleWorkflowCanvasProps {
   onDeleteNode?: (nodeIndex: number) => void;
   onReplaceTrigger?: () => void;
   onOpenTriggerConfig?: (node: Node) => void;
+  onAddBranchNode?: (conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', insertIndex?: number) => void;
+  onBranchNodeClick?: (conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number, node: any) => void;
+  onDeleteBranchNode?: (conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number) => void;
   zoomLevel?: number;
 }
 
@@ -33,6 +36,9 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
   onDeleteNode,
   onReplaceTrigger,
   onOpenTriggerConfig,
+  onAddBranchNode,
+  onBranchNodeClick,
+  onDeleteBranchNode,
   zoomLevel = 100,
 }) => {
   const renderNode = (node: Node, index: number) => {
@@ -64,6 +70,15 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
         break;
       case 'condition':
         NodeComponent = ConditionNode;
+        (nodeProps as any).onAddBranchNode = (branchType: 'branch1' | 'otherwise', insertIndex?: number) => {
+          onAddBranchNode?.(index, branchType, insertIndex);
+        };
+        (nodeProps as any).onBranchNodeClick = (branchType: 'branch1' | 'otherwise', nodeIndex: number, branchNode: any) => {
+          onBranchNodeClick?.(index, branchType, nodeIndex, branchNode);
+        };
+        (nodeProps as any).onDeleteBranchNode = (branchType: 'branch1' | 'otherwise', nodeIndex: number) => {
+          onDeleteBranchNode?.(index, branchType, nodeIndex);
+        };
         break;
       case 'end':
         NodeComponent = EndNode;
@@ -78,8 +93,8 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
           <NodeComponent key={node.id} {...nodeProps} />
         </div>
         
-        {/* Connection Line and Plus Button (except for last node) */}
-        {index < nodes.length - 1 && (
+        {/* Connection Line and Plus Button (except for last node and after conditional nodes) */}
+        {index < nodes.length - 1 && node.type !== 'condition' && (
           <div className="flex flex-col items-center py-2 relative">
             {/* Vertical Line */}
             <div className="w-0.5 h-12 bg-gray-400 relative">
@@ -155,8 +170,8 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
             <div className="flex flex-col items-center space-y-0">
               {nodes.map((node, index) => renderNode(node, index))}
 
-              {/* Final connection to End */}
-              {nodes.length > 0 && (
+              {/* Final connection to End - Only show if last node is not a router/conditional */}
+              {nodes.length > 0 && nodes[nodes.length - 1].type !== 'condition' && (
                 <>
                   <div className="flex flex-col items-center py-2 relative">
                     {/* Vertical Line */}
@@ -171,7 +186,7 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
                     </div>
                   </div>
 
-                  {/* End Node */}
+                  {/* End Node */}  
                   <div className="text-center">
                     <div className="text-sm font-medium text-gray-600 bg-gray-100 rounded-lg px-4 py-2 border border-gray-300">
                       End

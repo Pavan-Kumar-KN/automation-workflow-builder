@@ -40,6 +40,14 @@ export const WorkflowBuilder = () => {
   // Panel states - only one panel can be open at a time
   const [activePanel, setActivePanel] = useState<'runs' | 'versions' | 'publish' | null>(null);
 
+  // Branch context for conditional nodes
+  const [branchContext, setBranchContext] = useState<{
+    conditionNodeIndex: number;
+    branchType: 'branch1' | 'otherwise';
+    insertIndex?: number;
+  } | null>(null);
+  const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null);
+
   // Initialize with default trigger node if empty
   useEffect(() => {
     if (nodes.length === 0) {
@@ -169,19 +177,66 @@ export const WorkflowBuilder = () => {
     toast.success(`${nodeData.label} inserted into workflow!`);
   }, [setNodes, setEdges]);
 
+  // Add node to a specific branch of a conditional node
+  const handleAddNodeToBranch = useCallback((conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', action: NodeData, insertIndex?: number) => {
+    setNodes(prev => prev.map((node, index) => {
+      if (index === conditionNodeIndex && node.type === 'condition') {
+        const branchNodes = (node.data as any).branchNodes || { branch1: [], otherwise: [] };
+        const newBranchNode = {
+          id: `branch-${Date.now()}-${Math.random()}`,
+          type: 'action',
+          data: {
+            label: action.label,
+            icon: action.icon,
+            description: action.description,
+            isConfigured: false,
+          },
+        };
+
+        const targetBranch = branchType === 'branch1' ? branchNodes.branch1 : branchNodes.otherwise;
+        const newBranch = [...targetBranch];
+
+        // Insert at specific index or at the end
+        if (insertIndex !== undefined && insertIndex >= 0) {
+          newBranch.splice(insertIndex, 0, newBranchNode);
+        } else {
+          newBranch.push(newBranchNode);
+        }
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            branchNodes: {
+              branch1: branchType === 'branch1' ? newBranch : branchNodes.branch1,
+              otherwise: branchType === 'otherwise' ? newBranch : branchNodes.otherwise,
+            },
+          },
+        };
+      }
+      return node;
+    }));
+
+    toast.success(`${action.label} added to ${branchType === 'branch1' ? 'Branch 1' : 'Otherwise'} branch!`);
+  }, [setNodes]);
+
   // Handle action selection from modal
   const handleActionSelection = useCallback((action: NodeData) => {
     // Determine node type based on action id
     const nodeType = action.id === 'condition-action' ? 'condition' : 'action';
 
-    if (actionInsertIndex !== null) {
+    if (branchContext) {
+      // Adding node to a branch of a conditional node
+      handleAddNodeToBranch(branchContext.conditionNodeIndex, branchContext.branchType, action, branchContext.insertIndex);
+      setBranchContext(null);
+    } else if (actionInsertIndex !== null) {
       handleNodeInsertion(actionInsertIndex, nodeType, action);
       setActionInsertIndex(null);
     } else {
       handleNodeSelection(nodeType, action);
     }
     setShowActionModal(false);
-  }, [actionInsertIndex, handleNodeInsertion, handleNodeSelection]);
+  }, [branchContext, actionInsertIndex, handleNodeInsertion, handleNodeSelection, handleAddNodeToBranch]);
 
   // Open action modal for insertion
   const openActionModal = useCallback((insertIndex?: number) => {
@@ -276,6 +331,56 @@ export const WorkflowBuilder = () => {
   const handleOpenTriggerConfig = useCallback((node: Node) => {
     setSelectedNode(node);
   }, [setSelectedNode]);
+
+  // Branch node handlers
+  const handleAddBranchNode = useCallback((conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', insertIndex?: number) => {
+    console.log(`Adding branch node to condition ${conditionNodeIndex}, branch: ${branchType}, insertIndex: ${insertIndex}`);
+    // Store the context for when action modal closes
+    setInsertAfterIndex(conditionNodeIndex);
+    setBranchContext({ conditionNodeIndex, branchType, insertIndex });
+    setShowActionModal(true);
+  }, [setInsertAfterIndex, setShowActionModal]);
+
+  const handleBranchNodeClick = useCallback((conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number, branchNode: any) => {
+    console.log(`Branch node clicked: condition ${conditionNodeIndex}, branch: ${branchType}, node: ${nodeIndex}`, branchNode);
+    // Handle branch node configuration
+    if (branchNode.data.isConfigured) {
+      // Open configuration panel for the branch node
+      setSelectedNode(branchNode);
+    } else {
+      // Open action selection modal for unconfigured branch node
+      setShowActionModal(true);
+    }
+  }, [setSelectedNode, setShowActionModal]);
+
+  const handleDeleteBranchNode = useCallback((conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number) => {
+    console.log(`Deleting branch node: condition ${conditionNodeIndex}, branch: ${branchType}, node: ${nodeIndex}`);
+    setNodes(prev => prev.map((node, index) => {
+      if (index === conditionNodeIndex && node.type === 'condition') {
+        const branchNodes = (node.data as any).branchNodes || { branch1: [], otherwise: [] };
+        const updatedBranchNodes = { ...branchNodes };
+
+        // Remove the node from the specified branch
+        if (branchType === 'branch1') {
+          updatedBranchNodes.branch1 = updatedBranchNodes.branch1.filter((_, idx) => idx !== nodeIndex);
+        } else {
+          updatedBranchNodes.otherwise = updatedBranchNodes.otherwise.filter((_, idx) => idx !== nodeIndex);
+        }
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            branchNodes: updatedBranchNodes
+          }
+        };
+      }
+      return node;
+    }));
+    toast.success('Branch node deleted!');
+  }, [setNodes]);
+
+
 
   // Handle reset workflow
   const handleResetWorkflow = useCallback(() => {
@@ -384,6 +489,9 @@ export const WorkflowBuilder = () => {
             onDeleteNode={handleNodeDeletion}
             onReplaceTrigger={handleReplaceTrigger}
             onOpenTriggerConfig={handleOpenTriggerConfig}
+            onAddBranchNode={handleAddBranchNode}
+            onBranchNodeClick={handleBranchNodeClick}
+            onDeleteBranchNode={handleDeleteBranchNode}
             zoomLevel={zoomLevel}
           />
         </div>
