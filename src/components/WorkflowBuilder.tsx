@@ -1,7 +1,7 @@
 
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { Node, Connection } from '@xyflow/react';
-import { Plus, Minus, RotateCcw, Lock, Unlock } from 'lucide-react';
+import { Node } from '@xyflow/react';
+import { RotateCcw, Plus, Minus, Lock, Unlock } from 'lucide-react';
 
 import { NodeConfigPanel } from './node-config/NodeConfigPanel';
 import { WorkflowHeader } from './WorkflowHeader';
@@ -46,6 +46,7 @@ export const WorkflowBuilder = () => {
     conditionNodeIndex: number;
     branchType: 'branch1' | 'otherwise';
     insertIndex?: number;
+    isReplacement?: boolean; // Flag to distinguish replacement from insertion
   } | null>(null);
   const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null);
 
@@ -253,7 +254,7 @@ export const WorkflowBuilder = () => {
   }, [setNodes, setEdges]);
 
   // Add node to a specific branch of a conditional node
-  const handleAddNodeToBranch = useCallback((conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', action: NodeData, insertIndex?: number) => {
+  const handleAddNodeToBranch = useCallback((conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', action: NodeData, insertIndex?: number, isReplacement?: boolean) => {
     setNodes(prev => prev.map((node, index) => {
       if (index === conditionNodeIndex && node.type === 'condition') {
         const branchNodes = (node.data as any).branchNodes || { branch1: [], otherwise: [] };
@@ -277,14 +278,15 @@ export const WorkflowBuilder = () => {
         const targetBranch = branchType === 'branch1' ? branchNodes.branch1 : branchNodes.otherwise;
         const newBranch = [...targetBranch];
 
-        // Insert at specific index or at the end
-        console.log(`WorkflowBuilder: insertIndex=${insertIndex}, targetBranch length=${targetBranch.length}`);
+        // Handle insertion vs replacement
+        console.log(`WorkflowBuilder: insertIndex=${insertIndex}, targetBranch length=${targetBranch.length}, isReplacement=${isReplacement}`);
         if (insertIndex !== undefined && insertIndex >= 0) {
-          // Check if this is a replacement (when branchContext has insertIndex, it means replace)
-          if (insertIndex < targetBranch.length) {
+          if (isReplacement) {
+            // Replace existing node at the specified index
             console.log(`Replacing node at index ${insertIndex}`);
             newBranch[insertIndex] = newBranchNode; // Replace existing node
           } else {
+            // Insert new node at the specified index (plus button clicks)
             console.log(`Inserting at index ${insertIndex}`);
             newBranch.splice(insertIndex, 0, newBranchNode); // Insert new node
           }
@@ -332,7 +334,7 @@ export const WorkflowBuilder = () => {
 
     if (branchContext) {
       // Adding node to a branch of a conditional node
-      handleAddNodeToBranch(branchContext.conditionNodeIndex, branchContext.branchType, action, branchContext.insertIndex);
+      handleAddNodeToBranch(branchContext.conditionNodeIndex, branchContext.branchType, action, branchContext.insertIndex, branchContext.isReplacement);
       setBranchContext(null);
     } else if (actionInsertIndex !== null) {
       // Check if this is a router replacement (only when explicitly in replacement mode)
@@ -546,7 +548,7 @@ export const WorkflowBuilder = () => {
   const handleReplaceBranchNode = useCallback((conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number) => {
     console.log(`Replace branch node clicked: condition ${conditionNodeIndex}, branch: ${branchType}, node: ${nodeIndex}`);
     // Store the context for when action modal closes - this will replace the specific branch node
-    setBranchContext({ conditionNodeIndex, branchType, insertIndex: nodeIndex });
+    setBranchContext({ conditionNodeIndex, branchType, insertIndex: nodeIndex, isReplacement: true });
     setShowActionModal(true);
   }, [setShowActionModal]);
 

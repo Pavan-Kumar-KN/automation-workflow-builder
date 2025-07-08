@@ -5,8 +5,6 @@ import { Node } from '@xyflow/react';
 import { TriggerConfig } from './TriggerConfig';
 import { ActionConfig } from './ActionConfig';
 import { ConditionConfig } from './ConditionConfig';
-import { SplitConfig } from './SplitConfig';
-import { GotoConfig } from './GotoConfig';
 
 import { NodeConfig } from './types';
 import ProductEnquiredConfig from './triggers/forms/ProductEnquiredConfig';
@@ -468,21 +466,7 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
           />
         );
       }
-      case 'split-condition':
-        return (
-          <SplitConfig
-            config={node.data as NodeConfig}
-            setConfig={(config) => onUpdate(node.id, config)}
-          />
-        );
-      case 'goto-node':
-        return (
-          <GotoConfig
-            node={node}
-            onUpdate={onUpdate}
-            onClose={onClose}
-          />
-        );
+
       default:
         return (
           <div className="text-center py-8 text-gray-500">

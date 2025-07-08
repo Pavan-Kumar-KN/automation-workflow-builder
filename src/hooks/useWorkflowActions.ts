@@ -9,7 +9,6 @@ export const useWorkflowActions = () => {
     nodes,
     edges,
     isActive,
-    layoutMode,
   } = useWorkflowStore();
   const executeWorkflow = useCallback(() => {
     if (nodes.length === 0) {
@@ -32,13 +31,12 @@ export const useWorkflowActions = () => {
       nodes,
       edges,
       isActive,
-      layoutMode,
       updatedAt: new Date().toISOString(),
     };
     
     localStorage.setItem('workflow', JSON.stringify(workflowData));
     toast.success('Workflow saved successfully!');
-  }, [workflowName, nodes, edges, isActive, layoutMode]);
+  }, [workflowName, nodes, edges, isActive]);
 
   return {
     executeWorkflow,

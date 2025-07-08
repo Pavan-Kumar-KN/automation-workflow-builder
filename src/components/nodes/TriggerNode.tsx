@@ -13,7 +13,6 @@ interface TriggerNodeProps {
     id: string;
     icon?: keyof typeof LucideIcons;
     description?: string;
-    layoutMode?: string;
     color?: string;
     type?: string;
     isConfigured?: boolean;
