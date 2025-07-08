@@ -74,16 +74,6 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset
           </Button>
-
-          <Button size="sm" onClick={onSave}>
-            <Save className="w-4 h-4 mr-2" />
-            Save
-          </Button>
-
-          <Button variant="default" size="sm" onClick={onExecute}>
-            <Play className="w-4 h-4 mr-2" />
-            Execute
-          </Button>
         </div>
       </div>
     </header>

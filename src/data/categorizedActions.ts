@@ -3,9 +3,27 @@ import {
   Mail,
   MessageCircle,
   MessageSquare,
-  GitBranch
+  GitBranch,
+  Webhook,
+  Users,
+  Settings,
+  Tag,
+  Edit,
+  Layers,
+  UserPlus,
+  Star,
+  Box,
+  Sparkles,
+  Facebook
 } from 'lucide-react';
 import { NodeData } from './types';
+
+export interface ActionSubcategory {
+  id: string;
+  name: string;
+  description: string;
+  actions: NodeData[];
+}
 
 export interface ActionCategory {
   id: string;
@@ -13,7 +31,8 @@ export interface ActionCategory {
   icon: any;
   description: string;
   color: string;
-  actions: NodeData[];
+  actions?: NodeData[];
+  subcategories?: ActionSubcategory[];
 }
 
 export const categorizedActions: ActionCategory[] = [
@@ -57,44 +76,135 @@ export const categorizedActions: ActionCategory[] = [
   },
 
   {
-    id: 'flow-actions',
-    name: 'Evaluate Condition',
+    id: 'evaluation-actions',
+    name: 'Evaluate',
     icon: GitBranch,
     description: 'Add conditional logic and flow control',
     color: 'bg-orange-50 border-orange-200',
-    actions: [
+    subcategories: [
       {
-        id: 'contact-action',
-        label: 'Contact',
-        icon: GitBranch,
-        description: 'Add conditional logic to workflow',
-        color: 'bg-orange-50 border-orange-200'
+        id: 'contact-subcategory',
+        name: 'Contact',
+        description: 'Contact-related evaluations',
+        actions: [
+          {
+            id: 'contact-updated-action',
+            label: 'Contact Updated',
+            icon: Edit,
+            description: 'Add conditional logic based on contact data',
+            color: 'bg-orange-50 border-orange-200'
+          },
+          {
+            id: 'contact-tagged-action',
+            label: 'Contact Tagged',
+            icon: Tag, // Replace Users with Tag
+            description: 'Add conditional logic based on contact data',
+            color: 'bg-orange-50 border-orange-200'
+          },
+          {
+            id: 'contact-type-action',
+            label: 'Contact Type',
+            icon: Layers, // Best for categorization
+            description: 'Add conditional logic based on contact data',
+            color: 'bg-orange-50 border-orange-200'
+          }
+
+
+        ]
       },
-     {
-        id: 'webhook-action',
-        label: 'Webhook',
-        icon: GitBranch,
-        description: 'Add conditional logic to workflow',
-        color: 'bg-orange-50 border-orange-200'
+      {
+        id: 'crm-subcategory',
+        name: 'CRM',
+        description: 'CRM-related evaluations',
+        actions: [
+          {
+            id: 'lead-quality',
+            label: 'Lead Quality',
+            icon: Star, // or BarChart
+            description: 'Add conditional logic to workflow',
+            color: 'bg-orange-50 border-orange-200'
+          },
+          {
+            id: 'assigned-staff',
+            label: 'Assigned Staff',
+            icon: UserPlus, // or UserCheck
+            description: 'Add conditional logic to workflow',
+            color: 'bg-orange-50 border-orange-200'
+          }
+
+        ]
       },
-       {
-        id: 'webhook-advance-action',
-        label: 'Webhook (Advance)',
-        icon: GitBranch,
-        description: 'Add conditional logic to workflow',
-        color: 'bg-orange-50 border-orange-200'
-      }
+      {
+        id: 'forms-subcategory',
+        name: 'Forms',
+        description: 'form-related evaluations',
+        actions: [
+          {
+            id: 'product-form',
+            label: 'Product Form',
+            icon: Box, // Represents a product/package
+            description: 'Add conditional logic to workflow',
+            color: 'bg-indigo-50 border-indigo-200'
+          },
+          {
+            id: 'magic-form',
+            label: 'Magic Form',
+            icon: Sparkles, // Represents something magical or special
+            description: 'Add conditional logic to workflow',
+            color: 'bg-purple-50 border-purple-200'
+          },
+          {
+            id: 'facebook-form',
+            label: 'Facebook Form',
+            icon: Facebook, // Lucide has a Facebook icon
+            description: 'Add conditional logic to workflow',
+            color: 'bg-blue-50 border-blue-200'
+          }
+          ,
+
+        ]
+      },
+
+
+
     ]
-  }
+  },
+
+
 ];
 
 // Helper function to get all actions in a flat array
 export const getAllActions = (): NodeData[] => {
-  return categorizedActions.flatMap(category => category.actions);
+  return categorizedActions.flatMap(category => {
+    if (category.actions) {
+      return category.actions;
+    }
+    if (category.subcategories) {
+      return category.subcategories.flatMap(sub => sub.actions);
+    }
+    return [];
+  });
 };
 
 // Helper function to get actions by category
 export const getActionsByCategory = (categoryId: string): NodeData[] => {
   const category = categorizedActions.find(cat => cat.id === categoryId);
-  return category ? category.actions : [];
+  if (!category) return [];
+
+  if (category.actions) {
+    return category.actions;
+  }
+  if (category.subcategories) {
+    return category.subcategories.flatMap(sub => sub.actions);
+  }
+  return [];
+};
+
+// Helper function to get actions by subcategory
+export const getActionsBySubcategory = (categoryId: string, subcategoryId: string): NodeData[] => {
+  const category = categorizedActions.find(cat => cat.id === categoryId);
+  if (!category?.subcategories) return [];
+
+  const subcategory = category.subcategories.find(sub => sub.id === subcategoryId);
+  return subcategory ? subcategory.actions : [];
 };

@@ -36,6 +36,7 @@ export const WorkflowBuilder = () => {
   const [showTriggerModal, setShowTriggerModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionInsertIndex, setActionInsertIndex] = useState<number | null>(null);
+  const [isReplacementMode, setIsReplacementMode] = useState(false);
 
   // Panel states - only one panel can be open at a time
   const [activePanel, setActivePanel] = useState<'runs' | 'versions' | 'publish' | null>(null);
@@ -116,14 +117,28 @@ export const WorkflowBuilder = () => {
 
   // Handle node insertion between existing nodes
   const handleNodeInsertion = useCallback((afterNodeIndex: number, nodeType: string, nodeData: NodeData) => {
+    // Check if this is an evaluate condition action - auto-create router node
+    const isEvaluateCondition = nodeData.id && (
+      nodeData.id.includes('contact-updated-action') ||
+      nodeData.id.includes('evaluate') ||
+      nodeData.description?.toLowerCase().includes('conditional logic')
+    );
+
+    const actualNodeType = isEvaluateCondition ? 'condition' : nodeType;
+    const actualNodeData = isEvaluateCondition ? {
+      ...nodeData,
+      branchNodes: { branch1: [], otherwise: [] },
+      isConfigured: false
+    } : nodeData;
+
     const newNode: Node = {
-      id: `${nodeType}-${Date.now()}`,
-      type: nodeType,
+      id: `${actualNodeType}-${Date.now()}`,
+      type: actualNodeType,
       position: { x: 0, y: 0 },
       data: {
-        ...nodeData,
+        ...actualNodeData,
         label: nodeData.label,
-        openTriggerModal: nodeType === 'trigger' ? () => setShowTriggerModal(true) : undefined,
+        openTriggerModal: actualNodeType === 'trigger' ? () => setShowTriggerModal(true) : undefined,
         isConfigured: false,
       },
     };
@@ -133,40 +148,100 @@ export const WorkflowBuilder = () => {
       const previousNode = newNodes[afterNodeIndex];
       const nextNode = newNodes[afterNodeIndex + 1];
 
-      // Insert the new node
-      newNodes.splice(afterNodeIndex + 1, 0, newNode);
+      // Special case: If new node is conditional and next node is also conditional,
+      // move the next conditional node into the new conditional node's "Yes" branch
+      if (isEvaluateCondition && nextNode && nextNode.type === 'condition') {
+        // Create the new conditional node with the next conditional node as a sub-branch
+        const newConditionalNode: Node = {
+          ...newNode,
+          data: {
+            ...newNode.data,
+            branchNodes: {
+              branch1: [{
+                id: nextNode.id,
+                type: nextNode.type,
+                data: nextNode.data
+              }],
+              otherwise: []
+            }
+          }
+        };
+
+        // Replace the next node with the new conditional node
+        newNodes[afterNodeIndex + 1] = newConditionalNode;
+
+        // Remove the original next node since it's now a sub-branch
+        // (We're not inserting a new node, we're replacing the next node)
+      } else {
+        // Regular insertion
+        newNodes.splice(afterNodeIndex + 1, 0, newNode);
+      }
 
       // Update edges: remove old edge and create new ones
       setEdges((eds) => {
         let newEdges = [...eds];
 
-        // Remove edge from previous to next (if it exists)
-        if (previousNode && nextNode) {
-          newEdges = newEdges.filter(edge =>
-            !(edge.source === previousNode.id && edge.target === nextNode.id)
-          );
-        }
+        if (isEvaluateCondition && nextNode && nextNode.type === 'condition') {
+          // Sub-branch case: Remove edge from previous to next, add edge from previous to new conditional
+          if (previousNode && nextNode) {
+            newEdges = newEdges.filter(edge =>
+              !(edge.source === previousNode.id && edge.target === nextNode.id)
+            );
+          }
 
-        // Add edge from previous to new node
-        if (previousNode) {
-          newEdges.push({
-            id: `edge-${previousNode.id}-${newNode.id}`,
-            source: previousNode.id,
-            target: newNode.id,
-            type: 'smoothstep',
-            animated: false,
-          });
-        }
+          // Add edge from previous to new conditional node (which now contains the old conditional as sub-branch)
+          if (previousNode) {
+            newEdges.push({
+              id: `edge-${previousNode.id}-${newNode.id}`,
+              source: previousNode.id,
+              target: newNode.id,
+              type: 'smoothstep',
+              animated: false,
+            });
+          }
 
-        // Add edge from new node to next
-        if (nextNode) {
-          newEdges.push({
-            id: `edge-${newNode.id}-${nextNode.id}`,
-            source: newNode.id,
-            target: nextNode.id,
-            type: 'smoothstep',
-            animated: false,
-          });
+          // Find the node after the original next node for continuation
+          const nodeAfterNext = newNodes[afterNodeIndex + 2];
+          if (nodeAfterNext) {
+            // Add edge from new conditional to the node after the original next node
+            newEdges.push({
+              id: `edge-${newNode.id}-${nodeAfterNext.id}`,
+              source: newNode.id,
+              target: nodeAfterNext.id,
+              type: 'smoothstep',
+              animated: false,
+            });
+          }
+        } else {
+          // Regular insertion case
+          // Remove edge from previous to next (if it exists)
+          if (previousNode && nextNode) {
+            newEdges = newEdges.filter(edge =>
+              !(edge.source === previousNode.id && edge.target === nextNode.id)
+            );
+          }
+
+          // Add edge from previous to new node
+          if (previousNode) {
+            newEdges.push({
+              id: `edge-${previousNode.id}-${newNode.id}`,
+              source: previousNode.id,
+              target: newNode.id,
+              type: 'smoothstep',
+              animated: false,
+            });
+          }
+
+          // Add edge from new node to next
+          if (nextNode) {
+            newEdges.push({
+              id: `edge-${newNode.id}-${nextNode.id}`,
+              source: newNode.id,
+              target: nextNode.id,
+              type: 'smoothstep',
+              animated: false,
+            });
+          }
         }
 
         return newEdges;
@@ -182,14 +257,20 @@ export const WorkflowBuilder = () => {
     setNodes(prev => prev.map((node, index) => {
       if (index === conditionNodeIndex && node.type === 'condition') {
         const branchNodes = (node.data as any).branchNodes || { branch1: [], otherwise: [] };
+
+        // For branch nodes, always create as 'action' type, even if it's an evaluate condition
+        // This allows each branch node to have its own specific configuration
+        const nodeType = 'action';
+        const nodeData = action; // Use the action data directly
+
         const newBranchNode = {
           id: `branch-${Date.now()}-${Math.random()}`,
-          type: 'action',
+          type: nodeType, // Always 'action' for branch nodes
           data: {
-            label: action.label,
-            icon: action.icon,
-            description: action.description,
-            isConfigured: false,
+            ...nodeData,
+            // Ensure the data.id matches the action's ID for proper configuration
+            id: action.id,
+            isConfigured: false // Mark as unconfigured initially
           },
         };
 
@@ -197,11 +278,21 @@ export const WorkflowBuilder = () => {
         const newBranch = [...targetBranch];
 
         // Insert at specific index or at the end
+        console.log(`WorkflowBuilder: insertIndex=${insertIndex}, targetBranch length=${targetBranch.length}`);
         if (insertIndex !== undefined && insertIndex >= 0) {
-          newBranch.splice(insertIndex, 0, newBranchNode);
+          // Check if this is a replacement (when branchContext has insertIndex, it means replace)
+          if (insertIndex < targetBranch.length) {
+            console.log(`Replacing node at index ${insertIndex}`);
+            newBranch[insertIndex] = newBranchNode; // Replace existing node
+          } else {
+            console.log(`Inserting at index ${insertIndex}`);
+            newBranch.splice(insertIndex, 0, newBranchNode); // Insert new node
+          }
         } else {
+          console.log(`Pushing to end`);
           newBranch.push(newBranchNode);
         }
+        console.log(`New branch length: ${newBranch.length}`);
 
         return {
           ...node,
@@ -222,27 +313,64 @@ export const WorkflowBuilder = () => {
 
   // Handle action selection from modal
   const handleActionSelection = useCallback((action: NodeData) => {
-    // Determine node type based on action id
-    const nodeType = action.id === 'condition-action' ? 'condition' : 'action';
+    // Check if this is an evaluate condition action - auto-create router node
+    const isEvaluateCondition = action.id && (
+      action.id.includes('contact-updated-action') ||
+      action.id.includes('evaluate') ||
+      // Add other evaluate condition action IDs here
+      action.description?.toLowerCase().includes('conditional logic')
+    );
+
+    // For evaluate conditions, create router node with the action's properties
+    const nodeType = isEvaluateCondition ? 'condition' : 'action';
+    const nodeData = isEvaluateCondition ? {
+      ...action,
+      // Router node gets the action's properties but as a condition type
+      branchNodes: { branch1: [], otherwise: [] }, // Initialize empty branches
+      isConfigured: false // Mark as unconfigured initially
+    } : action;
 
     if (branchContext) {
       // Adding node to a branch of a conditional node
       handleAddNodeToBranch(branchContext.conditionNodeIndex, branchContext.branchType, action, branchContext.insertIndex);
       setBranchContext(null);
     } else if (actionInsertIndex !== null) {
-      handleNodeInsertion(actionInsertIndex, nodeType, action);
+      // Check if this is a router replacement (only when explicitly in replacement mode)
+      if (isReplacementMode) {
+        // Replace the router node with the new action/router while preserving branch nodes
+        setNodes(prev => prev.map((node, index) => {
+          if (index === actionInsertIndex) {
+            return {
+              ...node,
+              type: nodeType,
+              data: {
+                ...nodeData,
+                // Preserve existing branch nodes when replacing router
+                branchNodes: (node.data as any).branchNodes || (isEvaluateCondition ? { branch1: [], otherwise: [] } : undefined)
+              }
+            };
+          }
+          return node;
+        }));
+        toast.success(`Router replaced with ${action.label}!`);
+      } else {
+        // Regular node insertion (even after conditional nodes)
+        handleNodeInsertion(actionInsertIndex, nodeType, nodeData);
+      }
       setActionInsertIndex(null);
+      setIsReplacementMode(false); // Reset replacement mode
     } else {
-      handleNodeSelection(nodeType, action);
+      handleNodeSelection(nodeType, nodeData);
     }
     setShowActionModal(false);
-  }, [branchContext, actionInsertIndex, handleNodeInsertion, handleNodeSelection, handleAddNodeToBranch]);
+  }, [branchContext, actionInsertIndex, isReplacementMode, handleNodeInsertion, handleNodeSelection, handleAddNodeToBranch, nodes, setNodes, setIsReplacementMode]);
 
   // Open action modal for insertion
   const openActionModal = useCallback((insertIndex?: number) => {
     setActionInsertIndex(insertIndex ?? null);
+    setIsReplacementMode(false); // This is insertion, not replacement
     setShowActionModal(true);
-  }, []);
+  }, [setIsReplacementMode]);
 
   // Handle node deletion
   const handleNodeDeletion = useCallback((nodeIndex: number) => {
@@ -314,10 +442,12 @@ export const WorkflowBuilder = () => {
   }, [setNodes, nodes, setSelectedNode]);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    console.log('onNodeClick called with node:', node.id, node.type);
     // Don't open config panel for default trigger
     const isDefaultTrigger = node.data?.id === 'trigger-default' || node.data?.label === 'Select Trigger';
 
     if (!isDefaultTrigger) {
+      console.log('Setting selectedNode to:', node.id);
       setSelectedNode(node);
     }
   }, [setSelectedNode]);
@@ -343,15 +473,27 @@ export const WorkflowBuilder = () => {
 
   const handleBranchNodeClick = useCallback((conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number, branchNode: any) => {
     console.log(`Branch node clicked: condition ${conditionNodeIndex}, branch: ${branchType}, node: ${nodeIndex}`, branchNode);
-    // Handle branch node configuration
-    if (branchNode.data.isConfigured) {
-      // Open configuration panel for the branch node
-      setSelectedNode(branchNode);
-    } else {
-      // Open action selection modal for unconfigured branch node
-      setShowActionModal(true);
-    }
-  }, [setSelectedNode, setShowActionModal]);
+
+
+    console.log("The branch data is : " , branchNode.data);
+    // Create a proper Node object for the branch node configuration
+    const branchNodeForConfig: Node = {
+      id: branchNode.id,
+      type: branchNode.type,
+      position: { x: 0, y: 0 }, // Dummy position since branch nodes don't need positioning
+      data: branchNode.data
+    };
+
+    // Always open configuration panel for branch nodes (treat them like action/trigger nodes)
+    // This makes conditional nodes scalable and consistent with other node types
+
+    setSelectedNode(branchNodeForConfig);
+    console.log('Opening config for branch node:', branchNodeForConfig);
+  }, [setSelectedNode]);
+
+
+  
+  console.log("The selected node is: " , selectedNode?.id);
 
   const handleDeleteBranchNode = useCallback((conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number) => {
     console.log(`Deleting branch node: condition ${conditionNodeIndex}, branch: ${branchType}, node: ${nodeIndex}`);
@@ -380,7 +522,33 @@ export const WorkflowBuilder = () => {
     toast.success('Branch node deleted!');
   }, [setNodes]);
 
+  // Handle router node click for configuration
+  const handleRouterClick = useCallback((conditionNodeIndex: number) => {
+    console.log(`Router node clicked: condition ${conditionNodeIndex}`);
+    const conditionNode = nodes[conditionNodeIndex];
+    if (conditionNode && conditionNode.type === 'condition') {
+      // Open configuration panel for the router node
+      setSelectedNode(conditionNode);
+    }
+  }, [nodes, setSelectedNode]);
 
+  // Handle replace router functionality
+  const handleReplaceRouter = useCallback((conditionNodeIndex: number) => {
+    console.log(`Replace router clicked: condition ${conditionNodeIndex}`);
+    // Store the context for when action modal closes
+    setActionInsertIndex(conditionNodeIndex); // Use actionInsertIndex for replacement
+    setIsReplacementMode(true); // Flag this as replacement, not insertion
+    setBranchContext(null); // Clear branch context since this is router replacement
+    setShowActionModal(true);
+  }, [setActionInsertIndex, setIsReplacementMode, setShowActionModal]);
+
+  // Handle replace branch node functionality
+  const handleReplaceBranchNode = useCallback((conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number) => {
+    console.log(`Replace branch node clicked: condition ${conditionNodeIndex}, branch: ${branchType}, node: ${nodeIndex}`);
+    // Store the context for when action modal closes - this will replace the specific branch node
+    setBranchContext({ conditionNodeIndex, branchType, insertIndex: nodeIndex });
+    setShowActionModal(true);
+  }, [setShowActionModal]);
 
   // Handle reset workflow
   const handleResetWorkflow = useCallback(() => {
@@ -492,6 +660,9 @@ export const WorkflowBuilder = () => {
             onAddBranchNode={handleAddBranchNode}
             onBranchNodeClick={handleBranchNodeClick}
             onDeleteBranchNode={handleDeleteBranchNode}
+            onReplaceBranchNode={handleReplaceBranchNode}
+            onRouterClick={handleRouterClick}
+            onReplaceRouter={handleReplaceRouter}
             zoomLevel={zoomLevel}
           />
         </div>

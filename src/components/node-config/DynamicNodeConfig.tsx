@@ -33,6 +33,11 @@ import SendMailConfig from './actions/communication/SendMailConfig';
 import SendWhatsappConfig from './actions/communication/SendWhatsaapConfig';
 import SmsConfig from './actions/communication/SmsConfig';
 import DelayConfig from './actions/DelayConfig';
+import ContactUpdatedEvalConfig from './actions/evaluate/contact/ContactUpdatedEvalConfig';
+import ContactTaggedEvalConfig from './actions/evaluate/contact/ContactTaggedEvalConfig';
+import ContactTypeEvalConfig from './actions/evaluate/contact/ContactTypeEvalConfig';
+import LeadQualityEvalConfig from './actions/evaluate/crm/LeadQualityEvalConfig';
+import AssignedStaffEvalConfig from './actions/evaluate/crm/AssignedStaffEvalConfig';
 
 interface DynamicNodeConfigProps {
   node: Node;
@@ -301,7 +306,7 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
         )
 
 
-        // api trigger
+      // api trigger
       case 'api-trigger':
         return (
           <ApiConfig
@@ -319,7 +324,7 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
           />
         );
 
-        case 'weekly-recurring-trigger':
+      case 'weekly-recurring-trigger':
         return (
           <WeeklyReccurConfig
             config={node.data as NodeConfig}
@@ -327,7 +332,7 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
           />
         );
 
-        case 'monthly-recurring-trigger':
+      case 'monthly-recurring-trigger':
         return (
           <MonthlyReccurConfig
             config={node.data as NodeConfig}
@@ -335,7 +340,7 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
           />
         );
 
-        case 'event-date-trigger':
+      case 'event-date-trigger':
         return (
           <EventDateConfig
             config={node.data as NodeConfig}
@@ -343,8 +348,8 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
           />
         );
 
-        // ******************************* ACTION CONFIGs ***************************************
-        case 'send-email-action':
+      // ******************************* ACTION CONFIGs ***************************************
+      case 'send-email-action':
         return (
           <SendMailConfig
             config={node.data as NodeConfig}
@@ -352,7 +357,7 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
           />
         );
 
-        case 'send-whatsapp-action':
+      case 'send-whatsapp-action':
         return (
           <SendWhatsappConfig
             config={node.data as NodeConfig}
@@ -360,7 +365,7 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
           />
         );
 
-        case 'send-sms-action':
+      case 'send-sms-action':
         return (
           <SmsConfig
             config={node.data as NodeConfig}
@@ -368,13 +373,55 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
           />
         );
 
-        case 'delay-action':
+      case 'delay-action':
         return (
           <DelayConfig
             config={node.data as NodeConfig}
             setConfig={(config) => onUpdate(node.id, config)}
           />
         );
+
+      // Evaluation Actions (contact sub module)
+      case 'contact-updated-action':
+        return (
+          <ContactUpdatedEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'contact-tagged-action':
+        return (
+          <ContactTaggedEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'contact-type-action':
+        return (
+          <ContactTypeEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      // Evaluation Actions (CRM sub module)
+      case 'lead-quality':
+        return (
+          <LeadQualityEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'assigned-staff':
+        return (
+          <AssignedStaffEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
 
       // Add more specific configs as needed
       default:
@@ -392,20 +439,35 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
             setConfig={(config) => onUpdate(node.id, config)}
           />
         );
-      case 'action':
+      case 'action': {
+        // Check if this action has a specific configuration
+        const specificConfig = getSpecificConfig();
+        if (specificConfig) {
+          return specificConfig;
+        }
+        // Default action configuration
         return (
           <ActionConfig
             config={node.data as NodeConfig}
             setConfig={(config) => onUpdate(node.id, config)}
           />
         );
-      case 'condition':
+      }
+      case 'condition': {
+        // Check if this is a router node with a specific action ID
+        const nodeId = (node.data as NodeConfig).id;
+        if (nodeId && nodeId !== 'condition-action') {
+          // This is a router node with a specific action - use the action's config
+          return getSpecificConfig();
+        }
+        // Default condition configuration
         return (
           <ConditionConfig
             config={node.data as NodeConfig}
             setConfig={(config) => onUpdate(node.id, config)}
           />
         );
+      }
       case 'split-condition':
         return (
           <SplitConfig
@@ -432,8 +494,6 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
 
   // Try specific config first, fall back to generic
   const specificConfig = getSpecificConfig();
-
-  console.log('Specific config:', specificConfig);
 
   return (
     <div className="p-6">

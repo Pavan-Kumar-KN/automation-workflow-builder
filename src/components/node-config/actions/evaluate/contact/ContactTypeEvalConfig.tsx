@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 
@@ -7,6 +9,7 @@ const ContactTypeEvalConfig = ({ config, setConfig }) => {
     const [selectedTags, setSelectedTags] = useState([]);
     const [bulkAction, setBulkAction] = useState('');
     const [tagInput, setTagInput] = useState('');
+    const [showDropdown, setShowDropdown] = useState(false);
 
     // Sample tags (you can replace with your actual tags from API)
     const availableTags = [
@@ -14,12 +17,13 @@ const ContactTypeEvalConfig = ({ config, setConfig }) => {
         'premium', 'basic', 'trial', 'churned', 'active', 'inactive'
     ];
 
-
     // Handle tag selection
     const handleTagSelect = (tag) => {
         if (!selectedTags.includes(tag)) {
             setSelectedTags([...selectedTags, tag]);
         }
+        setTagInput('');
+        setShowDropdown(false);
     };
 
     // Handle tag removal
@@ -32,8 +36,24 @@ const ContactTypeEvalConfig = ({ config, setConfig }) => {
         if (e.key === 'Enter' && tagInput.trim()) {
             e.preventDefault();
             handleTagSelect(tagInput.trim());
-            setTagInput('');
         }
+    };
+
+    // Handle input change
+    const handleInputChange = (e) => {
+        setTagInput(e.target.value);
+        setShowDropdown(e.target.value.length > 0);
+    };
+
+    // Handle input focus
+    const handleInputFocus = () => {
+        setShowDropdown(tagInput.length > 0);
+    };
+
+    // Handle input blur
+    const handleInputBlur = () => {
+        // Delay hiding dropdown to allow click events
+        setTimeout(() => setShowDropdown(false), 200);
     };
 
     // Handle bulk action
@@ -53,8 +73,16 @@ const ContactTypeEvalConfig = ({ config, setConfig }) => {
             // Simulate API submission
             await new Promise(resolve => setTimeout(resolve, 1500));
 
+            // Update config with final values
+            const newConfig = {
+                ...config,
+                selectedTags,
+                bulkAction,
+                submitted: true,
+                submittedAt: new Date().toISOString()
+            };
             
-            // setConfig(newConfig);
+            setConfig(newConfig);
             alert('Configuration saved successfully!');
         } catch (error) {
             alert('Failed to save configuration');
@@ -63,126 +91,132 @@ const ContactTypeEvalConfig = ({ config, setConfig }) => {
         }
     };
 
+    // Filter available tags based on input
+    const filteredTags = availableTags.filter(tag => 
+        tag.toLowerCase().includes(tagInput.toLowerCase()) && 
+        !selectedTags.includes(tag)
+    );
+
     return (
-        <div className="space-y-6">
-            {/* Description */}
+        <div className="space-y-4">
+            {/* Header */}
             <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Contact Tagged</h3>
+                <h3 className="font-semibold text-gray-900">Contact Tagged</h3>
                 <p className="text-sm text-gray-500">
                     Send a cheer message to contact whenever contact is tagged in system even with other automation.
                 </p>
             </div>
 
             {/* Tags Section */}
-            <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">
-                    Tags
-                </label>
+            <div className="space-y-2">
+                <Label htmlFor="tags" className="text-sm font-medium text-gray-700">
+                    Tags <span className="text-red-500">*</span>
+                </Label>
                 
                 {/* Tag Input */}
                 <div className="relative">
-                    <input
+                    <Input
+                        id="tags"
                         type="text"
                         value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
+                        onChange={handleInputChange}
                         onKeyPress={handleTagInputKeyPress}
-                        placeholder="Select tags"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
+                        placeholder="Type to search or add tags"
+                        className="w-full"
                     />
                     
                     {/* Dropdown with available tags */}
-                    {tagInput && (
+                    {showDropdown && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                            {availableTags
-                                .filter(tag => 
-                                    tag.toLowerCase().includes(tagInput.toLowerCase()) && 
-                                    !selectedTags.includes(tag)
-                                )
-                                .map(tag => (
-                                    <button
-                                        key={tag}
-                                        onClick={() => {
-                                            handleTagSelect(tag);
-                                            setTagInput('');
-                                        }}
-                                        className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                                    >
-                                        {tag}
-                                    </button>
-                                ))
-                            }
+                            {filteredTags.map(tag => (
+                                <button
+                                    key={tag}
+                                    onClick={() => handleTagSelect(tag)}
+                                    className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                >
+                                    {tag}
+                                </button>
+                            ))}
                             {tagInput.trim() && 
                              !availableTags.includes(tagInput.trim()) && 
                              !selectedTags.includes(tagInput.trim()) && (
                                 <button
-                                    onClick={() => {
-                                        handleTagSelect(tagInput.trim());
-                                        setTagInput('');
-                                    }}
+                                    onClick={() => handleTagSelect(tagInput.trim())}
                                     className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-t border-gray-200"
                                 >
                                     Add "{tagInput.trim()}"
                                 </button>
                             )}
+                            {filteredTags.length === 0 && tagInput.trim() && availableTags.includes(tagInput.trim()) && (
+                                <div className="px-3 py-2 text-gray-500 text-sm">
+                                    Tag already selected
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
 
-                {/* Selected Tags */}
+                {/* Selected Tags Display */}
                 {selectedTags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                        {selectedTags.map(tag => (
-                            <span
-                                key={tag}
-                                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
-                            >
-                                {tag}
-                                <button
-                                    onClick={() => handleTagRemove(tag)}
-                                    className="ml-2 hover:text-blue-600"
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <Label className="text-sm font-medium text-gray-700 block mb-2">
+                            Selected Tags ({selectedTags.length})
+                        </Label>
+                        <div className="flex flex-wrap gap-2">
+                            {selectedTags.map(tag => (
+                                <span
+                                    key={tag}
+                                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
                                 >
-                                    <X className="w-3 h-3" />
-                                </button>
-                            </span>
-                        ))}
+                                    {tag}
+                                    <button
+                                        onClick={() => handleTagRemove(tag)}
+                                        className="ml-2 hover:text-blue-600 focus:outline-none"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
 
             {/* Bulk Actions */}
             <div className="space-y-3">
-                <div className="text-sm text-gray-700">
-                    More All Bottom Action (selected in red)
-                </div>
-                <div className="flex space-x-2">
-                    <button
+                <Label className="text-sm font-medium text-gray-700">
+                    Bulk Actions
+                </Label>
+                <p className="text-sm text-gray-500">
+                    Apply action to all selected tags (selected option will be highlighted)
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                    <Button
+                        type="button"
+                        variant={bulkAction === 'yes' ? 'default' : 'outline'}
                         onClick={() => handleBulkAction('yes')}
-                        className={`px-4 py-2 rounded text-sm font-medium ${
-                            bulkAction === 'yes' 
-                                ? 'bg-red-500 text-white' 
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
+                        className={bulkAction === 'yes' ? 'bg-red-500 hover:bg-red-600' : ''}
                     >
-                        Move all action to Yes node
-                    </button>
-                    <button
+                        Move all to Yes node
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={bulkAction === 'no' ? 'default' : 'outline'}
                         onClick={() => handleBulkAction('no')}
-                        className={`px-4 py-2 rounded text-sm font-medium ${
-                            bulkAction === 'no' 
-                                ? 'bg-gray-600 text-white' 
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
+                        className={bulkAction === 'no' ? 'bg-gray-600 hover:bg-gray-700' : ''}
                     >
-                        Move all action to No node
-                    </button>
+                        Move all to No node
+                    </Button>
                 </div>
             </div>
 
-            {/* Confirm Button */}
+            {/* Submit Button */}
             <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="w-full bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
+                className="w-full"
             >
                 {isSubmitting ? 'Saving...' : 'Confirm'}
             </Button>

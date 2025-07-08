@@ -15,16 +15,28 @@ export const ActionCategoryModal: React.FC<ActionCategoryModalProps> = ({
   onSelectAction,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   if (!isOpen) return null;
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId);
+    setSelectedSubcategory(null);
+  };
+
+  const handleSubcategorySelect = (subcategoryId: string) => {
+    setSelectedSubcategory(subcategoryId);
   };
 
   const handleBackToCategories = () => {
     setSelectedCategory(null);
+    setSelectedSubcategory(null);
+    setSearchTerm('');
+  };
+
+  const handleBackToSubcategories = () => {
+    setSelectedSubcategory(null);
     setSearchTerm('');
   };
 
@@ -49,22 +61,49 @@ export const ActionCategoryModal: React.FC<ActionCategoryModalProps> = ({
                          category.description.toLowerCase().includes(searchLower);
 
     // Search in individual action options within the category
-    const actionMatch = category.actions.some(action =>
-      action.label.toLowerCase().includes(searchLower) ||
-      action.description.toLowerCase().includes(searchLower)
-    );
+    let actionMatch = false;
+
+    if (category.actions) {
+      // Category has direct actions
+      actionMatch = category.actions.some(action =>
+        action.label.toLowerCase().includes(searchLower) ||
+        action.description.toLowerCase().includes(searchLower)
+      );
+    } else if (category.subcategories) {
+      // Category has subcategories, search within them
+      actionMatch = category.subcategories.some(subcategory =>
+        subcategory.name.toLowerCase().includes(searchLower) ||
+        subcategory.description.toLowerCase().includes(searchLower) ||
+        subcategory.actions.some(action =>
+          action.label.toLowerCase().includes(searchLower) ||
+          action.description.toLowerCase().includes(searchLower)
+        )
+      );
+    }
 
     return categoryMatch || actionMatch;
   });
 
   const selectedCategoryData = categorizedActions.find(c => c.id === selectedCategory);
+  const selectedSubcategoryData = selectedCategoryData?.subcategories?.find(s => s.id === selectedSubcategory);
 
-  // Filter actions within selected category based on search term
-  const filteredActions = selectedCategoryData?.actions.filter(action => {
+  // Get actions based on current selection level
+  const getActionsToShow = () => {
+    if (selectedSubcategory && selectedSubcategoryData) {
+      return selectedSubcategoryData.actions;
+    }
+    if (selectedCategory && selectedCategoryData) {
+      return selectedCategoryData.actions || [];
+    }
+    return [];
+  };
+
+  // Filter actions based on search term
+  const filteredActions = getActionsToShow().filter(action => {
     const searchLower = searchTerm.toLowerCase();
     return action.label.toLowerCase().includes(searchLower) ||
            action.description.toLowerCase().includes(searchLower);
-  }) || [];
+  });
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -77,9 +116,15 @@ export const ActionCategoryModal: React.FC<ActionCategoryModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">
-                {selectedCategory ? 'Select Action' : '2. Select Action'}
+                {selectedSubcategory ? 'Select Action' : selectedCategory ? 'Select Subcategory' : '2. Select Action'}
               </h2>
               {!selectedCategory && (
+                <p className="text-sm text-gray-500">Choose a category</p>
+              )}
+              {selectedCategory && !selectedSubcategory && selectedCategoryData?.subcategories && (
+                <p className="text-sm text-gray-500">Choose a subcategory</p>
+              )}
+              {selectedSubcategory && (
                 <p className="text-sm text-gray-500">Choose an action</p>
               )}
             </div>
@@ -92,8 +137,21 @@ export const ActionCategoryModal: React.FC<ActionCategoryModalProps> = ({
           </button>
         </div>
 
+        {/* Back Button */}
+        {(selectedCategory || selectedSubcategory) && (
+          <div className="px-4 py-2 border-b border-gray-100">
+            <button
+              onClick={selectedSubcategory ? handleBackToSubcategories : handleBackToCategories}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4 rotate-180" />
+              {selectedSubcategory ? 'Back to subcategories' : 'Back to categories'}
+            </button>
+          </div>
+        )}
+
         {/* Search Bar */}
-        {selectedCategory && (
+        {(selectedCategory || selectedSubcategory) && (
           <div className="p-4 border-b border-gray-200">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -137,18 +195,50 @@ export const ActionCategoryModal: React.FC<ActionCategoryModalProps> = ({
                 );
               })}
             </div>
+          ) : selectedCategory && !selectedSubcategory && selectedCategoryData?.subcategories ? (
+            // Subcategories View
+            <div className="space-y-2">
+              {selectedCategoryData.subcategories?.map((subcategory) => (
+                <button
+                  key={subcategory.id}
+                  onClick={() => handleSubcategorySelect(subcategory.id)}
+                  className="w-full p-4 text-left hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 group"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                    <ChevronRight className="w-5 h-5 text-gray-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900">
+                      {subcategory.name}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {subcategory.description}
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                </button>
+              ))}
+            </div>
           ) : (
             // Actions View
             <div className="space-y-2">
-              <button
-                onClick={handleBackToCategories}
-                className="text-sm text-blue-600 hover:text-blue-700 mb-4"
-              >
-                ← Back to categories
-              </button>
-              
               {filteredActions.map((action) => {
-                const IconComponent = action.icon;
+                // Handle different icon types properly - no hooks inside map!
+                const getIconComponent = (icon: any) => {
+                  if (!icon) {
+                    return LucideIcons.Phone as React.ComponentType<any>;
+                  }
+                  if (typeof icon === 'string') {
+                    return (LucideIcons[icon as keyof typeof LucideIcons] || LucideIcons.Phone) as React.ComponentType<any>;
+                  }
+                  if (typeof icon === 'function') {
+                    return icon as React.ComponentType<any>;
+                  }
+                  return LucideIcons.Phone as React.ComponentType<any>;
+                };
+
+                const IconComponent = getIconComponent(action.icon);
+
                 return (
                   <button
                     key={action.id}
@@ -156,7 +246,7 @@ export const ActionCategoryModal: React.FC<ActionCategoryModalProps> = ({
                     className="w-full p-4 text-left hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3"
                   >
                     <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <IconComponent />
+                      <IconComponent className="w-5 h-5 text-blue-600" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-gray-900">

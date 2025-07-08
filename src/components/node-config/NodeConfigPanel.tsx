@@ -21,6 +21,8 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
 }) => {
   const [config, setConfig] = useState<NodeConfig>(node.data as NodeConfig);
 
+  console.log('Node data came to main NodeConfigPanel:', node.data);
+
   const handleSave = () => {
     onUpdate(node.id, config);
     toast.success('Node configuration saved!');

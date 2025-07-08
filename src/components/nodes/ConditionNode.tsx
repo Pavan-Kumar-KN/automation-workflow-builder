@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, AlertTriangle, GitBranch, Database, Key, Trash2, MoreVertical } from 'lucide-react';
+import { ChevronDown, AlertTriangle, GitBranch, Database, Trash2, MoreVertical, RefreshCw } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import {
   DropdownMenu,
@@ -7,6 +7,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import ConnectionCanvas from '../canvas/ConnectCanvas';
+import PlaceHolderNode from '../canvas/PlaceHolderNode';
 
 interface BranchNode {
   id: string;
@@ -26,6 +28,7 @@ interface BranchNode {
 
 interface ConditionNodeProps {
   data: {
+    id?: string; // Add node id for configuration
     label: string;
     icon?: any;
     description?: string;
@@ -39,7 +42,10 @@ interface ConditionNodeProps {
   onAddBranchNode?: (branchType: 'branch1' | 'otherwise', insertIndex?: number) => void;
   onBranchNodeClick?: (branchType: 'branch1' | 'otherwise', nodeIndex: number, node: BranchNode) => void;
   onDeleteBranchNode?: (branchType: 'branch1' | 'otherwise', nodeIndex: number) => void;
+  onReplaceBranchNode?: (branchType: 'branch1' | 'otherwise', nodeIndex: number) => void; // Add replace branch node
   onDelete?: () => void;
+  onRouterClick?: () => void; // Add router configuration click handler
+  onReplaceRouter?: () => void; // Add replace router functionality
 }
 
 const ConditionNode: React.FC<ConditionNodeProps> = ({
@@ -48,7 +54,10 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
   onAddBranchNode,
   onBranchNodeClick,
   onDeleteBranchNode,
-  onDelete
+  onReplaceBranchNode,
+  onDelete,
+  onRouterClick,
+  onReplaceRouter
 }) => {
   // Handle both string icon names and direct icon components
   const IconComponent = React.useMemo(() => {
@@ -78,6 +87,7 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
   }, [data.icon]);
 
   const handleAddNodeToBranch = (branchType: 'branch1' | 'otherwise', insertIndex?: number) => {
+    console.log(`ConditionNode: Adding node to ${branchType} at index ${insertIndex}`);
     if (onAddBranchNode) {
       onAddBranchNode(branchType, insertIndex);
     }
@@ -101,18 +111,38 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
     };
     const NodeIconComponent = getNodeIcon();
 
+    // Handle nested branch node addition - this will open the action modal for nested nodes
+    const handleNestedAddNodeToBranch = (nestedBranchType: 'branch1' | 'otherwise', insertIndex?: number) => {
+      if (onAddBranchNode) {
+        // For now, we'll use the same mechanism but we need to enhance this for true nesting
+        // This is a simplified implementation - full nesting would require more complex state management
+        onAddBranchNode(parentBranchType, insertIndex);
+      }
+    };
+
+    // Calculate SVG dimensions for nested router
+    const nestedSvgWidth = 500;
+    const nestedLeftPath = nestedSvgWidth * 0.3;
+    const nestedRightPath = nestedSvgWidth * 0.7;
+
     return (
-      <div className="w-full max-w-4xl mx-auto">
+      <div className="w-full max-w-5xl mx-auto">
         <div className="flex flex-col items-center space-y-0">
           {/* Nested Router Node */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 w-72 cursor-pointer">
-            <div className="p-3">
+          <div
+            className="bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 w-[320px] cursor-pointer border-purple-200 hover:border-purple-300"
+            onClick={(e) => {
+              e.stopPropagation();
+              onBranchNodeClick?.(parentBranchType, nodeIndex, node);
+            }}
+          >
+            <div className="px-4 py-4">
               <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-lg bg-orange-50 flex items-center justify-center">
-                  <NodeIconComponent className="w-4 h-4 text-orange-600" />
+                <div className="w-6 h-6 rounded-lg bg-purple-50 flex items-center justify-center">
+                  <NodeIconComponent className="w-4 h-4 text-purple-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-900 text-xs">
+                  <div className="font-semibold text-gray-900 text-sm">
                     {node.data.label}
                   </div>
                 </div>
@@ -124,7 +154,10 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
                   {/* Delete Menu for nested router */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="text-gray-400 hover:text-gray-600 p-1">
+                      <button
+                        className="text-gray-400 hover:text-gray-600 p-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <MoreVertical className="w-3 h-3" />
                       </button>
                     </DropdownMenuTrigger>
@@ -146,144 +179,179 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
             </div>
           </div>
 
-          {/* Nested Branching Section */}
-          <div className="relative w-full max-w-3xl">
+          {/* Nested Branching Section with SVG connections */}
+          <div className="relative w-full">
+            {/* SVG Background for nested connections */}
+            <div className="absolute top-0 left-0 w-full h-[280px]">
+              <svg
+                className="w-full h-full pointer-events-none"
+                viewBox={`0 0 ${nestedSvgWidth} 250`}
+                preserveAspectRatio="xMidYMid meet"
+                fill="none"
+              >
+                <path d={`M ${nestedSvgWidth / 2} 40 V 80 H ${nestedLeftPath} V 160`} stroke="#9ca3af" strokeWidth="2" />
+                <path d={`M ${nestedSvgWidth / 2} 40 V 80 H ${nestedRightPath} V 160`} stroke="#9ca3af" strokeWidth="2" />
+              </svg>
+            </div>
+
             <div className="flex justify-between items-start pt-4 pb-6 relative z-10">
-              {/* Sub-Branch 1 */}
-              <div className="flex flex-col items-center w-1/2 px-4">
-                <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
-                  Sub-Branch 1
-                </div>
-                <div className="mt-3 space-y-0">
-                  {/* Initial connection */}
-                  <div className="flex flex-col items-center relative">
-                    <div className="w-0.5 h-8 bg-gray-400 relative"></div>
-                    <div className="relative">
-                      <button
-                        onClick={() => handleAddNodeToBranch(parentBranchType, 0)}
-                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                      >
-                        <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
-                      </button>
-                    </div>
-                    <div className="w-0.5 h-4 bg-gray-400"></div>
-                  </div>
-
-                  {/* Render sub-branch nodes */}
-                  {node.data.branchNodes?.branch1?.map((subNode, subIndex) => (
-                    <div key={subNode.id} className="flex flex-col items-center">
-                      <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 w-64 cursor-pointer">
-                        <div className="p-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-lg bg-blue-50 flex items-center justify-center">
-                              <Database className="w-3 h-3 text-blue-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-gray-900 text-xs">
-                                {subNode.data.label}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+              {/* Nested Branch 1 */}
+              <div className="flex flex-col items-center w-1/2 px-6">
+                <BranchLabel
+                  label="Yes"
+                  condition=""
+                  type="branch1"
+                />
+                <div className="mt-4 space-y-0">
+                  {/* Initial plus button - only show when nodes exist */}
+                  {(node.data.branchNodes?.branch1?.length || 0) > 0 && (
+                    <div className="flex flex-col items-center relative">
+                      <div className="w-0.5 h-6 bg-gray-400"></div>
+                      <div className="relative">
+                        <button
+                          onClick={() => handleNestedAddNodeToBranch('branch1', 0)}
+                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                        >
+                          <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
+                        </button>
                       </div>
-                      {subIndex < (node.data.branchNodes?.branch1?.length || 0) - 1 && (
-                        <div className="flex flex-col items-center relative">
-                          <div className="w-0.5 h-6 bg-gray-400 relative"></div>
-                          <div className="relative">
-                            <button
-                              onClick={() => handleAddNodeToBranch(parentBranchType, subIndex + 1)}
-                              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                            >
-                              <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
-                            </button>
-                          </div>
-                          <div className="w-0.5 h-4 bg-gray-400"></div>
-                        </div>
-                      )}
+                      <div className="w-0.5 h-6 bg-gray-400"></div>
                     </div>
-                  ))}
+                  )}
 
-                  {/* End plus button */}
-                  <div className="flex flex-col items-center relative">
-                    <div className="w-0.5 h-6 bg-gray-400 relative"></div>
-                    <div className="relative">
+                  {/* Render nested branch nodes */}
+                  {(node.data.branchNodes?.branch1?.length || 0) === 0 ? (
+                    // Placeholder when no nodes
+                    <div className="flex flex-col items-center py-6" style={{ marginLeft: '-40px' }}>
                       <button
-                        onClick={() => handleAddNodeToBranch(parentBranchType)}
-                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                        onClick={() => handleNestedAddNodeToBranch('branch1')}
+                        className="w-6 h-6 bg-white border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors"
                       >
-                        <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
+                        <LucideIcons.Plus className="w-3 h-3 text-gray-400 hover:text-blue-600" />
                       </button>
+                      <p className="text-xs text-gray-400 mt-1">Add action</p>
                     </div>
-                  </div>
+                  ) : (
+                    node.data.branchNodes?.branch1?.map((subNode, subIndex) => (
+                      <div key={subNode.id} className="flex flex-col items-center">
+                        {/* Recursively render nested nodes */}
+                        {subNode.type === 'condition' ?
+                          renderNestedConditionalNode(subNode, 'branch1', subIndex) :
+                          renderBranchNode(subNode, 'branch1', subIndex, node.data.branchNodes?.branch1?.length || 0)
+                        }
+                        {subIndex < (node.data.branchNodes?.branch1?.length || 0) - 1 && (
+                          <div className="flex flex-col items-center relative">
+                            <div className="w-0.5 h-6 bg-gray-400"></div>
+                            <div className="relative">
+                              <button
+                                onClick={() => handleNestedAddNodeToBranch('branch1', subIndex + 1)}
+                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                              >
+                                <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
+                              </button>
+                            </div>
+                            <div className="w-0.5 h-6 bg-gray-400"></div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+
+                  {/* End plus button - only show when nodes exist */}
+                  {(node.data.branchNodes?.branch1?.length || 0) > 0 && (
+                    <div className="flex flex-col items-center relative">
+                      <div className="w-0.5 h-6 bg-gray-400"></div>
+                      <div className="relative">
+                        <button
+                          onClick={() => handleNestedAddNodeToBranch('branch1')}
+                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                        >
+                          <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
+                        </button>
+                      </div>
+                      <div className="w-0.5 h-6 bg-gray-400"></div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Sub-Otherwise Branch */}
-              <div className="flex flex-col items-center w-1/2 px-4">
-                <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                  Sub-Otherwise
-                </div>
-                <div className="mt-3 space-y-0">
-                  {/* Initial connection */}
-                  <div className="flex flex-col items-center relative">
-                    <div className="w-0.5 h-8 bg-gray-400 relative"></div>
-                    <div className="relative">
-                      <button
-                        onClick={() => handleAddNodeToBranch(parentBranchType, 0)}
-                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                      >
-                        <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
-                      </button>
-                    </div>
-                    <div className="w-0.5 h-4 bg-gray-400"></div>
-                  </div>
-
-                  {/* Render sub-otherwise nodes */}
-                  {node.data.branchNodes?.otherwise?.map((subNode, subIndex) => (
-                    <div key={subNode.id} className="flex flex-col items-center">
-                      <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 w-64 cursor-pointer">
-                        <div className="p-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-lg bg-blue-50 flex items-center justify-center">
-                              <Database className="w-3 h-3 text-blue-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-gray-900 text-xs">
-                                {subNode.data.label}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+              {/* Nested Otherwise Branch */}
+              <div className="flex flex-col items-center w-1/2 px-6">
+                <BranchLabel
+                  label="No"
+                  condition=""
+                  type="otherwise"
+                />
+                <div className="mt-4 space-y-0">
+                  {/* Initial plus button - only show when nodes exist */}
+                  {(node.data.branchNodes?.otherwise?.length || 0) > 0 && (
+                    <div className="flex flex-col items-center relative">
+                      <div className="w-0.5 h-6 bg-gray-400"></div>
+                      <div className="relative">
+                        <button
+                          onClick={() => handleNestedAddNodeToBranch('otherwise', 0)}
+                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                        >
+                          <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
+                        </button>
                       </div>
-                      {subIndex < (node.data.branchNodes?.otherwise?.length || 0) - 1 && (
-                        <div className="flex flex-col items-center relative">
-                          <div className="w-0.5 h-6 bg-gray-400 relative"></div>
-                          <div className="relative">
-                            <button
-                              onClick={() => handleAddNodeToBranch(parentBranchType, subIndex + 1)}
-                              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                            >
-                              <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
-                            </button>
-                          </div>
-                          <div className="w-0.5 h-4 bg-gray-400"></div>
-                        </div>
-                      )}
+                      <div className="w-0.5 h-6 bg-gray-400"></div>
                     </div>
-                  ))}
+                  )}
 
-                  {/* End plus button */}
-                  <div className="flex flex-col items-center relative">
-                    <div className="w-0.5 h-6 bg-gray-400 relative"></div>
-                    <div className="relative">
+                  {/* Render nested otherwise branch nodes */}
+                  {(node.data.branchNodes?.otherwise?.length || 0) === 0 ? (
+                    // Placeholder when no nodes
+                    <div className="flex flex-col items-center py-6" style={{ marginRight: '-40px' }}>
                       <button
-                        onClick={() => handleAddNodeToBranch(parentBranchType)}
-                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                        onClick={() => handleNestedAddNodeToBranch('otherwise')}
+                        className="w-6 h-6 bg-white border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors"
                       >
-                        <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
+                        <LucideIcons.Plus className="w-3 h-3 text-gray-400 hover:text-blue-600" />
                       </button>
+                      <p className="text-xs text-gray-400 mt-1">Add action</p>
                     </div>
-                  </div>
+                  ) : (
+                    node.data.branchNodes?.otherwise?.map((subNode, subIndex) => (
+                      <div key={subNode.id} className="flex flex-col items-center">
+                        {/* Recursively render nested nodes */}
+                        {subNode.type === 'condition' ?
+                          renderNestedConditionalNode(subNode, 'otherwise', subIndex) :
+                          renderBranchNode(subNode, 'otherwise', subIndex, node.data.branchNodes?.otherwise?.length || 0)
+                        }
+                        {subIndex < (node.data.branchNodes?.otherwise?.length || 0) - 1 && (
+                          <div className="flex flex-col items-center relative">
+                            <div className="w-0.5 h-6 bg-gray-400"></div>
+                            <div className="relative">
+                              <button
+                                onClick={() => handleNestedAddNodeToBranch('otherwise', subIndex + 1)}
+                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                              >
+                                <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
+                              </button>
+                            </div>
+                            <div className="w-0.5 h-6 bg-gray-400"></div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+
+                  {/* End plus button - only show when nodes exist */}
+                  {(node.data.branchNodes?.otherwise?.length || 0) > 0 && (
+                    <div className="flex flex-col items-center relative">
+                      <div className="w-0.5 h-6 bg-gray-400"></div>
+                      <div className="relative">
+                        <button
+                          onClick={() => handleNestedAddNodeToBranch('otherwise')}
+                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                        >
+                          <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
+                        </button>
+                      </div>
+                      <div className="w-0.5 h-6 bg-gray-400"></div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -312,18 +380,24 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
     const NodeIconComponent = getNodeIcon();
 
     return (
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 w-80 cursor-pointer">
-        <div className="p-4">
+      <div
+        className="bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 w-[360px] cursor-pointer border-gray-200 hover:border-gray-300"
+        onClick={(e) => {
+          e.stopPropagation();
+          onBranchNodeClick?.(branchType, index, node);
+        }}
+      >
+        <div className="px-6 py-6">
           <div className="flex items-center gap-3">
             {/* Icon and Step */}
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                <NodeIconComponent className="w-5 h-5 text-blue-600" />
+                <NodeIconComponent className={`w-5 h-5 ${node.data.color || 'text-blue-600'}`} />
               </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 min-w-0" onClick={() => onBranchNodeClick?.(branchType, index, node)}>
+            <div className="flex-1 min-w-0">
               <div className="font-semibold text-gray-900 text-sm">
                 {node.data.label}
               </div>
@@ -339,11 +413,24 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
               {/* Delete Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="text-gray-400 hover:text-gray-600 p-1">
+                  <button
+                    className="text-gray-400 hover:text-gray-600 p-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <MoreVertical className="w-4 h-4" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onReplaceBranchNode) onReplaceBranchNode(branchType, index);
+                    }}
+                    className="hover:bg-gray-50"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Replace Action
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
@@ -352,7 +439,7 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Node
+                    Delete Action
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -366,19 +453,24 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
   // Main condition node (with router delete option)
   const renderMainConditionNode = () => {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 w-80 cursor-pointer">
-        <div className="p-4">
+      <div className="bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 w-[360px] border-gray-200 hover:border-gray-300">
+        <div className="px-6 py-6">
           <div className="flex items-center gap-3">
             {/* Icon and Step */}
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                <IconComponent className="w-5 h-5 text-blue-600" />
-              </div>
+              <IconComponent className="w-5 h-5 text-blue-600" />
+              <div className="text-base font-medium text-gray-700"></div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-gray-900 text-sm">
+            {/* Content - Clickable area for router configuration */}
+            <div
+              className="flex-1 min-w-0 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onRouterClick) onRouterClick();
+              }}
+            >
+              <div className="text-base font-semibold text-gray-900">
                 {data.label}
               </div>
             </div>
@@ -398,6 +490,16 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onReplaceRouter) onReplaceRouter();
+                    }}
+                    className="hover:bg-gray-50"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Replace Router
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
@@ -427,20 +529,6 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
     </div>
   );
 
-  const ConnectionLine = () => (
-    <div className="absolute top-0 left-0 w-full h-[300px] ">
-      <svg
-        className="w-full h-full pointer-events-none"
-        viewBox="0 0 800 300"
-        preserveAspectRatio="xMidYMid meet"
-        fill="none"
-      >
-        <path d="M 400 100 V 140 H 200 V 220" stroke="#9ca3af" strokeWidth="2" />
-        <path d="M 400 100 V 140 H 600 V 220" stroke="#9ca3af" strokeWidth="2" />
-      </svg>
-    </div>
-  );
-
 
   return (
     <div className="w-full max-w-6xl mx-auto">
@@ -448,12 +536,12 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
 
         <div className="relative w-full">
           {/* Foreground node */}
-          <div className="flex flex-col items-center relative z-10 mt-6 mb-6">
+          <div className="flex flex-col items-center relative z-10 mt-0 mb-2">
             {renderMainConditionNode()}
           </div>
 
-          <ConnectionLine />
 
+          <ConnectionCanvas data={data} />
         </div>
 
         {/* Branching Section */}
@@ -463,116 +551,137 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
             {/* Branch 1 */}
             <div className="flex flex-col items-center w-1/2 px-8">
               <BranchLabel
-                label="Branch 1"
+                label="Yes"
                 condition=""
                 type="branch1"
               />
               <div className="mt-6 space-y-0">
-                <div className="flex flex-col items-center relative">
-                  <div className="w-0.5 h-12 bg-gray-400 relative"></div>
 
-                  <div className="relative">
-                    <button
-                      onClick={() => handleAddNodeToBranch('branch1', 0)}
-                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                    >
-                      <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-                    </button>
+                {/* Initial plus button - only show when nodes exist */}
+                {(data.branchNodes?.branch1?.length || 0) > 0 && (
+                  <div className="flex flex-col items-center relative">
+                    <div className="w-0.5 h-6 bg-gray-400"></div>
+                    <div className="relative">
+                      <button
+                        onClick={() => handleAddNodeToBranch('branch1', 0)}
+                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                      >
+                        <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
+                      </button>
+                    </div>
+                    <div className="w-0.5 h-6 bg-gray-400"></div>
                   </div>
-                  <div className="w-0.5 h-6 bg-gray-400"></div>
+                )}
 
-                </div>
+                {(data.branchNodes?.branch1?.length || 0) === 0 ? (
+                  <PlaceHolderNode branchType="branch1" handleAddNodeToBranch={handleAddNodeToBranch} />
 
-                {data.branchNodes?.branch1?.map((node, index) => (
-                  <div key={node.id} className="flex flex-col items-center">
-                    {renderBranchNode(node, 'branch1', index, data.branchNodes?.branch1?.length || 0)}
-                    {index < (data.branchNodes?.branch1?.length || 0) - 1 && (
-                      <div className="flex flex-col items-center relative">
-                        <div className="w-0.5 h-12 bg-gray-400 relative"></div>
-                        <div className="relative">
-                          <button
-                            onClick={() => handleAddNodeToBranch('branch1', index + 1)}
-                            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                          >
-                            <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-                          </button>
+                ) : (
+                  data.branchNodes?.branch1?.map((node, index) => (
+                    <div key={node.id} className="flex flex-col items-center">
+                      {renderBranchNode(node, 'branch1', index, data.branchNodes?.branch1?.length || 0)}
+                      {index < (data.branchNodes?.branch1?.length || 0) - 1 && (
+                        <div className="flex flex-col items-center relative">
+                          <div className="w-0.5 h-6 bg-gray-400"></div>
+                          <div className="relative">
+                            <button
+                              onClick={() => handleAddNodeToBranch('branch1', index + 1)}
+                              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                            >
+                              <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
+                            </button>
+                          </div>
+                          <div className="w-0.5 h-6 bg-gray-400"></div>
                         </div>
-                        <div className="w-0.5 h-6 bg-gray-400"></div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  ))
+                )}
+                {/* Add button at end of branch - only show when nodes exist */}
+                {(data.branchNodes?.branch1?.length || 0) > 0 && (
+                  <div className="flex flex-col items-center relative">
+                    <div className="w-0.5 h-6 bg-gray-400"></div>
+                    <div className="relative">
+                      <button
+                        onClick={() => handleAddNodeToBranch('branch1')}
+                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                      >
+                        <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
+                      </button>
+                    </div>
+                    <div className="w-0.5 h-6 bg-gray-400"></div>
                   </div>
-                ))}
-                {/* Add button at end of branch */}
-                <div className="flex flex-col items-center relative">
-                  <div className="w-0.5 h-12 bg-gray-400 relative"></div>
-                  <div className="relative">
-                    <button
-                      onClick={() => handleAddNodeToBranch('branch1')}
-                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                    >
-                      <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-                    </button>
-                  </div>
-                  <div className="w-0.5 h-6 bg-gray-400"></div>
-
-                </div>
+                )}
               </div>
             </div>
 
             {/* Otherwise Branch */}
             <div className="flex flex-col items-center w-1/2 px-8">
               <BranchLabel
-                label="Otherwise"
+                label="No"
                 condition=""
                 type="otherwise"
               />
               <div className="mt-6 space-y-0">
-                <div className="flex flex-col items-center relative">
-                  <div className="w-0.5 h-12 bg-gray-400 relative"></div>
-                  <div className="relative">
-                    <button
-                      onClick={() => handleAddNodeToBranch('otherwise', 0)}
-                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                    >
-                      <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-                    </button>
+                {/* Initial plus button - only show when nodes exist */}
+                {(data.branchNodes?.otherwise?.length || 0) > 0 && (
+                  <div className="flex flex-col items-center relative">
+                    <div className="w-0.5 h-6 bg-gray-400"></div>
+                    <div className="relative">
+                      <button
+                        onClick={() => handleAddNodeToBranch('otherwise', 0)}
+                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                      >
+                        <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
+                      </button>
+                    </div>
+                    <div className="w-0.5 h-6 bg-gray-400"></div>
                   </div>
-                  <div className="w-0.5 h-6 bg-gray-400"></div>
-                </div>
+                )}
 
-                {data.branchNodes?.otherwise?.map((node, index) => (
-                  <div key={node.id} className="flex flex-col items-center">
-                    {renderBranchNode(node, 'otherwise', index, data.branchNodes?.otherwise?.length || 0)}
-                    {index < (data.branchNodes?.otherwise?.length || 0) - 1 && (
-                      <div className="flex flex-col items-center relative">
-                        <div className="w-0.5 h-6 bg-gray-400"></div>
-                        <div className="relative">
-                          <button
-                            onClick={() => handleAddNodeToBranch('otherwise', index + 1)}
-                            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                          >
-                            <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-                          </button>
+                {(data.branchNodes?.otherwise?.length || 0) === 0 ? (
+                  <PlaceHolderNode branchType="otherwise" handleAddNodeToBranch={handleAddNodeToBranch} />
+
+                ) : (
+                  data.branchNodes?.otherwise?.map((node, index) => (
+                    <div key={node.id} className="flex flex-col items-center">
+                      {renderBranchNode(node, 'otherwise', index, data.branchNodes?.otherwise?.length || 0)}
+                      {index < (data.branchNodes?.otherwise?.length || 0) - 1 && (
+                        <div className="flex flex-col items-center relative">
+                          <div className="w-0.5 h-6 bg-gray-400"></div>
+                          <div className="relative">
+                            <button
+                              onClick={() => handleAddNodeToBranch('otherwise', index + 1)}
+                              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                            >
+                              <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
+                            </button>
+                          </div>
+                          <div className="w-0.5 h-6 bg-gray-400"></div>
                         </div>
-                        <div className="w-0.5 h-6 bg-gray-400"></div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {/* Add button at end of branch */}
-                <div className="flex flex-col items-center relative">
-                  <div className="w-0.5 h-6 bg-gray-400"></div>
-                  <div className="relative">
-                    <button
-                      onClick={() => handleAddNodeToBranch('otherwise')}
-                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                    >
-                      <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-                    </button>
-                  </div>
-                  <div className="w-0.5 h-6 bg-gray-400"></div>
+                      )}
+                    </div>
+                  ))
+                )}
 
-                </div>
+
+
+
+                {/* Add button at end of branch - only show when nodes exist */}
+                {(data.branchNodes?.otherwise?.length || 0) > 0 && (
+                  <div className="flex flex-col items-center relative">
+                    <div className="w-0.5 h-6 bg-gray-400"></div>
+                    <div className="relative">
+                      <button
+                        onClick={() => handleAddNodeToBranch('otherwise')}
+                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
+                      >
+                        <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
+                      </button>
+                    </div>
+                    <div className="w-0.5 h-6 bg-gray-400"></div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -583,14 +692,7 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
 
         </div>
 
-        {/* Final Connection and End - Simple Box Design */}
-        <div className="flex flex-col items-center">
 
-
-          <div className="bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 mt-4">
-            <span className="text-sm font-medium text-gray-600">End</span>
-          </div>
-        </div>
 
 
       </div>

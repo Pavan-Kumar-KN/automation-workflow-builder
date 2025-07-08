@@ -22,6 +22,9 @@ interface SimpleWorkflowCanvasProps {
   onAddBranchNode?: (conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', insertIndex?: number) => void;
   onBranchNodeClick?: (conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number, node: any) => void;
   onDeleteBranchNode?: (conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number) => void;
+  onReplaceBranchNode?: (conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number) => void; // Add replace branch node
+  onRouterClick?: (conditionNodeIndex: number) => void; // Add router click handler
+  onReplaceRouter?: (conditionNodeIndex: number) => void; // Add replace router handler
   zoomLevel?: number;
 }
 
@@ -39,6 +42,9 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
   onAddBranchNode,
   onBranchNodeClick,
   onDeleteBranchNode,
+  onReplaceBranchNode,
+  onRouterClick,
+  onReplaceRouter,
   zoomLevel = 100,
 }) => {
   const renderNode = (node: Node, index: number) => {
@@ -79,6 +85,15 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
         (nodeProps as any).onDeleteBranchNode = (branchType: 'branch1' | 'otherwise', nodeIndex: number) => {
           onDeleteBranchNode?.(index, branchType, nodeIndex);
         };
+        (nodeProps as any).onReplaceBranchNode = (branchType: 'branch1' | 'otherwise', nodeIndex: number) => {
+          onReplaceBranchNode?.(index, branchType, nodeIndex);
+        };
+        (nodeProps as any).onRouterClick = () => {
+          onRouterClick?.(index);
+        };
+        (nodeProps as any).onReplaceRouter = () => {
+          onReplaceRouter?.(index);
+        };
         break;
       case 'end':
         NodeComponent = EndNode;
@@ -89,16 +104,22 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
 
     return (
       <div key={node.id} className="flex flex-col items-center">
-        <div onClick={(e) => onNodeClick(e, node)}>
+        <div onClick={(e) => {
+          // Only trigger node click for non-condition nodes
+          // Condition nodes handle their own click events internally
+          if (node.type !== 'condition') {
+            onNodeClick(e, node);
+          }
+        }}>
           <NodeComponent key={node.id} {...nodeProps} />
         </div>
         
         {/* Connection Line and Plus Button (except for last node and after conditional nodes) */}
         {index < nodes.length - 1 && node.type !== 'condition' && (
-          <div className="flex flex-col items-center py-2 relative">
-            {/* Vertical Line */}
-            <div className="w-0.5 h-12 bg-gray-400 relative">
-              {/* Plus Icon positioned on the line */}
+          <div className="flex flex-col items-center relative">
+            {/* Uniform vertical lines - compact height */}
+            <div className="w-0.5 h-6 bg-gray-400"></div>
+            <div className="relative">
               <button
                 onClick={() => onOpenActionModal(index)}
                 className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
@@ -106,6 +127,7 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
                 <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
               </button>
             </div>
+            <div className="w-0.5 h-6 bg-gray-400"></div>
           </div>
         )}
       </div>
@@ -173,10 +195,10 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
               {/* Final connection to End - Only show if last node is not a router/conditional */}
               {nodes.length > 0 && nodes[nodes.length - 1].type !== 'condition' && (
                 <>
-                  <div className="flex flex-col items-center py-2 relative">
-                    {/* Vertical Line */}
-                    <div className="w-0.5 h-12 bg-gray-400 relative">
-                      {/* Plus Icon positioned on the line */}
+                  <div className="flex flex-col items-center relative">
+                    {/* Uniform vertical lines - compact height */}
+                    <div className="w-0.5 h-6 bg-gray-400"></div>
+                    <div className="relative">
                       <button
                         onClick={() => onOpenActionModal(nodes.length - 1)}
                         className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
@@ -184,6 +206,7 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
                         <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
                       </button>
                     </div>
+                    <div className="w-0.5 h-6 bg-gray-400"></div>
                   </div>
 
                   {/* End Node */}  
