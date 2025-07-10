@@ -98,8 +98,8 @@ const NODE_TYPE_MAPPING = {
   'add-to-list-action': 'ElementAddToList',
   'update-contact-action': 'ElementUpdateContact',
   'condition': 'ElementCondition',
-  'split-condition': 'ElementSplit',
-  'goto-node': 'ElementGoto'
+  // 'split-condition': 'ElementSplit',
+  // 'goto-node': 'ElementGoto'
 };
 
 /**

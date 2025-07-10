@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Node } from '@xyflow/react';
+import { Background, Node, ReactFlow } from '@xyflow/react';
 import { TriggerNode } from './nodes/TriggerNode';
 import { ActionNode } from './nodes/ActionNode';
-import ConditionNode  from './nodes/ConditionNode';
-import { EndNode } from './nodes/EndNode';
+import ConditionNode from './nodes/ConditionNode';
+import EndNode from './nodes/EndNode';
 import { PlusButton } from './PlusButton';
 import { NodeData } from '@/data/nodeData';
 import * as LucideIcons from 'lucide-react';
+import FlowEdge from './edges/FlowEdge';
 
 interface SimpleWorkflowCanvasProps {
   nodes: Node[];
@@ -26,6 +27,10 @@ interface SimpleWorkflowCanvasProps {
   onRouterClick?: (conditionNodeIndex: number) => void; // Add router click handler
   onReplaceRouter?: (conditionNodeIndex: number) => void; // Add replace router handler
   zoomLevel?: number;
+}
+// * configure the custom type nodes 
+const nodeTypes = {
+  condition: ConditionNode
 }
 
 export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
@@ -113,22 +118,10 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
         }}>
           <NodeComponent key={node.id} {...nodeProps} />
         </div>
-        
+
         {/* Connection Line and Plus Button (except for last node and after conditional nodes) */}
         {index < nodes.length - 1 && node.type !== 'condition' && (
-          <div className="flex flex-col items-center relative">
-            {/* Uniform vertical lines - compact height */}
-            <div className="w-0.5 h-6 bg-gray-400"></div>
-            <div className="relative">
-              <button
-                onClick={() => onOpenActionModal(index)}
-                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-              >
-                <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-              </button>
-            </div>
-            <div className="w-0.5 h-6 bg-gray-400"></div>
-          </div>
+          <FlowEdge onOpenActionModal={onOpenActionModal} index={index} />
         )}
       </div>
     );
@@ -143,8 +136,6 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
     }
     return ['action'];
   };
-
-  // Removed completion status text as requested
 
   // Empty state
   if (nodes.length === 0) {
@@ -181,45 +172,39 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
           padding: `${50 * (zoomLevel / 100)}px`,
         }}
       >
-        <div
+        {/* <div
           style={{
             transform: `scale(${zoomLevel / 100})`,
             transformOrigin: 'center top'
           }}
         >
           <div className="flex flex-col items-center py-8">
-            {/* Workflow Nodes */}
             <div className="flex flex-col items-center space-y-0">
               {nodes.map((node, index) => renderNode(node, index))}
 
-              {/* Final connection to End - Only show if last node is not a router/conditional */}
               {nodes.length > 0 && nodes[nodes.length - 1].type !== 'condition' && (
                 <>
-                  <div className="flex flex-col items-center relative">
-                    {/* Uniform vertical lines - compact height */}
-                    <div className="w-0.5 h-6 bg-gray-400"></div>
-                    <div className="relative">
-                      <button
-                        onClick={() => onOpenActionModal(nodes.length - 1)}
-                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                      >
-                        <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-                      </button>
-                    </div>
-                    <div className="w-0.5 h-6 bg-gray-400"></div>
-                  </div>
 
-                  {/* End Node */}  
-                  <div className="text-center">
-                    <div className="text-sm font-medium text-gray-600 bg-gray-100 rounded-lg px-4 py-2 border border-gray-300">
-                      End
-                    </div>
-                  </div>
+                  <EndNode onOpenActionModal={onOpenActionModal} nodes={nodes} />
+                  
                 </>
               )}
             </div>
           </div>
-        </div>
+        </div> */}
+
+        <ReactFlow
+          nodes={nodes}
+          nodeTypes={nodeTypes}
+          onNodeClick={onNodeClick}
+          onNodeContextMenu={(event, node) => {
+            event.preventDefault();
+            onSelectNode(node.type, node.data);
+          }}
+        >
+
+          <Background />
+        </ReactFlow>
       </div>
     </div>
   );

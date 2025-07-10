@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Handle, Position } from '@xyflow/react';
 
 interface ActionNodeProps {
   data: {
@@ -23,7 +24,7 @@ interface ActionNodeProps {
 
 export const ActionNode: React.FC<ActionNodeProps> = ({ data, isSelected = false, onDelete }) => {
   // Handle both string icon names and direct icon components
-  
+
   const IconComponent = React.useMemo(() => {
     if (!data.icon) {
       return LucideIcons.Phone as React.ComponentType<any>;
@@ -53,11 +54,18 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data, isSelected = false
   return (
     <div className="relative">
       {/* Main Node - Exact ActivePieces Style */}
-      <div className={`bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 px-6 py-6 w-[360px] cursor-pointer ${
-        isSelected
+
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="in"
+        style={{ background: '#4CAF50', border: '2px solid #fff' }}
+      />
+
+      <div className={`bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 px-6 py-6 w-[360px] cursor-pointer ${isSelected
           ? 'border-blue-500 ring-2 ring-blue-200 shadow-lg'
           : 'border-gray-200 hover:border-gray-300'
-      }`}>
+        }`}>
         {/* Node Content */}
         <div className="flex items-center gap-3">
           {/* Step Number and Icon */}
@@ -65,7 +73,7 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data, isSelected = false
             {/* <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100">
               {/* {data?.icon} */}
             {/* </div>   */}
-              <IconComponent className={`${data.color}`} />
+            <IconComponent className={`${data.color}`} />
 
             <div className="text-base font-medium text-gray-700"></div>
           </div>
@@ -81,6 +89,13 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data, isSelected = false
           <div className="text-gray-400">
             <LucideIcons.ChevronDown className="w-4 h-4" />
           </div>
+
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="out"
+            style={{ background: '#4CAF50', border: '2px solid #fff' }}
+          />
 
           {/* Delete Menu */}
           {onDelete && (

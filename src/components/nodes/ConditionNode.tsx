@@ -26,6 +26,12 @@ interface BranchNode {
   };
 }
 
+
+interface BranchConfig {
+  branchName: string;
+  otherwiseBranchName: string;
+}
+
 interface ConditionNodeProps {
   data: {
     id?: string; // Add node id for configuration
@@ -39,10 +45,10 @@ interface ConditionNodeProps {
     };
   };
   isSelected?: boolean;
-  onAddBranchNode?: (branchType: 'branch1' | 'otherwise', insertIndex?: number) => void;
-  onBranchNodeClick?: (branchType: 'branch1' | 'otherwise', nodeIndex: number, node: BranchNode) => void;
-  onDeleteBranchNode?: (branchType: 'branch1' | 'otherwise', nodeIndex: number) => void;
-  onReplaceBranchNode?: (branchType: 'branch1' | 'otherwise', nodeIndex: number) => void; // Add replace branch node
+  onAddBranchNode?: (branchType: BranchConfig, insertIndex?: number) => void;
+  onBranchNodeClick?: (branchType: BranchConfig, nodeIndex: number, node: BranchNode) => void;
+  onDeleteBranchNode?: (branchType: BranchConfig, nodeIndex: number) => void;
+  onReplaceBranchNode?: (branchType: BranchConfig, nodeIndex: number) => void; // Add replace branch node
   onDelete?: () => void;
   onRouterClick?: () => void; // Add router configuration click handler
   onReplaceRouter?: () => void; // Add replace router functionality
@@ -97,268 +103,6 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
     if (onDeleteBranchNode) {
       onDeleteBranchNode(branchType, nodeIndex);
     }
-  };
-
-  // Render nested conditional node (smaller version for sub-branches)
-  const renderNestedConditionalNode = (node: BranchNode, parentBranchType: 'branch1' | 'otherwise', nodeIndex: number) => {
-    const getNodeIcon = () => {
-      if (!node.data.icon) return GitBranch;
-      if (typeof node.data.icon === 'function') return node.data.icon;
-      if (typeof node.data.icon === 'string') {
-        return LucideIcons[node.data.icon as keyof typeof LucideIcons] || GitBranch;
-      }
-      return GitBranch;
-    };
-    const NodeIconComponent = getNodeIcon();
-
-    // Handle nested branch node addition - this will open the action modal for nested nodes
-    const handleNestedAddNodeToBranch = (nestedBranchType: 'branch1' | 'otherwise', insertIndex?: number) => {
-      if (onAddBranchNode) {
-        // For now, we'll use the same mechanism but we need to enhance this for true nesting
-        // This is a simplified implementation - full nesting would require more complex state management
-        onAddBranchNode(parentBranchType, insertIndex);
-      }
-    };
-
-    // Calculate SVG dimensions for nested router
-    const nestedSvgWidth = 500;
-    const nestedLeftPath = nestedSvgWidth * 0.3;
-    const nestedRightPath = nestedSvgWidth * 0.7;
-
-    return (
-      <div className="w-full max-w-5xl mx-auto">
-        <div className="flex flex-col items-center space-y-0">
-          {/* Nested Router Node */}
-          <div
-            className="bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 w-[320px] cursor-pointer border-purple-200 hover:border-purple-300"
-            onClick={(e) => {
-              e.stopPropagation();
-              onBranchNodeClick?.(parentBranchType, nodeIndex, node);
-            }}
-          >
-            <div className="px-4 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-lg bg-purple-50 flex items-center justify-center">
-                  <NodeIconComponent className="w-4 h-4 text-purple-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-900 text-sm">
-                    {node.data.label}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <ChevronDown className="w-3 h-3 text-gray-400" />
-                  {!node.data.isConfigured && (
-                    <AlertTriangle className="w-3 h-3 text-orange-500" />
-                  )}
-                  {/* Delete Menu for nested router */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="text-gray-400 hover:text-gray-600 p-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreVertical className="w-3 h-3" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteBranchNode(parentBranchType, nodeIndex);
-                        }}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-3 h-3 mr-2" />
-                        Delete Router
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Nested Branching Section with SVG connections */}
-          <div className="relative w-full">
-            {/* SVG Background for nested connections */}
-            <div className="absolute top-0 left-0 w-full h-[280px]">
-              <svg
-                className="w-full h-full pointer-events-none"
-                viewBox={`0 0 ${nestedSvgWidth} 250`}
-                preserveAspectRatio="xMidYMid meet"
-                fill="none"
-              >
-                <path d={`M ${nestedSvgWidth / 2} 40 V 80 H ${nestedLeftPath} V 160`} stroke="#9ca3af" strokeWidth="2" />
-                <path d={`M ${nestedSvgWidth / 2} 40 V 80 H ${nestedRightPath} V 160`} stroke="#9ca3af" strokeWidth="2" />
-              </svg>
-            </div>
-
-            <div className="flex justify-between items-start pt-4 pb-6 relative z-10">
-              {/* Nested Branch 1 */}
-              <div className="flex flex-col items-center w-1/2 px-6">
-                <BranchLabel
-                  label="Yes"
-                  condition=""
-                  type="branch1"
-                />
-                <div className="mt-4 space-y-0">
-                  {/* Initial plus button - only show when nodes exist */}
-                  {(node.data.branchNodes?.branch1?.length || 0) > 0 && (
-                    <div className="flex flex-col items-center relative">
-                      <div className="w-0.5 h-6 bg-gray-400"></div>
-                      <div className="relative">
-                        <button
-                          onClick={() => handleNestedAddNodeToBranch('branch1', 0)}
-                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                        >
-                          <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
-                        </button>
-                      </div>
-                      <div className="w-0.5 h-6 bg-gray-400"></div>
-                    </div>
-                  )}
-
-                  {/* Render nested branch nodes */}
-                  {(node.data.branchNodes?.branch1?.length || 0) === 0 ? (
-                    // Placeholder when no nodes
-                    <div className="flex flex-col items-center py-6" style={{ marginLeft: '-40px' }}>
-                      <button
-                        onClick={() => handleNestedAddNodeToBranch('branch1')}
-                        className="w-6 h-6 bg-white border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                      >
-                        <LucideIcons.Plus className="w-3 h-3 text-gray-400 hover:text-blue-600" />
-                      </button>
-                      <p className="text-xs text-gray-400 mt-1">Add action</p>
-                    </div>
-                  ) : (
-                    node.data.branchNodes?.branch1?.map((subNode, subIndex) => (
-                      <div key={subNode.id} className="flex flex-col items-center">
-                        {/* Recursively render nested nodes */}
-                        {subNode.type === 'condition' ?
-                          renderNestedConditionalNode(subNode, 'branch1', subIndex) :
-                          renderBranchNode(subNode, 'branch1', subIndex, node.data.branchNodes?.branch1?.length || 0)
-                        }
-                        {subIndex < (node.data.branchNodes?.branch1?.length || 0) - 1 && (
-                          <div className="flex flex-col items-center relative">
-                            <div className="w-0.5 h-6 bg-gray-400"></div>
-                            <div className="relative">
-                              <button
-                                onClick={() => handleNestedAddNodeToBranch('branch1', subIndex + 1)}
-                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                              >
-                                <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
-                              </button>
-                            </div>
-                            <div className="w-0.5 h-6 bg-gray-400"></div>
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-
-                  {/* End plus button - only show when nodes exist */}
-                  {(node.data.branchNodes?.branch1?.length || 0) > 0 && (
-                    <div className="flex flex-col items-center relative">
-                      <div className="w-0.5 h-6 bg-gray-400"></div>
-                      <div className="relative">
-                        <button
-                          onClick={() => handleNestedAddNodeToBranch('branch1')}
-                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                        >
-                          <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
-                        </button>
-                      </div>
-                      <div className="w-0.5 h-6 bg-gray-400"></div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Nested Otherwise Branch */}
-              <div className="flex flex-col items-center w-1/2 px-6">
-                <BranchLabel
-                  label="No"
-                  condition=""
-                  type="otherwise"
-                />
-                <div className="mt-4 space-y-0">
-                  {/* Initial plus button - only show when nodes exist */}
-                  {(node.data.branchNodes?.otherwise?.length || 0) > 0 && (
-                    <div className="flex flex-col items-center relative">
-                      <div className="w-0.5 h-6 bg-gray-400"></div>
-                      <div className="relative">
-                        <button
-                          onClick={() => handleNestedAddNodeToBranch('otherwise', 0)}
-                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                        >
-                          <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
-                        </button>
-                      </div>
-                      <div className="w-0.5 h-6 bg-gray-400"></div>
-                    </div>
-                  )}
-
-                  {/* Render nested otherwise branch nodes */}
-                  {(node.data.branchNodes?.otherwise?.length || 0) === 0 ? (
-                    // Placeholder when no nodes
-                    <div className="flex flex-col items-center py-6" style={{ marginRight: '-40px' }}>
-                      <button
-                        onClick={() => handleNestedAddNodeToBranch('otherwise')}
-                        className="w-6 h-6 bg-white border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                      >
-                        <LucideIcons.Plus className="w-3 h-3 text-gray-400 hover:text-blue-600" />
-                      </button>
-                      <p className="text-xs text-gray-400 mt-1">Add action</p>
-                    </div>
-                  ) : (
-                    node.data.branchNodes?.otherwise?.map((subNode, subIndex) => (
-                      <div key={subNode.id} className="flex flex-col items-center">
-                        {/* Recursively render nested nodes */}
-                        {subNode.type === 'condition' ?
-                          renderNestedConditionalNode(subNode, 'otherwise', subIndex) :
-                          renderBranchNode(subNode, 'otherwise', subIndex, node.data.branchNodes?.otherwise?.length || 0)
-                        }
-                        {subIndex < (node.data.branchNodes?.otherwise?.length || 0) - 1 && (
-                          <div className="flex flex-col items-center relative">
-                            <div className="w-0.5 h-6 bg-gray-400"></div>
-                            <div className="relative">
-                              <button
-                                onClick={() => handleNestedAddNodeToBranch('otherwise', subIndex + 1)}
-                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                              >
-                                <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
-                              </button>
-                            </div>
-                            <div className="w-0.5 h-6 bg-gray-400"></div>
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-
-                  {/* End plus button - only show when nodes exist */}
-                  {(node.data.branchNodes?.otherwise?.length || 0) > 0 && (
-                    <div className="flex flex-col items-center relative">
-                      <div className="w-0.5 h-6 bg-gray-400"></div>
-                      <div className="relative">
-                        <button
-                          onClick={() => handleNestedAddNodeToBranch('otherwise')}
-                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white border-2 border-gray-400 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                        >
-                          <LucideIcons.Plus className="w-2 h-2 text-gray-600 hover:text-blue-600" />
-                        </button>
-                      </div>
-                      <div className="w-0.5 h-6 bg-gray-400"></div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   // Render individual branch node (supporting nested conditional nodes)
@@ -691,9 +435,6 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({
 
 
         </div>
-
-
-
 
       </div>
     </div>

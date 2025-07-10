@@ -119,55 +119,6 @@ export const PlusButton: React.FC<PlusButtonProps> = ({
               </button>
             )}
 
-            {/* Copy Option */}
-            {onCopy && (
-              <button
-                onClick={() => {
-                  onCopy();
-                  setIsOpen(false);
-                }}
-                className="w-full p-2 text-left hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3"
-              >
-                <Copy className="w-4 h-4 text-gray-600" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900">Copy</div>
-                </div>
-                <div className="text-xs text-gray-500">Ctrl + C</div>
-              </button>
-            )}
-
-            {/* Duplicate Option */}
-            {onDuplicate && (
-              <button
-                onClick={() => {
-                  onDuplicate();
-                  setIsOpen(false);
-                }}
-                className="w-full p-2 text-left hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3"
-              >
-                <Files className="w-4 h-4 text-gray-600" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900">Duplicate</div>
-                </div>
-              </button>
-            )}
-
-            {/* Skip Option */}
-            {onSkip && (
-              <button
-                onClick={() => {
-                  onSkip();
-                  setIsOpen(false);
-                }}
-                className="w-full p-2 text-left hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3"
-              >
-                <SkipForward className="w-4 h-4 text-gray-600" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900">Skip</div>
-                </div>
-                <div className="text-xs text-gray-500">Ctrl + E</div>
-              </button>
-            )}
 
             {/* Paste After Option */}
             {onPasteAfter && (
