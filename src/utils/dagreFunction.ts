@@ -21,6 +21,9 @@ export function calculateChildCounts(nodes, edges) {
 
 export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
   // Create a new dagre graph instance for each layout
+  const nodeWidth = 172;
+  const nodeHeight = 56;
+  
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import * as LucideIcons from 'lucide-react';
 
 interface ConditionEdgeProps {
   id: string;
@@ -8,17 +9,22 @@ interface ConditionEdgeProps {
   targetY: number;
   markerEnd?: string;
   label?: string;
+  data?: {
+    branchType?: 'yes' | 'no';
+    onAddNode?: (branchType: string) => void;
+  };
 }
 
 // Custom Edge Component
-const ConditionEdge: React.FC<ConditionEdgeProps> = ({ 
-  id, 
-  sourceX, 
-  sourceY, 
-  targetX, 
-  targetY, 
-  markerEnd, 
-  label 
+const ConditionEdge: React.FC<ConditionEdgeProps> = ({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  markerEnd,
+  label,
+  data
 }) => {
   // Calculate a mid-point on Y axis for the horizontal segment (40px below sourceY)
   const midY: number = sourceY + 40;
@@ -31,6 +37,16 @@ const ConditionEdge: React.FC<ConditionEdgeProps> = ({
     L ${targetX},${targetY}
   `;
 
+  // Calculate position for plus button (middle of the edge)
+  const buttonX = (sourceX + targetX) / 2;
+  const buttonY = midY;
+
+  const handleAddNode = () => {
+    if (data?.onAddNode && data?.branchType) {
+      data.onAddNode(data.branchType);
+    }
+  };
+
   return (
     <>
       <path
@@ -41,11 +57,18 @@ const ConditionEdge: React.FC<ConditionEdgeProps> = ({
         fill="none"
         markerEnd={markerEnd}
       />
+
+      {/* Branch label */}
       {label && (
-        <text>
-          <textPath href={`#${id}`} startOffset="50%" textAnchor="middle" fill="#4b5563" fontSize="12">
-            {label}
-          </textPath>
+        <text
+          x={buttonX}
+          y={buttonY - 20}
+          textAnchor="middle"
+          fill="#4b5563"
+          fontSize="12"
+          className="font-medium"
+        >
+          {label}
         </text>
       )}
     </>

@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
-import { Background, Node, ReactFlow } from '@xyflow/react';
+import React, { useCallback, useMemo, useEffect } from 'react';
+import {
+  Background,
+  Node,
+  ReactFlow,
+  useEdgesState,
+  useNodesState,
+  Edge,
+  ConnectionMode,
+  BackgroundVariant
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import ConditionNode from './nodes/ConditionNode';
+import PlaceholderNode from './nodes/PlaceholderNode';
+import { PlusButton } from './PlusButton';
+import FlowEdge from './edges/FlowEdge';
 import { TriggerNode } from './nodes/TriggerNode';
 import { ActionNode } from './nodes/ActionNode';
-import ConditionNode from './nodes/ConditionNode';
-import EndNode from './nodes/EndNode';
-import { PlusButton } from './PlusButton';
 import { NodeData } from '@/data/nodeData';
-import * as LucideIcons from 'lucide-react';
-import FlowEdge from './edges/FlowEdge';
+import EndNode from './nodes/EndNode';
+import { getLayoutedElements } from '@/utils/dagreFunction';
+import ConditionEdge from './edges/ConditionEdge';
 
 interface SimpleWorkflowCanvasProps {
   nodes: Node[];
+  edges?: Edge[]; // Add edges prop
   selectedNodeId?: string;
   onSelectNode: (nodeType: string, nodeData: NodeData) => void;
   onNodeClick: (event: React.MouseEvent, node: Node) => void;
@@ -20,141 +33,124 @@ interface SimpleWorkflowCanvasProps {
   onDeleteNode?: (nodeIndex: number) => void;
   onReplaceTrigger?: () => void;
   onOpenTriggerConfig?: (node: Node) => void;
-  onAddBranchNode?: (conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', insertIndex?: number) => void;
-  onBranchNodeClick?: (conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number, node: any) => void;
-  onDeleteBranchNode?: (conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number) => void;
-  onReplaceBranchNode?: (conditionNodeIndex: number, branchType: 'branch1' | 'otherwise', nodeIndex: number) => void; // Add replace branch node
-  onRouterClick?: (conditionNodeIndex: number) => void; // Add router click handler
-  onReplaceRouter?: (conditionNodeIndex: number) => void; // Add replace router handler
+  // Removed complex branch handlers - simplified approach
   zoomLevel?: number;
 }
-// * configure the custom type nodes 
+
+
+// Custom Edge that uses your FlowEdge component
 const nodeTypes = {
-  condition: ConditionNode
-}
+  trigger: TriggerNode,
+  action: ActionNode,
+  condition: ConditionNode,
+  end: EndNode
+};
+
+const edgeTypes = {
+  flowEdge: FlowEdge,
+  condition: ConditionEdge,
+};
 
 export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
-  nodes,
+  nodes: workflowNodes,
+  edges: workflowEdges, // Add edges prop with default empty array
   selectedNodeId,
   onSelectNode,
   onNodeClick,
   onOpenTriggerModal,
   onOpenActionModal,
-  onInsertNode,
   onDeleteNode,
   onReplaceTrigger,
   onOpenTriggerConfig,
-  onAddBranchNode,
-  onBranchNodeClick,
-  onDeleteBranchNode,
-  onReplaceBranchNode,
-  onRouterClick,
-  onReplaceRouter,
   zoomLevel = 100,
 }) => {
-  const renderNode = (node: Node, index: number) => {
-    const nodeProps = {
-      data: {
-        ...node.data,
-        openTriggerModal: node.type === 'trigger' ? onOpenTriggerModal : undefined,
-      },
-      isSelected: selectedNodeId === node.id,
-      onAddNode: node.type === 'condition' ? (branchType: 'true' | 'false' | 'after') => {
-        console.log(`Add node to ${branchType} branch of condition ${node.id}`);
-        if (onOpenActionModal) {
-          onOpenActionModal(index);
-        }
-      } : undefined,
-      onDelete: node.type !== 'trigger' ? () => onDeleteNode(index) : undefined,
-      // Trigger-specific props
-      onReplaceTrigger: node.type === 'trigger' ? onReplaceTrigger : undefined,
-      onOpenConfig: node.type === 'trigger' ? () => onOpenTriggerConfig?.(node) : undefined,
-    };
 
-    let NodeComponent;
-    switch (node.type) {
-      case 'trigger':
-        NodeComponent = TriggerNode;
-        break;
-      case 'action':
-        NodeComponent = ActionNode;
-        break;
-      case 'condition':
-        NodeComponent = ConditionNode;
-        (nodeProps as any).onAddBranchNode = (branchType: 'branch1' | 'otherwise', insertIndex?: number) => {
-          onAddBranchNode?.(index, branchType, insertIndex);
+  // Convert workflow nodes to React Flow format - SIMPLE VERSION
+  const reactFlowNodes = useMemo(() => {
+    // Hide end node if there are any condition nodes in the workflow
+    const hasConditionNodes = workflowNodes.some(node => node.type === 'condition');
+    const shouldShowEndNode = !hasConditionNodes;
+
+    // Convert existing nodes
+    const nodes = workflowNodes.map((node, index) => {
+      // Hide end node if last node is condition
+      if (node.id === 'virtual-end' && !shouldShowEndNode) {
+        return {
+          ...node,
+          hidden: true,
+          style: { display: 'none' }
         };
-        (nodeProps as any).onBranchNodeClick = (branchType: 'branch1' | 'otherwise', nodeIndex: number, branchNode: any) => {
-          onBranchNodeClick?.(index, branchType, nodeIndex, branchNode);
-        };
-        (nodeProps as any).onDeleteBranchNode = (branchType: 'branch1' | 'otherwise', nodeIndex: number) => {
-          onDeleteBranchNode?.(index, branchType, nodeIndex);
-        };
-        (nodeProps as any).onReplaceBranchNode = (branchType: 'branch1' | 'otherwise', nodeIndex: number) => {
-          onReplaceBranchNode?.(index, branchType, nodeIndex);
-        };
-        (nodeProps as any).onRouterClick = () => {
-          onRouterClick?.(index);
-        };
-        (nodeProps as any).onReplaceRouter = () => {
-          onReplaceRouter?.(index);
-        };
-        break;
-      case 'end':
-        NodeComponent = EndNode;
-        break;
-      default:
-        NodeComponent = ActionNode;
+      }
+
+      return {
+        id: node.id,
+        type: node.type,
+        position: { x: 100, y: 50 + (index * 200) },
+        data: {
+          ...node.data,
+          openTriggerModal: node.type === 'trigger' ? onOpenTriggerModal : undefined,
+          onReplaceTrigger: node.type === 'trigger' ? onReplaceTrigger : undefined,
+          onOpenConfig: node.type === 'trigger' ? onOpenTriggerConfig : undefined,
+          onDelete: node.type === 'action' ? () => {
+            console.log('🔍 Delete handler called for index:', index, 'onDeleteNode:', onDeleteNode);
+            if (onDeleteNode) {
+              onDeleteNode(index);
+            } else {
+              console.error('❌ onDeleteNode is not available in SimpleWorkflowCanvas');
+            }
+          } : undefined,
+        },
+        selected: node.id === selectedNodeId,
+      };
+    });
+
+    console.log('🔄 ReactFlow Nodes:', nodes);
+    console.log('🔄 Should show end node:', shouldShowEndNode);
+    console.log('🔄 Has condition nodes:', hasConditionNodes);
+    return nodes;
+  }, [workflowNodes, selectedNodeId, onOpenTriggerModal, onReplaceTrigger, onOpenTriggerConfig, onDeleteNode]);
+
+  // Use edges from WorkflowBuilder   
+  const reactFlowEdges = useMemo(() => {
+    console.log('the edge data from :', workflowEdges);
+    return workflowEdges;
+  }, [workflowEdges]);
+
+  const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(reactFlowNodes, reactFlowEdges);
+
+  const [nodes, setNodes] = useNodesState(layoutedNodes);
+  const [edges, setEdges] = useEdgesState(layoutedEdges);
+
+  // Update nodes when props change
+  useEffect(() => {
+    setNodes(reactFlowNodes);
+  }, [reactFlowNodes, setNodes]);
+
+  // Update edges when props change
+  useEffect(() => {
+    setEdges(reactFlowEdges);
+  }, [reactFlowEdges, setEdges]);
+
+  // Handle node clicks
+  const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    const workflowNode = workflowNodes.find(n => n.id === node.id);
+    if (workflowNode && onNodeClick) {
+      onNodeClick(event, workflowNode);
     }
+  }, [workflowNodes, onNodeClick]);
 
+  const onConnect = useCallback(() => { }, []);
+
+  // Empty state fallback
+  if (workflowNodes.length === 0) {
     return (
-      <div key={node.id} className="flex flex-col items-center">
-        <div onClick={(e) => {
-          // Only trigger node click for non-condition nodes
-          // Condition nodes handle their own click events internally
-          if (node.type !== 'condition') {
-            onNodeClick(e, node);
-          }
-        }}>
-          <NodeComponent key={node.id} {...nodeProps} />
-        </div>
-
-        {/* Connection Line and Plus Button (except for last node and after conditional nodes) */}
-        {index < nodes.length - 1 && node.type !== 'condition' && (
-          <FlowEdge onOpenActionModal={onOpenActionModal} index={index} />
-        )}
-      </div>
-    );
-  };
-
-  const getValidNodeTypes = (sourceNode: Node) => {
-    if (sourceNode.type === 'trigger') {
-      return ['action', 'condition'];
-    }
-    if (sourceNode.type === 'action') {
-      return ['action', 'condition'];
-    }
-    return ['action'];
-  };
-
-  // Empty state
-  if (nodes.length === 0) {
-    return (
-      <div
-        className="flex-1 flex items-center justify-center"
-        style={{
-          backgroundColor: '#f8fafc',
-          backgroundImage: `radial-gradient(circle, #cbd5e1 1px, transparent 1px)`,
-          backgroundSize: '20px 20px'
-        }}
-      >
+      <div className="flex-1 flex items-center justify-center" style={{
+        backgroundColor: '#f8fafc',
+        backgroundImage: `radial-gradient(circle, #cbd5e1 1px, transparent 1px)`,
+        backgroundSize: '20px 20px'
+      }}>
         <div className="text-center">
-          <PlusButton
-            onSelectNode={onSelectNode}
-            validNodeTypes={['trigger']}
-            position="center"
-          />
-
+          <PlusButton onSelectNode={onSelectNode} validNodeTypes={['trigger']} position="center" />
           <p className="text-sm text-gray-500 mt-4">Click to add your first step</p>
         </div>
       </div>
@@ -163,47 +159,38 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
 
   return (
     <div className="flex-1 h-full overflow-auto">
-      <div
-        className="flex justify-center items-start min-h-full"
-        style={{
-          backgroundColor: '#f8fafc',
-          backgroundImage: `radial-gradient(circle, #cbd5e1 1px, transparent 1px)`,
-          backgroundSize: '20px 20px',
-          padding: `${50 * (zoomLevel / 100)}px`,
-        }}
-      >
-        {/* <div
-          style={{
-            transform: `scale(${zoomLevel / 100})`,
-            transformOrigin: 'center top'
-          }}
-        >
-          <div className="flex flex-col items-center py-8">
-            <div className="flex flex-col items-center space-y-0">
-              {nodes.map((node, index) => renderNode(node, index))}
-
-              {nodes.length > 0 && nodes[nodes.length - 1].type !== 'condition' && (
-                <>
-
-                  <EndNode onOpenActionModal={onOpenActionModal} nodes={nodes} />
-                  
-                </>
-              )}
-            </div>
-          </div>
-        </div> */}
-
+      <div style={{
+        backgroundColor: '#f8fafc',
+        backgroundImage: `radial-gradient(circle, #cbd5e1 1px, transparent 1px)`,
+        backgroundSize: '20px 20px',
+        height: '100%',
+        transform: `scale(${zoomLevel / 100})`,
+        transformOrigin: 'center top',
+        padding: '50px',
+      }}>
         <ReactFlow
           nodes={nodes}
+          edges={edges}
+          onNodesChange={() => { }}
+          onEdgesChange={() => { }}
+          onNodeClick={handleNodeClick}
+          onConnect={onConnect}
           nodeTypes={nodeTypes}
-          onNodeClick={onNodeClick}
-          onNodeContextMenu={(event, node) => {
-            event.preventDefault();
-            onSelectNode(node.type, node.data);
-          }}
+          edgeTypes={edgeTypes}
+          connectionMode={ConnectionMode.Loose}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={false}
+          panOnDrag={false}
+          zoomOnScroll={false}
+          zoomOnPinch={false}
+          zoomOnDoubleClick={false}
+          preventScrolling={true}
+          panOnScroll={true}
+          fitView={false}
+          defaultViewport={{ x: 600, y: 10, zoom: 1 }}
         >
-
-          <Background />
+          <Background color="#ccc" variant={BackgroundVariant.Dots} />
         </ReactFlow>
       </div>
     </div>

@@ -99,17 +99,18 @@ export const categorizedActions: ActionCategory[] = [
             label: 'Contact Tagged',
             icon: Tag, // Replace Users with Tag
             description: 'Add conditional logic based on contact data',
-            color: 'bg-orange-50 border-orange-200'
+            color: 'bg-orange-50 border-orange-200',
+            type: 'condition'
+
           },
           {
             id: 'contact-type-action',
             label: 'Contact Type',
             icon: Layers, // Best for categorization
             description: 'Add conditional logic based on contact data',
-            color: 'bg-orange-50 border-orange-200'
+            color: 'bg-orange-50 border-orange-200',
+            type: 'condition'
           }
-
-
         ]
       },
       {
@@ -122,14 +123,16 @@ export const categorizedActions: ActionCategory[] = [
             label: 'Lead Quality',
             icon: Star, // or BarChart
             description: 'Add conditional logic to workflow',
-            color: 'bg-orange-50 border-orange-200'
+            color: 'bg-orange-50 border-orange-200',
+            type: 'condition'
           },
           {
             id: 'assigned-staff',
             label: 'Assigned Staff',
             icon: UserPlus, // or UserCheck
             description: 'Add conditional logic to workflow',
-            color: 'bg-orange-50 border-orange-200'
+            color: 'bg-orange-50 border-orange-200',
+            type: 'condition'
           }
 
         ]

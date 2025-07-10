@@ -1,6 +1,7 @@
 import React from 'react';
 import * as LucideIcons from 'lucide-react';
 import { Node } from '@xyflow/react';
+import { Handle, Position } from '@xyflow/react';
 
 interface EndNodeProps {
   data: {
@@ -13,7 +14,14 @@ interface EndNodeProps {
 
 const EndNode: React.FC<EndNodeProps> = ({ onOpenActionModal, nodes }) => {
   return (
-    <div className="flex flex-col items-center relative">
+    <div className="flex flex-col items-center relative w-[360px] h-[56px]">
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ visibility: 'hidden', width: 0, height: 0 }}
+        id='in'
+      />
+
       {/* Uniform vertical lines - compact height */}
       {/* <div className="w-0.5 h-6 bg-gray-400"></div>
       <div className="relative">

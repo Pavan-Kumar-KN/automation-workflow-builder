@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Handle, Position } from '@xyflow/react';
 
 interface TriggerNodeProps {
   data: {
@@ -102,14 +103,29 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, isSelected = fal
 
   return (
     <div className="relative">
+      {/* Input Handle - for connections coming INTO this node */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="in"
+        style={{ 
+          background: 'transparent',
+          border: 'none',
+          width: 1,
+          height: 1,
+          minWidth: 1,
+          minHeight: 1,
+          top: -1
+        }}
+      />
+
       {/* Main Node - Exact ActivePieces Style */}
       <div
         onClick={handleClick}
-        className={`bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 px-6 py-6 w-[360px] cursor-pointer ${
-          isSelected
+        className={`bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 px-6 py-6 w-[360px] cursor-pointer ${isSelected
             ? 'border-blue-500 ring-2 ring-blue-200 shadow-lg'
             : 'border-gray-200 hover:border-gray-300'
-        }`}
+          }`}
       >
         {/* Node Content */}
         <div className="flex items-center gap-3">
@@ -140,30 +156,50 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, isSelected = fal
             </div>
           )}
 
-          {/* Options Menu - Only show for configured triggers (not default) */}
-          {(() => {
-            const isDefaultTrigger = data.id === 'trigger-default' || data.label === 'Select Trigger';
-            return onReplaceTrigger && !isDefaultTrigger && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="text-gray-400 hover:text-gray-600 p-1 ml-2">
-                    <LucideIcons.MoreVertical className="w-4 h-4" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={handleReplaceTrigger}
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                  >
-                    <LucideIcons.RefreshCw className="w-4 h-4 mr-2" />
-                    Replace Trigger
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            );
-          })()}
+          {/* 3-Dot Menu - Show for all triggers */}
+          {onReplaceTrigger && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                  title="More options"
+                >
+                  <LucideIcons.MoreVertical className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleReplaceTrigger();
+                  }}
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                >
+                  <LucideIcons.RefreshCw className="w-4 h-4 mr-2" />
+                  Replace Trigger
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
+
+      {/* Output Handle - for connections going OUT of this node */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="out"
+        style={{ 
+          background: 'transparent',
+          border: 'none',
+          width: 1,
+          height: 1,
+          minWidth: 1,
+          minHeight: 1,
+          bottom: -1
+        }}
+      />
     </div>
   );
 };

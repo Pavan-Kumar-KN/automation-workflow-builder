@@ -68,7 +68,7 @@ export const useWorkflowJSON = () => {
       }
 
       const result = await response.json();
-      console.log('✅ Workflow submitted successfully:', result);
+      // console.log('✅ Workflow submitted successfully:', result);
       return result;
 
     } catch (error) {
@@ -84,12 +84,12 @@ export const useWorkflowJSON = () => {
     try {
       const json = generateJSON();
 
-      console.log('🔧 === CONFIG SUBMISSION TO BACKEND ===', {
-        nodeId,
-        automationId,
-        timestamp: new Date().toISOString(),
-        json
-      });
+      // console.log('🔧 === CONFIG SUBMISSION TO BACKEND ===', {
+      //   nodeId,
+      //   automationId,
+      //   timestamp: new Date().toISOString(),
+      //   json
+      // });
 
       // Update specific automation with new configuration
       const response = await fetch(`/api/workflows/${automationId}`, {
@@ -105,11 +105,11 @@ export const useWorkflowJSON = () => {
       }
 
       const result = await response.json();
-      console.log('✅ Config update response:', result);
+      // console.log('✅ Config update response:', result);
 
       return result;
     } catch (error) {
-      console.error('❌ Failed to submit config update:', error);
+      console.log('❌ Failed to update config:', error);
       throw error;
     }
   }, [generateJSON]);
@@ -118,9 +118,8 @@ export const useWorkflowJSON = () => {
    * Debug current workflow
    */
   const debugWorkflow = useCallback(() => {
-    console.log('🔍 === WORKFLOW DEBUG ===');
     const json = generateJSON();
-    console.log('Current JSON:', json);
+    // console.log('Current JSON:', json);
   }, [generateJSON]);
 
   /**
@@ -129,7 +128,7 @@ export const useWorkflowJSON = () => {
   useEffect(() => {
     if (nodes.length > 0) {
       const json = generateJSON();
-      console.log('🔄 Workflow JSON Updated:', json);
+      // console.log('🔄 Workflow JSON Updated:', json);
     }
   }, [nodes, edges, generateJSON]);
 

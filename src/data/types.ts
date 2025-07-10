@@ -5,4 +5,5 @@ export interface NodeData {
   icon: any;
   description: string;
   color: string;
+  type?: string;
 }

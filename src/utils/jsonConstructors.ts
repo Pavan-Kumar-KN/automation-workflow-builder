@@ -114,7 +114,7 @@ export class FrontendJSONConstructor {
     settings: { layoutMode: string; isActive: boolean },
     workflowId?: string
   ): FrontendWorkflowJSON {
-    console.log('🏗️ Constructing Frontend JSON...', { nodes: nodes.length, edges: edges.length });
+    // console.log('🏗️ Constructing Frontend JSON...', { nodes: nodes.length, edges: edges.length });
 
     return {
       id: workflowId || `workflow_${Date.now()}`,
@@ -153,7 +153,7 @@ export class FrontendJSONConstructor {
 
   static save(json: FrontendWorkflowJSON): void {
     const jsonString = JSON.stringify(json, null, 2);
-    console.log('💾 Frontend JSON:', jsonString);
+    // console.log('💾 Frontend JSON:', jsonString);
     
     // Save to localStorage for persistence
     localStorage.setItem(`workflow_frontend_${json.id}`, jsonString);
@@ -194,11 +194,11 @@ export class BackendJSONConstructor {
     userId: number = 54
   ): BackendWorkflowJSON {
 
-    console.log('🚀 === CONSTRUCTING SEGREGATED JSON (LEARN.JSON FORMAT) ===', {
-      nodes: nodes.length,
-      edges: edges.length,
-      workflowName
-    });
+    // console.log('🚀 === CONSTRUCTING SEGREGATED JSON (LEARN.JSON FORMAT) ===', {
+    //   nodes: nodes.length,
+    //   edges: edges.length,
+    //   workflowName
+    // });
 
     // Separate triggers and actions
     const triggerNodes = nodes.filter(node =>
@@ -282,17 +282,17 @@ export class BackendJSONConstructor {
       layout
     };
 
-    console.log('✅ === SEGREGATED JSON CONSTRUCTION COMPLETED ===', {
-      timestamp: new Date().toISOString(),
-      triggersCount: triggers.length,
-      actionsCount: actions.length,
-      layoutNodes: layout.node.length,
-      layoutEdges: layout.edges.length,
-      structure: 'segregated (learn.json format)'
-    });
+    // console.log('✅ === SEGREGATED JSON CONSTRUCTION COMPLETED ===', {
+    //   timestamp: new Date().toISOString(),
+    //   triggersCount: triggers.length,
+    //   actionsCount: actions.length,
+    //   layoutNodes: layout.node.length,
+    //   layoutEdges: layout.edges.length,
+    //   structure: 'segregated (learn.json format)'
+    // });
 
-    console.log('📋 === FINAL SEGREGATED JSON OUTPUT ===');
-    console.log(JSON.stringify(segregatedJSON, null, 2));
+    // console.log('📋 === FINAL SEGREGATED JSON OUTPUT ===');
+    // console.log(JSON.stringify(segregatedJSON, null, 2));
 
     return segregatedJSON;
   }
@@ -409,14 +409,14 @@ export class BackendJSONConstructor {
 
     flatArray.push(element);
 
-    console.log('📝 Added element to flat array:', {
-      id: element.id,
-      title: element.title,
-      type: element.type,
-      child: element.child,
-      hasConfig: !!node.data.submitted,
-      optionsKeys: Object.keys(element.options)
-    });
+    // console.log('📝 Added element to flat array:', {
+    //   id: element.id,
+    //   title: element.title,
+    //   type: element.type,
+    //   child: element.child,
+    //   hasConfig: !!node.data.submitted,
+    //   optionsKeys: Object.keys(element.options)
+    // });
 
     // Process next node in chain
     if (nextNode) {
@@ -725,7 +725,7 @@ export class BackendJSONConstructor {
 
   static save(json: BackendWorkflowJSON): void {
     const jsonString = JSON.stringify(json, null, 2);
-    console.log('🚀 Backend JSON:', jsonString);
+    // console.log('🚀 Backend JSON:', jsonString);
     
     // Save for debugging
     localStorage.setItem('workflow_backend_latest', jsonString);
