@@ -110,7 +110,7 @@
 // Horizontal Condition Edge for branching
 const ConditionEdge = ({ id, sourceX, sourceY, targetX, targetY, markerEnd, label }) => {
   // Create a path that branches horizontally
-  const dropDistance = 60; // How far down before branching
+  const dropDistance = 40; // How far down before branching
   const branchY = sourceY + dropDistance;
 
   const path = `

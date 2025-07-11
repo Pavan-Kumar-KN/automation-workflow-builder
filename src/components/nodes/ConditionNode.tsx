@@ -2,7 +2,7 @@
 import React from 'react';
 import * as LucideIcons from 'lucide-react';
 import { Handle, Position } from '@xyflow/react';
-import PlaceHolderNode from '../canvas/PlaceHolderNode';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu';
 
 interface Branch {
   label: string;
@@ -10,6 +10,7 @@ interface Branch {
 }
 
 interface ConditionNodeProps {
+  id : string; 
   data: {
     label: string;
     icon?: keyof typeof LucideIcons;
@@ -25,15 +26,20 @@ interface ConditionNodeProps {
     onAddYesAction?: () => void;
     onAddNoAction?: () => void;
     showPlaceholders?: boolean;
+
+    // New props for replace and delete functionality
+    onReplace?: (conditionId: string) => void;
+    onDelete?: (conditionId: string) => void;
   };
   isSelected?: boolean;
 }
 
 
-const ConditionNode: React.FC<ConditionNodeProps> = ({ data, isSelected = false }) => {
+const ConditionNode: React.FC<ConditionNodeProps> = ({ id , data, isSelected = false }) => {
 
   const IconComponent = (data.icon && LucideIcons[data.icon] as React.ComponentType<any>) || LucideIcons.GitBranch;
 
+  
   return (
     <div className="relative">
       {/* Top Handle */}
@@ -62,9 +68,71 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({ data, isSelected = false 
             </div>
           </div>
 
+          {/* 3-Dot Menu */}
+          <div className="flex-shrink-0 ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                  title="More options"
+                >
+                  <LucideIcons.MoreVertical className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {/* Replace Option */}
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    try {
+                      if (data.onReplace) {
+                        data.onReplace(id);
+                        console.log('✅ Replace function called successfully with ID:', id);
+                      }
+                    } catch (error) {
+                      console.error('❌ Error calling replace handler:', error);
+                    }
+                  }}
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                >
+                  <LucideIcons.RefreshCw className="w-4 h-4 mr-2" />
+                  Replace Condition
+                </DropdownMenuItem>
+
+                {/* Delete Option */}
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    try {
+                      if (data.onDelete) {
+                        data.onDelete(id);
+                        console.log('✅ Delete function called successfully with ID:', id);
+                      }
+                    } catch (error) {
+                      console.error('❌ Error calling delete handler:', error);
+                    }
+                  }}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <LucideIcons.Trash2 className="w-4 h-4 mr-2" />
+                  Delete Condition
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
+
+      {/* No handle - positioned for right branch */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="no"
+        className="w-3 h-3 bg-red-500 border-2 border-white"
+        style={{ left: '50%', bottom: '-6px', visibility: 'hidden' }}
+      />
 
       {/* Bottom Handles for Yes/No branches */}
       {/* Yes handle - positioned for left branch */}
@@ -73,19 +141,12 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({ data, isSelected = false 
         position={Position.Bottom}
         id="yes"
         className="w-3 h-3 bg-green-500 border-2 border-white"
-        style={{ left: '25%', bottom: '-6px', visibility: 'hidden' }}
+        style={{ left: '50%', bottom: '-6px', visibility: 'hidden' }}
       />
 
-      {/* No handle - positioned for right branch */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="no"
-        className="w-3 h-3 bg-red-500 border-2 border-white"
-        style={{ left: '75%', bottom: '-6px', visibility: 'hidden' }}
-      />
 
-    
+
+
 
     </div>
   );
