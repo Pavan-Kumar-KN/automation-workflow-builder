@@ -1,38 +1,48 @@
 import React from 'react';
 import * as LucideIcons from 'lucide-react';
+import { Handle, Position } from '@xyflow/react';
 
 interface PlaceHolderNodeProps {
-  branchType: string;
-  handleAddNodeToBranch: (branchType: string) => void;
+  data: {
+    branchType: string;
+    handleAddNodeToBranch: (branchType: string) => void;
+  };
+  isSelected?: boolean;
 }
 
-
-// Renders a plus button above a placeholder
-const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({ branchType, handleAddNodeToBranch }) => {
+const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({ data, isSelected = false }) => {
   return (
-    <div className="flex flex-col items-center pt-6 pb-4">
-      {/* Vertical line above button */}
-      <div className="w-0.5 h-4 bg-gray-400" />
+    <div className="relative">
+      {/* Top handle for incoming edge */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="in"
+        style={{ background: '#ccc', border: '2px solid #fff' }}
+      />
 
-      {/* Plus button */}
-      <button
-        onClick={() => handleAddNodeToBranch(branchType)}
-        className="w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-      >
-        <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-      </button>
-
-      {/* Vertical line below button */}
-      <div className="w-0.5 h-4 bg-gray-400" />
-
-      {/* Placeholder box */}
+      {/* Main node box */}
       <div
-        onClick={() => handleAddNodeToBranch(branchType)}
-        className="mt-2 shadow-sm p-6 w-52 flex flex-col items-center justify-center cursor-pointer hover:shadow-md border border-dashed border-gray-300 rounded"
+        className={`bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 px-4 py-4 w-fit cursor-pointer text-center ${
+          isSelected
+            ? 'border-blue-500 ring-2 ring-blue-200 shadow-lg'
+            : 'border-dashed border-gray-300'
+        }`}
+        onClick={() => data.handleAddNodeToBranch(data.branchType)}
       >
-        <LucideIcons.Plus className="w-4 h-4 text-gray-400 mb-2 hover:text-blue-600" />
-        <p className="text-sm text-gray-500">Add action</p>
+        <div className="flex flex-col items-center justify-center">
+          <LucideIcons.Plus className="w-6 h-6 text-gray-400 mb-2 hover:text-blue-600" />
+          <p className="text-sm text-gray-500">Add action to {data.branchType} branch</p>
+        </div>
       </div>
+
+      {/* Bottom handle for outgoing edge */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="out"
+        style={{ background: '#ccc', border: '2px solid #fff' }}
+      />
     </div>
   );
 };

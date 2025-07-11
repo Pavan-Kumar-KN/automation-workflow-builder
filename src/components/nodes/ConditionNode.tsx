@@ -20,6 +20,11 @@ interface ConditionNodeProps {
     // New props for tree structure
     branches?: Branch[];  // e.g. [{ label: 'Yes', branchType: 'yes' }]
     handleAddNodeToBranch?: (branchType: string) => void;
+
+    // Props for embedded placeholder functionality
+    onAddYesAction?: () => void;
+    onAddNoAction?: () => void;
+    showPlaceholders?: boolean;
   };
   isSelected?: boolean;
 }
@@ -27,7 +32,7 @@ interface ConditionNodeProps {
 
 const ConditionNode: React.FC<ConditionNodeProps> = ({ data, isSelected = false }) => {
 
-  const IconComponent = (data.icon && LucideIcons[data.icon]) || LucideIcons.GitBranch;
+  const IconComponent = (data.icon && LucideIcons[data.icon] as React.ComponentType<any>) || LucideIcons.GitBranch;
 
   return (
     <div className="relative">
@@ -62,29 +67,25 @@ const ConditionNode: React.FC<ConditionNodeProps> = ({ data, isSelected = false 
 
 
       {/* Bottom Handles for Yes/No branches */}
+      {/* Yes handle - positioned for left branch */}
       <Handle
         type="source"
         position={Position.Bottom}
         id="yes"
         className="w-3 h-3 bg-green-500 border-2 border-white"
-        style={{ left: '35%', bottom: '-6px' }}
+        style={{ left: '25%', bottom: '-6px', visibility: 'hidden' }}
       />
 
+      {/* No handle - positioned for right branch */}
       <Handle
         type="source"
         position={Position.Bottom}
         id="no"
         className="w-3 h-3 bg-red-500 border-2 border-white"
-        style={{ left: '65%', bottom: '-6px' }}
+        style={{ left: '75%', bottom: '-6px', visibility: 'hidden' }}
       />
 
-      {/* Branch Labels */}
-      <div className="absolute bottom-[-25px] left-[35%] transform -translate-x-1/2">
-        <span className="text-xs text-green-600 font-medium">Yes</span>
-      </div>
-      <div className="absolute bottom-[-25px] left-[65%] transform -translate-x-1/2">
-        <span className="text-xs text-red-600 font-medium">No</span>
-      </div>
+    
 
     </div>
   );

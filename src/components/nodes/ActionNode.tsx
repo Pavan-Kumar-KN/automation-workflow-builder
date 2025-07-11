@@ -113,19 +113,7 @@ export const ActionNode: React.FC<ActionNodeProps> = ({ data, isSelected = false
                   <LucideIcons.Trash2 className="w-4 h-4 mr-2" />
                   Delete Action
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log('🔍 Debug - onDelete prop:', onDelete);
-                    console.log('🔍 Debug - data.onDelete:', data.onDelete);
-                    console.log('🔍 Debug - deleteHandler:', deleteHandler);
-                    console.log('🔍 Debug - data:', data);
-                  }}
-                  className="text-gray-600"
-                >
-                  <LucideIcons.Info className="w-4 h-4 mr-2" />
-                  Debug Info
-                </DropdownMenuItem>
+
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

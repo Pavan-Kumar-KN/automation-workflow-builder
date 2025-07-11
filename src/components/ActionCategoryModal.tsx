@@ -49,8 +49,18 @@ export const ActionCategoryModal: React.FC<ActionCategoryModalProps> = ({
         : (action.icon?.displayName || action.icon?.name || 'Phone')
     };
 
-    onSelectAction(processedAction);
-    onClose();
+    try {
+      onSelectAction(processedAction);
+    } catch (error) {
+      console.error('Error selecting action:', error);
+    } finally {
+      // Always close the modal, even if there's an error
+      onClose();
+      // Reset modal state
+      setSelectedCategory(null);
+      setSelectedSubcategory(null);
+      setSearchTerm('');
+    }
   };
 
   const filteredCategories = categorizedActions.filter(category => {

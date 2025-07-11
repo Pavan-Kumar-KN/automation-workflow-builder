@@ -12,6 +12,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import ConditionNode from './nodes/ConditionNode';
 import PlaceholderNode from './nodes/PlaceholderNode';
+import SimpleConditionPlaceholder from './nodes/SimpleConditionPlaceholder';
 import { PlusButton } from './PlusButton';
 import FlowEdge from './edges/FlowEdge';
 import { TriggerNode } from './nodes/TriggerNode';
@@ -43,6 +44,7 @@ const nodeTypes = {
   trigger: TriggerNode,
   action: ActionNode,
   condition: ConditionNode,
+  placeholder: SimpleConditionPlaceholder, // Use the simple placeholder
   end: EndNode
 };
 
@@ -67,6 +69,7 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
 
   // Convert workflow nodes to React Flow format - SIMPLE VERSION
   const reactFlowNodes = useMemo(() => {
+
     // Hide end node if there are any condition nodes in the workflow
     const hasConditionNodes = workflowNodes.some(node => node.type === 'condition');
     const shouldShowEndNode = !hasConditionNodes;
@@ -104,19 +107,32 @@ export const SimpleWorkflowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
       };
     });
 
-    console.log('🔄 ReactFlow Nodes:', nodes);
-    console.log('🔄 Should show end node:', shouldShowEndNode);
-    console.log('🔄 Has condition nodes:', hasConditionNodes);
     return nodes;
   }, [workflowNodes, selectedNodeId, onOpenTriggerModal, onReplaceTrigger, onOpenTriggerConfig, onDeleteNode]);
 
-  // Use edges from WorkflowBuilder   
+  // Use edges from WorkflowBuilder
   const reactFlowEdges = useMemo(() => {
-    console.log('the edge data from :', workflowEdges);
+    console.log('🔍 Converting workflow edges:', workflowEdges.map(e => ({ id: e.id, source: e.source, target: e.target, type: e.type })));
     return workflowEdges;
   }, [workflowEdges]);
 
-  const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(reactFlowNodes, reactFlowEdges);
+  // Only apply layout when both nodes and edges are consistent
+  const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
+    // Validate that all edges reference existing nodes
+    const nodeIds = new Set(reactFlowNodes.map(n => n.id));
+    const invalidEdges = reactFlowEdges.filter(edge =>
+      !nodeIds.has(edge.source) || !nodeIds.has(edge.target)
+    );
+
+    if (invalidEdges.length > 0) {
+      console.log('🚨 Skipping layout due to invalid edges:', invalidEdges.map(e => `${e.source} -> ${e.target}`));
+      console.log('🔍 Available nodes:', Array.from(nodeIds));
+      return { nodes: reactFlowNodes, edges: reactFlowEdges };
+    }
+
+    console.log('✅ All edges valid, applying layout...');
+    return getLayoutedElements(reactFlowNodes, reactFlowEdges);
+  }, [reactFlowNodes, reactFlowEdges]);
 
   const [nodes, setNodes] = useNodesState(layoutedNodes);
   const [edges, setEdges] = useEdgesState(layoutedEdges);

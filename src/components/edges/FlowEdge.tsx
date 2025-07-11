@@ -30,11 +30,16 @@
 // export default FlowEdge;
 
 import React from 'react';
-import { BaseEdge, EdgeLabelRenderer } from '@xyflow/react';
+import { BaseEdge, EdgeLabelRenderer, EdgeProps } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 
 // Helper function to draw a straight vertical line
-const getStraightPath = ({ sourceX, sourceY, targetX, targetY }) => {
+const getStraightPath = ({ sourceX, sourceY, targetX, targetY }: {
+    sourceX: number;
+    sourceY: number;
+    targetX: number;
+    targetY: number;
+}) => {
     // For vertical layout, use the source X position to keep it straight
     const edgePath = `M ${sourceX},${sourceY} L ${sourceX},${targetY}`;
     const labelX = sourceX; // Use source X position for vertical alignment
@@ -42,7 +47,12 @@ const getStraightPath = ({ sourceX, sourceY, targetX, targetY }) => {
     return [edgePath, labelX, labelY];
 };
 
-const FlowEdge = ({
+interface FlowEdgeData {
+    onOpenActionModal?: (index: number) => void;
+    index?: number;
+}
+
+const FlowEdge: React.FC<EdgeProps<FlowEdgeData>> = ({
     id,
     sourceX,
     sourceY,
