@@ -46,7 +46,6 @@ export const triggerNodes: NodeData[] = [
     icon: ShoppingCart,
     description: 'When product enquiry form is submitted',
     color: 'bg-red-50 border-red-200',
-    category: 'apps'
   },
   {
     id: 'form-submitted-trigger',
@@ -54,7 +53,6 @@ export const triggerNodes: NodeData[] = [
     icon: FileText,
     description: 'Triggers when any form is submitted',
     color: 'bg-blue-50 border-blue-200',
-    category: 'apps'
   },
   {
     id: 'facebook-form-trigger',
@@ -62,7 +60,6 @@ export const triggerNodes: NodeData[] = [
     icon: UserCheck,
     description: 'Triggers when a contact is updated in any form',
     color: 'bg-green-50 border-green-200',
-    category: 'apps'
   },
 
   // Contact Triggers
@@ -72,7 +69,6 @@ export const triggerNodes: NodeData[] = [
     icon: UserPlus,
     description: 'When new contact added via the selected source to send welcome message and more',
     color: 'bg-green-50 border-green-200',
-    category: 'core'
   },
   {
     id: 'contact-updated-trigger',
@@ -80,7 +76,6 @@ export const triggerNodes: NodeData[] = [
     icon: UserPlus,
     description: 'Send a cheer message to contact whenever contact is updated in system even with other automation',
     color: 'bg-green-50 border-green-200',
-    category: 'core'
   },
   {
     id: 'contact-tagged-trigger',
@@ -88,7 +83,6 @@ export const triggerNodes: NodeData[] = [
     icon: Tag,
     description: 'When a contact is tagged automation will trigger',
     color: 'bg-yellow-50 border-yellow-200',
-    category: 'core'
   },
   {
     id: 'happy-birthday-trigger',
@@ -96,7 +90,6 @@ export const triggerNodes: NodeData[] = [
     icon: UserPlus,
     description: 'Celebrate with an exclusive offer or cheerful message that sends based on the birthday field in your audience',
     color: 'bg-green-50 border-green-200',
-    category: 'core'
   },
 
   // CRM Triggers

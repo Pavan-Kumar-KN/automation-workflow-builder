@@ -1,139 +1,79 @@
-// import React from 'react';
-// import * as LucideIcons from 'lucide-react';
+import React from 'react';
+import { EdgeLabelRenderer } from '@xyflow/react';
+import { Plus } from 'lucide-react';
 
-// interface ConditionEdgeProps {
-//   id: string;
-//   sourceX: number;
-//   sourceY: number;
-//   targetX: number;
-//   targetY: number;
-//   markerEnd?: string;
-//   label?: string;
-//   data?: {
-//     branchType?: 'yes' | 'no';
-//     onAddNode?: (branchType: string) => void;
-//     connectsToPlaceholder?: boolean; // New prop to indicate if this connects to embedded placeholder
-//   };
-// }
+interface ConditionEdgeData {
+  onOpenActionModal?: (index: number) => void;
+  index?: number;
+}
 
-// // Custom Edge Component
-// const ConditionEdge: React.FC<ConditionEdgeProps> = ({
-//   id,
-//   sourceX,
-//   sourceY,
-//   targetX,
-//   targetY,
-//   markerEnd,
-//   label,
-//   data
-// }) => {
-//   // If this connects to an embedded placeholder, draw a shorter path
-//   if (data?.connectsToPlaceholder) {
-//     // Draw a short path from the condition node handle to the embedded placeholder
-//     const shortPath = `M ${sourceX},${sourceY} L ${sourceX},${sourceY + 60}`;
-
-//     return (
-//       <>
-//         <path
-//           id={id}
-//           d={shortPath}
-//           stroke="#9ca3af"
-//           strokeWidth={2}
-//           fill="none"
-//           markerEnd={markerEnd}
-//         />
-
-//         {/* Branch label positioned closer to the condition node */}
-//         {label && (
-//           <text
-//             x={sourceX}
-//             y={sourceY + 30}
-//             textAnchor="middle"
-//             fill="#4b5563"
-//             fontSize="12"
-//             className="font-medium"
-//           >
-//             {label}
-//           </text>
-//         )}
-//       </>
-//     );
-//   }
-
-//   // Original logic for connecting to separate nodes
-//   // Calculate a mid-point on Y axis for the horizontal segment (40px below sourceY)
-//   const midY: number = sourceY + 40;
-
-//   // Construct path with vertical, horizontal, then vertical segments (orthogonal style)
-//   const path: string = `
-//     M ${sourceX},${sourceY}
-//     L ${sourceX},${midY}
-//     L ${targetX},${midY}
-//     L ${targetX},${targetY}
-//   `;
-
-//   // Calculate position for plus button (middle of the edge)
-//   const buttonX = (sourceX + targetX) / 2;
-//   const buttonY = midY;
-
-//   return (
-//     <>
-//       <path
-//         id={id}
-//         d={path}
-//         stroke="#9ca3af"
-//         strokeWidth={2}
-//         fill="none"
-//         markerEnd={markerEnd}
-//       />
-
-//       {/* Branch label */}
-//       {label && (
-//         <text
-//           x={buttonX}
-//           y={buttonY - 20}
-//           textAnchor="middle"
-//           fill="#4b5563"
-//           fontSize="12"
-//           className="font-medium"
-//         >
-//           {label}
-//         </text>
-//       )}
-//     </>
-//   );
-// };
-
-// export default ConditionEdge;
-
-
-// Horizontal Condition Edge for branching
-const ConditionEdge = ({ id, sourceX, sourceY, targetX, targetY, markerEnd, label }) => {
-  // Create a path that branches horizontally
-  const dropDistance = 40; // How far down before branching
-  const branchY = sourceY + dropDistance;
-
+const ConditionEdge = ({ 
+  id, 
+  sourceX, 
+  sourceY, 
+  targetX, 
+  targetY, 
+  label,
+  data
+}: {
+  id: string;
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  label?: string;
+  data?: ConditionEdgeData;
+}) => {
+  const curveRadius = 30;
+  const verticalDrop = 50;
+  const directionX = targetX > sourceX ? 1 : -1;
+  
+  const curveStartY = sourceY + verticalDrop;
+  const curveMidX = targetX - directionX * curveRadius;
+  const curveEndY = curveStartY + curveRadius;
+  
   const path = `
     M ${sourceX},${sourceY}
-    L ${sourceX},${branchY}
-    L ${targetX},${branchY}
+    L ${sourceX},${curveStartY - curveRadius}
+    Q ${sourceX},${curveStartY} ${sourceX + directionX * curveRadius},${curveStartY}
+    L ${curveMidX},${curveStartY}
+    Q ${targetX},${curveStartY} ${targetX},${curveEndY}
     L ${targetX},${targetY}
   `;
-
-  // Position label at the horizontal part of the branch
+  
   const labelX = (sourceX + targetX) / 2;
-  const labelY = branchY - 10;
-
+  const labelY = curveStartY - 15;
+  
+  // Plus button position (at the middle of the curved section)
+  const plusX = labelX;
+  const plusY = curveStartY;
+  
+  // Create arrowhead path
+  const arrowSize = 6;
+  const arrowPath = `M ${targetX - arrowSize},${targetY - arrowSize} L ${targetX},${targetY} L ${targetX + arrowSize},${targetY - arrowSize}`;
+  
   return (
     <>
+      {/* Edge path */}
       <path
         id={id}
         d={path}
         stroke="#9ca3af"
         strokeWidth={2}
         fill="none"
-        markerEnd={markerEnd}
       />
+      
+      {/* Arrowhead */}
+      <path
+        d={arrowPath}
+        stroke="#9ca3af"
+        strokeWidth={2}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      
+      {/* Edge label */}
       {label && (
         <text
           x={labelX}
@@ -145,6 +85,25 @@ const ConditionEdge = ({ id, sourceX, sourceY, targetX, targetY, markerEnd, labe
         >
           {label}
         </text>
+      )}
+      
+      {/* Plus button at center */}
+      {data?.onOpenActionModal && (
+        <EdgeLabelRenderer>
+          <div
+            className="pointer-events-auto absolute"
+            style={{
+              transform: `translate(-50%, -50%) translate(${plusX}px, ${plusY}px)`,
+            }}
+          >
+            <button
+              onClick={() => data.onOpenActionModal?.(data.index!)}
+              className="w-6 h-6 bg-white border border-slate-300 rounded-md flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors shadow-sm"
+            >
+              <Plus className="w-3 h-3 text-slate-600 hover:text-blue-600" />
+            </button>
+          </div>
+        </EdgeLabelRenderer>
       )}
     </>
   );

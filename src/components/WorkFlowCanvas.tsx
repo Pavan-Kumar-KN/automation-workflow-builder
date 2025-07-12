@@ -132,7 +132,6 @@ export const WorkFlowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
     <div className="flex-1 h-full overflow-auto">
       <div style={{
         backgroundColor: '#f8fafc',
-        padding: '50px',
         height: '100%',
       }}>
         <ReactFlow
@@ -143,9 +142,9 @@ export const WorkFlowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
           edgeTypes={edgeTypes}
 
 
-        // defaultViewport={{ x: 600, y: 10, zoom: 1 }}
+        defaultViewport={{ x: 500, y: 10, zoom: 1 }}
         >
-          <Background color="#ccc" variant={BackgroundVariant.Dots} />
+          <Background variant={BackgroundVariant.Dots} />
         </ReactFlow>
       </div>
     </div>

@@ -16,11 +16,12 @@ interface EndNodeProps extends NodeProps {
 
 const EndNode: React.FC<EndNodeProps> = ({ data }) => {
   return (
-    <div className="flex flex-col items-center relative w-[360px] h-[56px]">
+    <div className="flex flex-col items-center relative w-[280px] h-[56px]">
       <Handle
         type="target"
         position={Position.Top}
-        style={{ visibility: 'hidden', width: 0, height: 0 }}
+        className="w-3  border-2 border-white"
+        style={{ left: '50%', bottom: '-12px' , visibility: 'hidden' }}
         id='in'
       />
 

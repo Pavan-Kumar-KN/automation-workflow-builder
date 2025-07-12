@@ -1,16 +1,16 @@
-import dagre from '@dagrejs/dagre';
+import dagre from "@dagrejs/dagre";
 
 // Simplified function to calculate child counts for edge width
 export function calculateChildCounts(nodes, edges) {
   const childCounts = {};
 
   // Initialize all nodes with 0 children
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     childCounts[node.id] = 0;
   });
 
   // Count direct children for each node
-  edges.forEach(edge => {
+  edges.forEach((edge) => {
     if (childCounts[edge.source] !== undefined) {
       childCounts[edge.source] += 1;
     }
@@ -22,30 +22,30 @@ export function calculateChildCounts(nodes, edges) {
 // const dagreGraph = new dagre.graphlib.Graph();
 // dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
+export const getLayoutedElements = (nodes, edges, direction = "TB") => {
   // Create a new dagre graph instance for each layout
-  const nodeWidth = 340;
-  const nodeHeight = 80;
-  
+  const nodeWidth = 280;
+  const nodeHeight = 60;
+
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  const isHorizontal = direction === 'LR';
-  
-  // Enhanced graph configuration for better conditional branch handling
+  const isHorizontal = direction === "LR";
+
+  // Enhanced graph configuration with much larger spacing
   dagreGraph.setGraph({
     rankdir: direction,
-    nodesep: isHorizontal ? 100 : 150, // Much larger horizontal spacing for branches
-    ranksep: isHorizontal ? 200 : 120, // Vertical spacing between ranks
+    nodesep: isHorizontal ? 150 : 110, // Horizontal spacing between nodes
+    ranksep: isHorizontal ? 120 : 90, // INCREASED: Vertical spacing between ranks (this is key!)
     marginx: 50,
     marginy: 50,
-    acyclicer: 'greedy', // Better cycle handling
-    ranker: 'network-simplex' // Better for branching structures
+    acyclicer: "greedy",
+    ranker: "network-simplex",
   });
 
   // Validate that all nodes and edges are valid
-  const nodeIds = new Set(nodes.map(n => n.id));
-  const validEdges = edges.filter(edge => {
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const validEdges = edges.filter((edge) => {
     const isValid = nodeIds.has(edge.source) && nodeIds.has(edge.target);
     if (!isValid) {
       console.warn(`Invalid edge: ${edge.source} -> ${edge.target}`);
@@ -56,46 +56,48 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
   // Note: childCounts calculation removed since we use consistent edge styling
 
   // Identify conditional nodes and their branches for special handling
-  const conditionalNodes = nodes.filter(node => node.type === 'condition');
+  const conditionalNodes = nodes.filter((node) => node.type === "condition");
   const branchNodes = new Map(); // Map condition nodes to their branch children
-  
-  conditionalNodes.forEach(conditionNode => {
-    const branches = validEdges.filter(edge => edge.source === conditionNode.id);
+
+  conditionalNodes.forEach((conditionNode) => {
+    const branches = validEdges.filter(
+      (edge) => edge.source === conditionNode.id
+    );
     branchNodes.set(conditionNode.id, branches);
   });
 
   // Set ALL nodes in dagre (including placeholders)
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     let width = node.width || nodeWidth;
     let height = node.height || nodeHeight;
-    
-    // Special handling for placeholder nodes to make them smaller
-    if (node.type === 'placeholder') {
-      width = 120;
-      height = 80;
-    }
-    
+
+    // // Special handling for placeholder nodes to make them smaller
+    // if (node.type === 'placeholder') {
+    //   width = 120;
+    //   height = 80;
+    // }
+
     dagreGraph.setNode(node.id, {
       width,
-      height
+      height,
     });
   });
 
   // Set ALL edges in dagre with enhanced conditional branch handling
-  validEdges.forEach(edge => {
+  validEdges.forEach((edge) => {
     // Add edge weight for conditional branches to influence layout
     const edgeConfig: any = {};
 
-    if (edge.type === 'condition') {
+    if (edge.type === "condition") {
       // Special handling for condition edges to ensure proper branching
       edgeConfig.weight = 1;
       edgeConfig.minlen = 2; // Minimum edge length for better separation
 
       // Add label information to help with positioning
-      if (edge.label === 'Yes') {
-        edgeConfig.labelpos = 'l'; // Left side
-      } else if (edge.label === 'No') {
-        edgeConfig.labelpos = 'r'; // Right side
+      if (edge.label === "Yes") {
+        edgeConfig.labelpos = "l"; // Left side
+      } else if (edge.label === "No") {
+        edgeConfig.labelpos = "r"; // Right side
       }
     } else {
       edgeConfig.weight = 1;
@@ -109,7 +111,7 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
   dagre.layout(dagreGraph);
 
   // Position ALL nodes using dagre layout (including placeholders)
-  const newNodes = nodes.map(node => {
+  const newNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
 
     // Safety check
@@ -127,25 +129,23 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
 
     return {
       ...node,
-      targetPosition: isHorizontal ? 'left' : 'top',
-      sourcePosition: isHorizontal ? 'right' : 'bottom',
+      targetPosition: isHorizontal ? "left" : "top",
+      sourcePosition: isHorizontal ? "right" : "bottom",
       position: finalPosition,
     };
   });
 
   // Update edges with consistent styling
-  const newEdges = validEdges.map(edge => {
+  const newEdges = validEdges.map((edge) => {
     return {
       ...edge,
       style: {
         ...edge.style,
-        strokeWidth: 2, // Consistent width
-        stroke: '#9CA3AF' // Gray-400 color for all edges
-      }
+        // strokeWidth: 2, // Consistent width
+        opacity: 0.8, // Consistent opacity
+      },
     };
   });
 
   return { nodes: newNodes, edges: newEdges };
 };
-
-

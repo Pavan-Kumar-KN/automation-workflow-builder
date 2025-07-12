@@ -12,12 +12,7 @@ interface PlaceHolderNodeProps {
   isSelected?: boolean;
 }
 
-const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({ id , data, isSelected = false }) => {
-
-  console.log('PlaceHolderNode rendered with id:', id);
-
-  console.log('PlaceHolderNode data:', data);
-
+const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({ id, data, isSelected = false }) => {
   return (
     <div className="relative">
       {/* Top Handle */}
@@ -25,31 +20,38 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({ id , data, isSelected
         type="target"
         position={Position.Top}
         id="in"
-        style={{ background: '#4CAF50', border: '2px solid #fff' }}
+        style={{ 
+          background: '#4CAF50', 
+          border: '2px solid #fff', 
+          visibility: 'hidden', 
+          top: '-12px' 
+        }}
       />
 
-      {/* Main Container - Match ActionNode styling */}
+      {/* Main Container */}
       <div
-        className={`flex items-center shadow-sm transition-all duration-200 px-6 py-6 w-[360px]  cursor-pointer ${isSelected
-          ? 'border-blue-500 ring-2 ring-blue-200 shadow-lg'
-          : 'border-dashed border-gray-300 hover:border-blue-400'
-          }`}
-        onClick={() => data.handleAddNodeToBranch(data.branchType, id , data.conditionNodeId)}
-
+        className={`
+          flex items-center justify-center
+          w-[280px] h-6
+          rounded-lg
+          cursor-pointer
+          transition-all duration-200
+        `}
+        onClick={() => data.handleAddNodeToBranch(data.branchType, id, data.conditionNodeId)}
       >
-        <div className="flex items-center gap-1 ml-[90px]">
+      <div className='border border-gray-300 bg-gray-50'>
           {/* Plus Icon */}
-          <div className="flex-shrink-0">
-            <LucideIcons.Plus className="w-6 h-6 text-gray-400 hover:text-blue-600" />
-          </div>
-
-          {/* Text - Match ActionNode text styling */}
-          <div className="flex-1 min-w-0">
-            <div className="text-base font-semibold text-gray-500">
-              Add Action
-            </div>
-          </div>
-        </div>
+        <LucideIcons.Plus 
+          className={`
+            w-12 h-8
+            transition-colors duration-200
+            ${isSelected
+              ? 'text-blue-600'
+              : 'text-gray-400 hover:text-blue-600'
+            }
+          `} 
+        />
+      </div>
       </div>
 
       {/* Bottom Handle */}
@@ -57,7 +59,10 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({ id , data, isSelected
         type="source"
         position={Position.Bottom}
         id="out"
-        style={{ background: '#4CAF50', border: '2px solid #fff' }}
+        style={{ 
+          background: '#fff', 
+          border: '2px solid #fff' 
+        }}
       />
     </div>
   );

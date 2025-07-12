@@ -39,19 +39,9 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
     );
   };
 
-  const getNodeIcon = () => {
-    switch (node.type) {
-      case 'trigger': return '🔥';
-      case 'action': return '⚡';
-      case 'condition': return '🎯';
-      case 'split-condition': return '🔀';
-      case 'goto-node': return '🧭';
-      default: return '⚙️';
-    }
-  };
 
   return (
-    <div className="w-full h-full bg-white relative z-20">
+    <div className="w-full h-full relative z-20">
       <Card className="h-full rounded-none border-0">
         <CardHeader className="border-b border-gray-200 relative px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between gap-4">

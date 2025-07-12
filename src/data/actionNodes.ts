@@ -27,7 +27,7 @@ export const actionNodes: NodeData[] = [
     label: 'Send Whatsaap Message',
     icon: MessageCircle,
     description: 'Send an whatsapp message to contacts',
-    color: 'bg-emerald-50 border-emerald-200 text-emerald-600'
+    color: 'border-emerald-200 text-emerald-600'
   },
   {
     id: 'send-sms-action',

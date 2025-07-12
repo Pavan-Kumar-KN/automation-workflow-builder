@@ -1,109 +1,70 @@
-// import React from 'react';
-// import * as LucideIcons from 'lucide-react';
-
-// const FlowEdge = ({ onOpenActionModal, index }) => {
-//     console.log('FlowEdge index:', index);
-
-//     return (
-//         <div className="flex flex-col items-center relative">
-
-//             {/* Vertical line above the button */}
-//             <div className="w-0.5 h-6 bg-gray-400"></div>
-
-//             {/* Plus Button */}
-//             <div className="relative">
-//                 <button
-//                     onClick={() => onOpenActionModal(index)}
-//                     className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-//                 >
-//                     <LucideIcons.Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-//                 </button>
-//             </div>
-
-//             {/* Vertical line below the button */}
-//             <div className="w-0.5 h-6 bg-gray-400"></div>
-
-//         </div>
-//     );
-// };
-
-// export default FlowEdge;
-
 import React from 'react';
-import { BaseEdge, EdgeLabelRenderer, EdgeProps } from '@xyflow/react';
+import { EdgeLabelRenderer, EdgeProps } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 
-// Helper function to draw a straight vertical line
-const getStraightPath = ({ sourceX, sourceY, targetX, targetY }: {
-    sourceX: number;
-    sourceY: number;
-    targetX: number;
-    targetY: number;
-}) => {
-    // For vertical layout, use the source X position to keep it straight
-    const edgePath = `M ${sourceX},${sourceY} L ${sourceX},${targetY}`;
-    const labelX = sourceX; // Use source X position for vertical alignment
-    const labelY = (sourceY + targetY) / 2;
-    return [edgePath, labelX, labelY];
-};
-
 interface FlowEdgeData {
-    onOpenActionModal?: (index: number) => void;
-    index?: number;
+  onOpenActionModal?: (index: number) => void;
+  index?: number;
 }
 
 const FlowEdge: React.FC<EdgeProps<FlowEdgeData>> = ({
-    id,
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-    style = {},
-    markerEnd,
-    data,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  style = {},
+  data,
+  id,
 }) => {
-    const [edgePath, labelX, labelY] = getStraightPath({
-        sourceX,
-        sourceY,
-        targetX,
-        targetY,
-    });
+  const centerX = sourceX;
+  const centerY = (sourceY + targetY) / 2;
 
-    return (
-        <>
-            <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
+  const edgePath = `M ${sourceX},${sourceY} L ${sourceX},${targetY}`;
+  const arrowSize = 6;
+  const arrowPath = `M ${sourceX - arrowSize},${targetY - arrowSize} L ${sourceX},${targetY} L ${sourceX + arrowSize},${targetY - arrowSize}`;
 
-            {data?.onOpenActionModal && (
-                <EdgeLabelRenderer>
-                    <div
-                        className="pointer-events-auto absolute"
-                        style={{
-                            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-                        }}
-                    >
-                        {/* Container for the entire plus button with lines */}
-                        <div className="flex flex-col items-center">
-                            {/* Vertical line above the button */}
-                            <div className="w-0.5 h-4 bg-gray-400"></div>
+  return (
+    <>
+      {/* Main vertical edge */}
+      <path
+        id={id}
+        d={edgePath}
+        stroke="#9CA3AF" // lighter gray
+        strokeWidth={1.5}
+        fill="none"
+        style={style}
+      />
 
-                            {/* Plus Button - Remove the absolute positioning */}
-                            <button
-                                onClick={() => data.onOpenActionModal(data.index)}
-                                className="w-6 h-6 bg-white border-2 border-gray-400 rounded-lg flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors z-10"
-                            >
-                                <Plus className="w-3 h-3 text-gray-600 hover:text-blue-600" />
-                            </button>
+      {/* Arrowhead */}
+      <path
+        d={arrowPath}
+        stroke="#9CA3AF" // lighter gray
+        strokeWidth={1.5}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
 
-                            {/* Vertical line below the button */}
-                            <div className="w-0.5 h-4 bg-gray-400"></div>
-                        </div>
-                    </div>
-                </EdgeLabelRenderer>
-            )}
-        </>
-    );
+      {/* Center Plus Button */}
+      {data?.onOpenActionModal && (
+        <EdgeLabelRenderer>
+          <div
+            className="pointer-events-auto absolute"
+            style={{
+              transform: `translate(-50%, -50%) translate(${centerX}px, ${centerY}px)`,
+            }}
+          >
+            <button
+              onClick={() => data.onOpenActionModal?.(data.index!)}
+              className="w-6 h-5 bg-gray-400 border border-gray-500 rounded-md flex items-center justify-center transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4 text-white stroke-[2.5]" />
+            </button>
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
 };
 
 export default FlowEdge;

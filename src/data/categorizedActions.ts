@@ -48,7 +48,7 @@ export const categorizedActions: ActionCategory[] = [
         label: 'Send Email',
         icon: Mail,
         description: 'Send an email to contacts',
-        color: 'bg-blue-50 border-blue-200'
+        color: 'border-blue-200'
       },
 
       {
@@ -56,21 +56,21 @@ export const categorizedActions: ActionCategory[] = [
         label: 'Send Whatsapp Message',
         icon: MessageCircle,
         description: 'Send an whatsapp message to contacts',
-        color: 'bg-emerald-50 border-emerald-200 text-emerald-600'
+        color: 'border-emerald-200 text-emerald-600'
       },
       {
         id: 'send-sms-action',
         label: 'Send SMS Message',
         icon: MessageSquare,
         description: 'Send an SMS message to contacts',
-        color: 'bg-blue-50 border-blue-200 text-blue-600'
+        color: 'border-blue-200 text-blue-600'
       },
       {
         id: 'delay-action',
         label: 'Delay',
         icon: Clock,
         description: 'Add a delay before or after the action',
-        color: 'bg-blue-50 border-blue-200 text-blue-600'
+        color: 'border-blue-200 text-blue-600'
       }
     ]
   },

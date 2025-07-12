@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import {
   DropdownMenu,
@@ -16,6 +16,8 @@ interface TriggerNodeProps {
     description?: string;
     color?: string;
     type?: string;
+    subtitle?: string;
+    showWarning?: boolean;
     isConfigured?: boolean;
     openTriggerModal?: () => void;
   };
@@ -24,181 +26,121 @@ interface TriggerNodeProps {
   onOpenConfig?: () => void;
 }
 
-export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, isSelected = false, onReplaceTrigger, onOpenConfig }) => {
-  // Handle both string icon names and direct icon components
+// TriggerNode Component
+export const TriggerNode = ({ 
+  data, 
+  isSelected = false, 
+  onReplaceTrigger, 
+  onOpenConfig 
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+
   const IconComponent = React.useMemo(() => {
-    if (!data.icon) {
-      return LucideIcons.Zap as React.ComponentType<any>;
-    }
-
-    if (typeof data.icon === 'string') {
-      return (LucideIcons[data.icon as keyof typeof LucideIcons] || LucideIcons.Zap) as React.ComponentType<any>;
-    }
-
-    if (typeof data.icon === 'function') {
-      return data.icon as React.ComponentType<any>;
-    }
-
-    if (React.isValidElement(data.icon)) {
-      // If it's already a React element, wrap it in a component
-      return () => data.icon;
-    }
-
-    // If it's an object with displayName or name (Lucide icon component)
-    if (data.icon && typeof data.icon === 'object' && ((data.icon as any).displayName || (data.icon as any).name)) {
-      return data.icon as React.ComponentType<any>;
-    }
-
-    return LucideIcons.Zap as React.ComponentType<any>;
+    if (!data.icon) return LucideIcons.Zap;
+    if (typeof data.icon === 'string') return LucideIcons[data.icon] || LucideIcons.Zap;
+    if (typeof data.icon === 'function') return data.icon;
+    if (React.isValidElement(data.icon)) return () => data.icon;
+    if (typeof data.icon === 'object') return data.icon;
+    return LucideIcons.Zap;
   }, [data.icon]);
 
-  // Extract colors from the color string (e.g., "bg-red-50 border-red-200")
-  const getIconColors = () => {
-    if (!data.isConfigured) {
-      return {
-        bgColor: 'bg-gray-100',
-        textColor: 'text-gray-600'
-      };
-    }
-
-    if (data.color) {
-      // Extract the base color from the color string
-      const colorMatch = data.color.match(/bg-(\w+)-\d+/);
-      if (colorMatch) {
-        const baseColor = colorMatch[1];
-        return {
-          bgColor: `bg-${baseColor}-100`,
-          textColor: `text-${baseColor}-600`
-        };
-      }
-    }
-
-    // Fallback to red if no color is specified
-    return {
-      bgColor: 'bg-red-100',
-      textColor: 'text-red-600'
-    };
-  };
-
-  const { bgColor, textColor } = getIconColors();
-
   const handleClick = () => {
-    // Check if this is the default trigger (by ID or label)
     const isDefaultTrigger = data.id === 'trigger-default' || data.label === 'Select Trigger';
-
-    // Only open config panel if configured AND not the default trigger
+    
     if (data.isConfigured && onOpenConfig && !isDefaultTrigger) {
       onOpenConfig();
     } else if (data.openTriggerModal) {
-      // For default trigger or unconfigured triggers, open trigger selection modal
       data.openTriggerModal();
-    }
-  };
-
-  const handleReplaceTrigger = () => {
-    if (onReplaceTrigger) {
-      onReplaceTrigger();
     }
   };
 
   return (
     <div className="relative">
-      {/* Input Handle - for connections coming INTO this node */}
+      {/* Top Handle */}
       <Handle
         type="target"
         position={Position.Top}
         id="in"
-        style={{ 
-          background: 'transparent',
-          border: 'none',
-          width: 1,
-          height: 1,
-          minWidth: 1,
-          minHeight: 1,
-          top: -1
-        }}
+        className="w-3 bg-white border-2 border-white"
+        style={{ left: '50%', bottom: '-12px' }}
       />
 
-      {/* Main Node - Exact ActivePieces Style */}
+      {/* Node Box - ActivePieces Style */}
       <div
         onClick={handleClick}
-        className={`bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 px-6 py-6 w-[360px] cursor-pointer ${isSelected
-            ? 'border-blue-500 ring-2 ring-blue-200 shadow-lg'
+        className={`relative bg-white rounded-xl border-2 px-4 py-3 w-[280px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer ${
+          isSelected
+            ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
             : 'border-gray-200 hover:border-gray-300'
-          }`}
+        }`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Node Content */}
+        {/* Top colored border */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-purple-500 rounded-t-xl"></div>
+
         <div className="flex items-center gap-3">
-          {/* Step Number and Icon */}
-          <div className="flex items-center gap-3">
-            <div className={`flex items-center justify-center w-10 h-10 rounded-lg ${bgColor}`}>
-              <IconComponent className={`w-5 h-5 ${textColor}`} />
-            </div>
-            <div className="text-base font-medium text-gray-700">1.</div>
+          {/* Icon with background */}
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
+            <IconComponent className={`w-12 h-12 ${
+              !data.isConfigured ? 'text-gray-600' : data.color || 'text-blue-600'
+            }`} />
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-w-0">
-            <div className="text-base font-semibold text-gray-900">
-              {data.isConfigured ? data.label : 'Select Trigger'}
+          <div className="flex-1 min-w-0 flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm truncate">
+                  {data.isConfigured ? data.label : 'Select Trigger'}
+                </h3>
+                {/* Warning icon positioned at the end of title */}
+                {(!data.isConfigured || data.showWarning) && (
+                  <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                )}
+              </div>
+              <p className="text-xs text-gray-500 truncate mt-0.5">
+                {data.subtitle || 'Trigger'}
+              </p>
+            </div>
+
+            {/* Menu Button */}
+            <div className="flex-shrink ml-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`p-1.5 rounded-md transition-all duration-200`}
+                  >
+                    <LucideIcons.ChevronDown className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {onReplaceTrigger && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReplaceTrigger();
+                      }}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <LucideIcons.RefreshCw className="w-4 h-4 mr-2" />
+                      Replace Trigger
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-
-          {/* Dropdown Arrow */}
-          <div className="text-gray-400">
-            <LucideIcons.ChevronDown className="w-4 h-4" />
-          </div>
-
-          {/* Warning Icon - Only show if not configured */}
-          {!data.isConfigured && (
-            <div className="text-orange-500">
-              <LucideIcons.AlertTriangle className="w-4 h-4" />
-            </div>
-          )}
-
-          {/* 3-Dot Menu - Show for all triggers */}
-          {onReplaceTrigger && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                  title="More options"
-                >
-                  <LucideIcons.MoreVertical className="w-4 h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleReplaceTrigger();
-                  }}
-                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                >
-                  <LucideIcons.RefreshCw className="w-4 h-4 mr-2" />
-                  Replace Trigger
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
         </div>
       </div>
 
-      {/* Output Handle - for connections going OUT of this node */}
+      {/* Bottom Handle */}
       <Handle
         type="source"
         position={Position.Bottom}
         id="out"
-        style={{ 
-          background: 'transparent',
-          border: 'none',
-          width: 1,
-          height: 1,
-          minWidth: 1,
-          minHeight: 1,
-          bottom: -1
-        }}
+        className="w-3 bg-white border-2 border-white"
+        style={{ left: '50%', bottom: '-6px' }}
       />
     </div>
   );
