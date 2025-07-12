@@ -82,7 +82,7 @@ export const TriggerNode = ({
         <div className="flex items-center gap-3">
           {/* Icon with background */}
           <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
-            <IconComponent className={`w-12 h-12 ${
+            <IconComponent className={`w-8 h-8 ${
               !data.isConfigured ? 'text-gray-600' : data.color || 'text-blue-600'
             }`} />
           </div>

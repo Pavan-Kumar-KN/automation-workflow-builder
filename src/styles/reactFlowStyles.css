@@ -21,21 +21,51 @@
   background-size: 20px 20px;
 }
 
-/* Custom styling for the React Flow controls */
+/* Custom styling for the React Flow controls - Left side positioning */
 .react-flow__controls {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
   border-radius: 8px;
-  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  padding: 8px;
+  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 50;
 }
 
 .react-flow__controls-button {
   background-color: white;
   border: 1px solid #e2e8f0;
   color: #64748b;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  margin: 0;
 }
 
 .react-flow__controls-button:hover {
   background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: none;
+}
+
+.react-flow__controls-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.react-flow__controls-button svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Ensure nodes don't have default React Flow styling */

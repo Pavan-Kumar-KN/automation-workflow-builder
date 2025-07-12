@@ -6,15 +6,19 @@ import {
   useEdgesState,
   useNodesState,
   Edge,
-  ConnectionMode,
-  BackgroundVariant
+  BackgroundVariant,
+  Controls,
+  ReactFlowProvider,
+  ControlButton,
+  useReactFlow
 } from '@xyflow/react';
+import { RotateCcw } from 'lucide-react';
 import '@xyflow/react/dist/style.css';
 import ConditionNode from './nodes/ConditionNode';
 import FlowEdge from './edges/FlowEdge';
 import { TriggerNode } from './nodes/TriggerNode';
 import { ActionNode } from './nodes/ActionNode';
-import { NodeData } from '@/data/nodeData';
+import { NodeData } from '@/data/types';
 import EndNode from './nodes/EndNode';
 import { getLayoutedElements } from '@/utils/dagreFunction';
 import ConditionEdge from './edges/ConditionEdge';
@@ -32,6 +36,7 @@ interface SimpleWorkflowCanvasProps {
   onDeleteNode?: (nodeId: string | number) => void;
   onReplaceTrigger?: () => void;
   onOpenTriggerConfig?: (node: Node) => void;
+
   // Removed complex branch handlers - simplified approach
   zoomLevel?: number;
 }
@@ -51,20 +56,29 @@ const edgeTypes = {
   condition: ConditionEdge,
 };
 
-export const WorkFlowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
+// Internal component that uses ReactFlow hooks
+const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
   nodes: workflowNodes,
-  edges: workflowEdges, // Add edges prop with default empty array
+  edges: workflowEdges,
   selectedNodeId,
-  onSelectNode,
   onNodeClick,
   onOpenTriggerModal,
-  onOpenActionModal,
-  onInsertNode,
   onDeleteNode,
   onReplaceTrigger,
   onOpenTriggerConfig,
-  zoomLevel = 100,
+
 }) => {
+  const { fitView, zoomIn, zoomOut, setCenter } = useReactFlow();
+
+  // Custom reset function - Reset view position and zoom only
+  const handleReset = useCallback(() => {
+    // Reset view to default position and zoom
+    setCenter(500, 100, { zoom: 1 });
+    // Also trigger fit view to properly position all nodes
+    setTimeout(() => {
+      fitView({ padding: 0.1, duration: 500 });
+    }, 100);
+  }, [setCenter, fitView]);
 
   // Convert workflow nodes to React Flow format and apply layout
   const { layoutedNodes, layoutedEdges } = useMemo(() => {
@@ -73,7 +87,7 @@ export const WorkFlowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
     const shouldShowEndNode = !hasConditionNodes;
 
     // Convert existing nodes
-    const nodes = workflowNodes.map((node, index) => {
+    const nodes = workflowNodes.map((node) => {
       // Hide end node if last node is condition
       if (node.id === 'virtual-end' && !shouldShowEndNode) {
         return {
@@ -138,15 +152,58 @@ export const WorkFlowCanvas: React.FC<SimpleWorkflowCanvasProps> = ({
           nodes={nodes}
           edges={edges}
           onNodeClick={handleNodeClick}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-
-
-        defaultViewport={{ x: 500, y: 10, zoom: 1 }}
+          nodeTypes={nodeTypes as any}
+          edgeTypes={edgeTypes as any}
+          defaultViewport={{ x: 500, y: 10, zoom: 1 }}
+          minZoom={0.25}
+          maxZoom={2}
+          attributionPosition="bottom-left"
+          proOptions={{ hideAttribution: true }}
+          fitView={false}
+          panOnScroll={true}
+          selectionOnDrag={false}
+          panOnDrag={[1, 2]}
+          zoomOnScroll={true}
+          zoomOnPinch={true}
+          zoomOnDoubleClick={true}
+          preventScrolling={false}
+          deleteKeyCode={['Backspace', 'Delete']}
+          multiSelectionKeyCode={['Meta', 'Ctrl']}
+          style={{ backgroundColor: '#f8fafc', width: '100%', height: '100%' }}
         >
-          <Background variant={BackgroundVariant.Dots} />
+          <Controls
+            position="bottom-left"
+            showZoom={true}
+            showFitView={true}
+            showInteractive={true}
+            fitViewOptions={{
+              padding: 0.1,
+              includeHiddenNodes: false,
+              minZoom: 0.5,
+              maxZoom: 2
+            }}
+          >
+            <ControlButton onClick={handleReset} title="Reset View Position & Zoom">
+              <RotateCcw size={16} />
+            </ControlButton>
+          </Controls>
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={16}
+            size={1}
+            color="#cbd5e1"
+          />
         </ReactFlow>
       </div>
     </div>
+  );
+};
+
+// Main exported component with ReactFlowProvider
+export const WorkFlowCanvas: React.FC<SimpleWorkflowCanvasProps> = (props) => {
+  return (
+    <ReactFlowProvider>
+      <WorkFlowCanvasInternal {...props} />
+    </ReactFlowProvider>
   );
 };

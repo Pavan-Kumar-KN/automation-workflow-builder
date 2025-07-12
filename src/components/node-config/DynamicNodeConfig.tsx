@@ -36,6 +36,37 @@ import ContactTaggedEvalConfig from './actions/evaluate/contact/ContactTaggedEva
 import ContactTypeEvalConfig from './actions/evaluate/contact/ContactTypeEvalConfig';
 import LeadQualityEvalConfig from './actions/evaluate/crm/LeadQualityEvalConfig';
 import AssignedStaffEvalConfig from './actions/evaluate/crm/AssignedStaffEvalConfig';
+import InvoiceEvalConfig from './actions/evaluate/sales/InvoiceEvalConfig';
+import ProductFormEvalConfig from './actions/evaluate/forms/ProductFromEvalConfig'
+import FacebookEvalConfig from './actions/evaluate/forms/FacebookEvalConfig'
+import MagicFromEvalConfig from './actions/evaluate/forms/MagicFromEvalConfig'
+import CalendarEvalConfig from './actions/evaluate/calendar/CalendarEvalConfig';
+import WebhookEvalConfig from './actions/webhook/WebhookEvalConfig';
+import WebhookAdvanceEvalConfig from './actions/webhool(advance)/WebhookAdvanceEvalConfig';
+import RemoveWorkFlow from './actions/RemovWorkFlow';
+import InternalNotificationConfig from './actions/notification/InternalNotificationConfig';
+import UpdateContactAttributeConfig from './actions/operations/UpdateContactAttributeConfig';
+import ConvertLeadToCustomer from './actions/operations/ConvertLeadToCustomer';
+import ContactTaggedOperation from './actions/operations/contact_ops/contact_tag_ops/ContactTaggedOperation';
+import RemoveTagOperation from './actions/operations/contact_ops/contact_tag_ops/RemoveTagOperation';
+import ContactGroupOperation from './actions/operations/contact_ops/contact_group/ContactGroupOperation';
+import ContactGroupRemoveOperation from './actions/operations/contact_ops/contact_group/ContactGroupRemoveOperation';
+import AddUpdateToCRMConfig from './actions/operations/crm_ops/AddUpdateToCRM';
+import RemoveFromCRMConfig from './actions/operations/crm_ops/RemoveFromCRM';
+import CourseAccessOperation from './actions/operations/lms_ops/CourseAccessOperation';
+import ChangeLeadQuality from './actions/operations/lead_quality/ChangeLeadQuality';
+import CourseRevokeOperation from './actions/operations/lms_ops/CourseRevokeOperation';
+import ExecuteAutomation from './actions/operations/ExecuteAutomation';
+import EventStartOperation from './actions/operations/EventStartOperation';
+import ChangeAppointmentStatusConfig from './actions/operations/ChangeAppointmentStatusConfig';
+import AssignToStaffOperation from './actions/operations/staff_ops/AssignToStaffConfig';
+import RemoveAssignedStaffOperation from './actions/operations/staff_ops/RemoveAssinedStaffConfig';
+import CommunityAccess from './actions/operations/community_ops/CommunityAccess';
+import CommunityRevoke from './actions/operations/community_ops/ComminityRevoke';
+import ChatGroupAccessConfig from './actions/operations/contact_ops/chat_group/ChatGroupAccessConfig';
+import ChatGroupRevokeConfig from './actions/operations/contact_ops/chat_group/ChatGroupRevokeConfig';
+
+
 
 interface DynamicNodeConfigProps {
   node: Node;
@@ -420,6 +451,284 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
             setConfig={(config) => onUpdate(node.id, config)}
           />
         )
+
+      // Sales category 
+      case 'invoice-form':
+        return (
+          <InvoiceEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      // Forms 
+      case 'product-form':
+        return (
+          <ProductFormEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'facebook-form':
+        return (
+          <FacebookEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'magic-form':
+        return (
+          <MagicFromEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      // Calendar Actions 
+      case 'appointment-booked-action':
+        return (
+          <CalendarEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'appointment-cancelled-action':
+        return (
+          <CalendarEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'appointment-rescheduled-action':
+        return (
+          <CalendarEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'no-show-action':
+        return (
+          <CalendarEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'show-up-action':
+        return (
+          <CalendarEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      // Webhook actions 
+      case 'webhook-basic-action':
+        return (
+          <WebhookEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'webhook-advance-action':
+        return (
+          <WebhookAdvanceEvalConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'remove-workflow-action':
+        return (
+          <RemoveWorkFlow
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      // Internal Notification 
+      case 'internal-notification-action':
+        return (
+          <InternalNotificationConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      // operations 
+      case 'update-contact-attribute-action':
+        return (
+          <UpdateContactAttributeConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+      case 'convert-lead-to-customer-action':
+        return (
+          <ConvertLeadToCustomer
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'contact-tagged-operation-action':
+        return (
+          <ContactTaggedOperation
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'remove-tag-operation-action':
+        return (
+          <RemoveTagOperation
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+      case 'contact-group-operation-action':
+        return (
+          <ContactGroupOperation
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+      case 'remove-contact-operation-action':
+        return (
+          <ContactGroupRemoveOperation
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'add-update-to-crm-action':
+        return (
+          <AddUpdateToCRMConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'remove-from-crm-action':
+        return (
+          <RemoveFromCRMConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+      case 'course-access-operation-action':
+        return (
+          <CourseAccessOperation
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+      case 'course-revoke-operation-action':
+        return (
+          <CourseRevokeOperation
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+
+      case 'lead-quality-operation-action':
+        return (
+          <ChangeLeadQuality
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+        case 'execute-automation-action':
+        return (
+          <ExecuteAutomation
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+        case 'event-start-operation-action':
+        return (
+          <EventStartOperation
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+        case 'appointment-status-change-action':
+        return (
+          <ChangeAppointmentStatusConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+        case 'exit-workflow-operation-action':
+        return (
+          <RemoveWorkFlow
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+        case 'assign-to-staff-operation-action':
+        return (
+          <AssignToStaffOperation
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+        case 'remove-assigned-staff-operation-action':
+        return (
+          <RemoveAssignedStaffOperation
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+
+        case 'community-access-operation-action':
+        return (
+          <CommunityAccess
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+        case 'community-revoke-operation-action':
+        return (
+          <CommunityRevoke
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+        case 'chatgroup-access-operation-action':
+        return (
+          <ChatGroupAccessConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+        case 'chatgroup-revoke-operation-action':
+        return (
+          <ChatGroupRevokeConfig
+            config={node.data as NodeConfig}
+            setConfig={(config) => onUpdate(node.id, config)}
+          />
+        )
+
+
 
       // Add more specific configs as needed
       default:

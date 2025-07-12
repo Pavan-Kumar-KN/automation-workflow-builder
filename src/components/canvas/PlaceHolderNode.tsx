@@ -33,13 +33,13 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({ id, data, isSelected 
         className={`
           flex items-center justify-center
           w-[280px] h-6
-          rounded-lg
+
           cursor-pointer
           transition-all duration-200
         `}
         onClick={() => data.handleAddNodeToBranch(data.branchType, id, data.conditionNodeId)}
       >
-      <div className='border border-gray-300 bg-gray-50'>
+      <div className='border'>
           {/* Plus Icon */}
         <LucideIcons.Plus 
           className={`

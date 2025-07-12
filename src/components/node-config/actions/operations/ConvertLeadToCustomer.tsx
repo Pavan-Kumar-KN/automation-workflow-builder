@@ -2,33 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ConfigComponentProps } from '@/components/node-config/types';
 
-
-const CalendarEvalConfig: React.FC<ConfigComponentProps> = ({ config, setConfig}) => {
-    const [calendars, setCalendars] = useState([]);
-    const [selectedForm, setSelectedForm] = useState('');
+const ConvertLeadToCustomer: React.FC<ConfigComponentProps> = ({ config, setConfig }) => {
+    const [fields, setFields] = useState([]);
+    const [selectedField, setSelectedField] = useState('');
+    const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-
     console.log("config", config);
 
-    // Fetch product forms from API
-    const fetchCalendars = async () => {
+    // Fetch fields from API
+    const fetchFields = async () => {
         setIsLoading(true);
         try {
             // Simulating API call for demo purposes
             await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-            setCalendars([
-                'Calendar 1',
-                'Calendar 2',
-                'Calendar 3',
-                'Calendar 4',
-                'Calendar 5'
+            setFields([
+                { id: 'lead', name: 'Lead' },
+                { id: 'customer', name: 'Customer' }
             ]);
         } catch (error) {
-            alert('Failed to fetch product forms');
+            alert('Failed to fetch fields');
         } finally {
             setIsLoading(false);
         }
@@ -36,8 +33,13 @@ const CalendarEvalConfig: React.FC<ConfigComponentProps> = ({ config, setConfig}
 
     // Handle form submission
     const handleSubmit = async () => {
-        if (!config.formType || !selectedForm) {
-            alert('Please select both form type and product form');
+        if (!selectedField) {
+            alert('Please select a field');
+            return;
+        }
+
+        if (!inputValue.trim()) {
+            alert('Please enter a value');
             return;
         }
 
@@ -49,7 +51,9 @@ const CalendarEvalConfig: React.FC<ConfigComponentProps> = ({ config, setConfig}
             // Update config with final values
             setConfig({
                 ...config,
-                selectedForm,
+                selectedField,
+                fieldName: fields.find(f => f.id === selectedField)?.name,
+                inputValue: inputValue.trim(),
                 submitted: true,
                 submittedAt: new Date().toISOString()
             });
@@ -63,59 +67,55 @@ const CalendarEvalConfig: React.FC<ConfigComponentProps> = ({ config, setConfig}
     };
 
     useEffect(() => {
-        fetchCalendars();
-
-    }, [])
+        fetchFields();
+    }, []);
 
     return (
         <div className="space-y-4">
+            {/* Header */}
             <div>
-                <h3 className="font-semibold text-gray-900">{config.label}</h3>
-                <p className="text-sm text-gray-500">{config.description}.</p>
+                <h3 className="font-semibold text-gray-900">Convert Lead to Customer</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                    Convert from lead to customer or vice versa
+                </p>
             </div>
 
-            <div>
-                {
-                    selectedForm && (
-                        <div className="mt-4 p-3 bg-gray-100 rounded-lg">
-                            <p className="text-sm text-gray-600">Selected: {selectedForm}</p>
-                        </div>
-                    )
-                }
-            </div>
+            {/* Field Selection */}
             <div className="space-y-2">
-                <Label htmlFor="product-form" className="text-sm font-medium text-gray-700">
-                    Calendars <span className="text-red-500">*</span>
+                <Label htmlFor="field-select" className="text-sm font-medium text-gray-700">
+                    Select Contact Type which you want to convert
                 </Label>
                 <Select
-                    value={selectedForm}
-                    onValueChange={setSelectedForm}
+                    value={selectedField}
+                    onValueChange={setSelectedField}
                     disabled={isLoading}
                 >
                     <SelectTrigger className="w-full">
-                        <SelectValue placeholder={isLoading ? "Loading calendars..." : "Select Calendar"} />
+                        <SelectValue placeholder={isLoading ? "Loading fields..." : "Choose a list field"} />
                     </SelectTrigger>
                     <SelectContent>
-                        {calendars.map((calendar, index) => (
-                            <SelectItem key={index} value={calendar}>
-                                {calendar}
+                        {fields.map((field) => (
+                            <SelectItem key={field.id} value={field.id}>
+                                {field.name}
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
                 {isLoading && (
-                    <p className="text-xs text-blue-600 animate-pulse">Loading available calendars...</p>
+                    <p className="text-xs text-blue-600 animate-pulse">Loading available fields...</p>
                 )}
             </div>
 
+            {/* Save Button */}
             <Button
-                onClick={() => setConfig({ ...config, submitted: true })}
-                className="w-full"
+                onClick={handleSubmit}
+                disabled={isSubmitting || !selectedField || !inputValue.trim()}
+                className="w-full "
             >
-                Confirm
+                {isSubmitting ? 'Saving...' : 'Save'}
             </Button>
         </div>
     );
 };
 
-export default CalendarEvalConfig;
+export default ConvertLeadToCustomer;

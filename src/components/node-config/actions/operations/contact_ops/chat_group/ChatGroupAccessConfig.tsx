@@ -4,31 +4,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { ConfigComponentProps } from '@/components/node-config/types';
 
-
-const CalendarEvalConfig: React.FC<ConfigComponentProps> = ({ config, setConfig}) => {
-    const [calendars, setCalendars] = useState([]);
-    const [selectedForm, setSelectedForm] = useState('');
+const ChatGroupAccessConfig: React.FC<ConfigComponentProps> = ({ config, setConfig }) => {
+    const [lists, setLists] = useState([]);
+    const [selectedList, setSelectedList] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-
     console.log("config", config);
 
-    // Fetch product forms from API
-    const fetchCalendars = async () => {
+    // Fetch lists from API
+    const fetchLists = async () => {
         setIsLoading(true);
         try {
             // Simulating API call for demo purposes
             await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-            setCalendars([
-                'Calendar 1',
-                'Calendar 2',
-                'Calendar 3',
-                'Calendar 4',
-                'Calendar 5'
+            setLists([
+                { id: 'list_1', name: 'VIP Customers' },
+                { id: 'list_2', name: 'Newsletter Subscribers' },
+                { id: 'list_3', name: 'Product Leads' },
+                { id: 'list_4', name: 'Event Attendees' },
+                { id: 'list_5', name: 'Support Contacts' },
+                { id: 'list_6', name: 'Trial Users' },
+                { id: 'list_7', name: 'Premium Members' },
+                { id: 'list_8', name: 'Follow-up List' }
             ]);
         } catch (error) {
-            alert('Failed to fetch product forms');
+            alert('Failed to fetch lists');
         } finally {
             setIsLoading(false);
         }
@@ -36,8 +37,8 @@ const CalendarEvalConfig: React.FC<ConfigComponentProps> = ({ config, setConfig}
 
     // Handle form submission
     const handleSubmit = async () => {
-        if (!config.formType || !selectedForm) {
-            alert('Please select both form type and product form');
+        if (!selectedList) {
+            alert('Please select a list');
             return;
         }
 
@@ -49,7 +50,8 @@ const CalendarEvalConfig: React.FC<ConfigComponentProps> = ({ config, setConfig}
             // Update config with final values
             setConfig({
                 ...config,
-                selectedForm,
+                selectedList,
+                listName: lists.find(l => l.id === selectedList)?.name,
                 submitted: true,
                 submittedAt: new Date().toISOString()
             });
@@ -63,59 +65,55 @@ const CalendarEvalConfig: React.FC<ConfigComponentProps> = ({ config, setConfig}
     };
 
     useEffect(() => {
-        fetchCalendars();
-
-    }, [])
+        fetchLists();
+    }, []);
 
     return (
         <div className="space-y-4">
+            {/* Header */}
             <div>
-                <h3 className="font-semibold text-gray-900">{config.label}</h3>
-                <p className="text-sm text-gray-500">{config.description}.</p>
+                <h3 className="font-semibold text-gray-900">Contact Group Access</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                    Give group Access to Contact
+                </p>
             </div>
 
-            <div>
-                {
-                    selectedForm && (
-                        <div className="mt-4 p-3 bg-gray-100 rounded-lg">
-                            <p className="text-sm text-gray-600">Selected: {selectedForm}</p>
-                        </div>
-                    )
-                }
-            </div>
+            {/* List Selection */}
             <div className="space-y-2">
-                <Label htmlFor="product-form" className="text-sm font-medium text-gray-700">
-                    Calendars <span className="text-red-500">*</span>
+                <Label htmlFor="list-select" className="text-sm font-medium text-gray-700">
+                    select group <span className="text-red-500">*</span>
                 </Label>
                 <Select
-                    value={selectedForm}
-                    onValueChange={setSelectedForm}
+                    value={selectedList}
+                    onValueChange={setSelectedList}
                     disabled={isLoading}
                 >
                     <SelectTrigger className="w-full">
-                        <SelectValue placeholder={isLoading ? "Loading calendars..." : "Select Calendar"} />
+                        <SelectValue placeholder={isLoading ? "Loading lists..." : "Choose a list"} />
                     </SelectTrigger>
                     <SelectContent>
-                        {calendars.map((calendar, index) => (
-                            <SelectItem key={index} value={calendar}>
-                                {calendar}
+                        {lists.map((list) => (
+                            <SelectItem key={list.id} value={list.id}>
+                                {list.name}
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
                 {isLoading && (
-                    <p className="text-xs text-blue-600 animate-pulse">Loading available calendars...</p>
+                    <p className="text-xs text-blue-600 animate-pulse">Loading available lists...</p>
                 )}
             </div>
 
+            {/* Save Button */}
             <Button
-                onClick={() => setConfig({ ...config, submitted: true })}
+                onClick={handleSubmit}
+                disabled={isSubmitting || !selectedList}
                 className="w-full"
             >
-                Confirm
+                {isSubmitting ? 'Saving...' : 'Save'}
             </Button>
         </div>
     );
 };
 
-export default CalendarEvalConfig;
+export default ChatGroupAccessConfig;

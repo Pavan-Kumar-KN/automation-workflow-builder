@@ -81,7 +81,7 @@ const ConditionNode = ({ id, data, isSelected = false }) => {
         <div className="flex items-center gap-3">
           {/* Icon with background */}
           <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
-            <IconComponent className={`w-12 h-12 ${data.color || 'text-blue-600'}`} />
+            <IconComponent className={`w-8 h-8 ${data.color || 'text-blue-600'}`} />
           </div>
 
           {/* Content */}

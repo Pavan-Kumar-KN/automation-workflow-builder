@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import FlowEdge from '../edges/FlowEdge';
 
 // ActionNode Component
 export const ActionNode = ({
@@ -28,20 +29,9 @@ export const ActionNode = ({
   }, [data.icon]);
 
   return (
-    <div className="relative flex flex-col items-center w-full mt-2">
-      {/* Top Plus */}
-      {data.showTopPlus && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            data.onInsertAbove?.(id);
-          }}
-          className="z-10 -mb-1 w-6 h-6 bg-white border border-gray-300 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 shadow-sm"
-          title="Insert above"
-        >
-          <LucideIcons.Plus className="w-3 h-3 text-gray-600" />
-        </button>
-      )}
+    <div className="relative flex flex-col items-center w-full mt-1">
+  
+
 
       {/* Top Handle */}
       <Handle
@@ -64,8 +54,8 @@ export const ActionNode = ({
 
         <div className="flex items-center gap-3">
           {/* Icon with background */}
-          <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
-            <IconComponent className={`w-12 h-12 ${data.color || 'text-blue-600'}`} />
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ color: data.color }}>
+            <IconComponent className={`w-8 h-8 ${data.color || 'text-blue-600'}`} />
           </div>
 
           {/* Content */}
@@ -77,7 +67,7 @@ export const ActionNode = ({
                 </h3>
                 {/* Warning icon positioned at the end of title */}
                 {data.showWarning && (
-                  <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <LucideIcons.AlertTriangle className="w-4 h-4  flex-shrink-0" />
                 )}
               </div>
               <p className="text-xs text-gray-500 truncate mt-0.5">
@@ -116,7 +106,7 @@ export const ActionNode = ({
           </div>
         </div>
       </div>
-      
+
 
       {/* Bottom Handle */}
       <Handle

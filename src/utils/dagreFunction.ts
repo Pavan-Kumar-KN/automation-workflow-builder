@@ -109,7 +109,6 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
 
   // Apply layout
   dagre.layout(dagreGraph);
-
   // Position ALL nodes using dagre layout (including placeholders)
   const newNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
@@ -149,3 +148,4 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
 
   return { nodes: newNodes, edges: newEdges };
 };
+
