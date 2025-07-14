@@ -23,6 +23,10 @@ const FlowEdge: React.FC<EdgeProps<FlowEdgeData>> = ({
   const arrowSize = 6;
   const arrowPath = `M ${sourceX - arrowSize},${targetY - arrowSize} L ${sourceX},${targetY} L ${sourceX + arrowSize},${targetY - arrowSize}`;
 
+
+  console.log("The edge path is : ", data.index);
+  console.log("The Data is in the flow edge  : ", data);
+
   return (
     <>
       {/* Main vertical edge */}

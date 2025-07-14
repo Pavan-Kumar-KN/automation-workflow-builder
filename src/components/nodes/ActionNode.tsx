@@ -116,20 +116,6 @@ export const ActionNode = ({
         className="w-3 bg-white border-2 border-white"
         style={{ left: '50%', bottom: '-6px' }}
       />
-
-      {/* Bottom Plus */}
-      {data.showBottomPlus && !data.isLastNode && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            data.onInsertBelow?.(id);
-          }}
-          className="mt-1 z-10 w-6 h-6 bg-white border border-gray-300 rounded-full flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 shadow-sm"
-          title="Insert below"
-        >
-          <LucideIcons.Plus className="w-3 h-3 text-gray-600" />
-        </button>
-      )}
     </div>
   );
 };

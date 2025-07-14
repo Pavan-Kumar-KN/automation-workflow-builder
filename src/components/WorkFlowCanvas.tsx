@@ -20,7 +20,8 @@ import { TriggerNode } from './nodes/TriggerNode';
 import { ActionNode } from './nodes/ActionNode';
 import { NodeData } from '@/data/types';
 import EndNode from './nodes/EndNode';
-import { getLayoutedElements, tightenConditionBranches } from '@/utils/dagreFunction';
+import { GhostNode } from './nodes/GhostNode';
+import { getLayoutedElements } from '@/utils/dagreFunction';
 import ConditionEdge from './edges/ConditionEdge';
 import PlaceHolderNode from './canvas/PlaceHolderNode';
 
@@ -48,6 +49,7 @@ const nodeTypes = {
   action: ActionNode,
   condition: ConditionNode,
   placeholder: PlaceHolderNode,
+  ghost: GhostNode,
   end: EndNode
 };
 
@@ -116,7 +118,7 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
 
     // Apply dagre layout to all nodes and edges
     const { nodes: finalNodes, edges: finalEdges } = getLayoutedElements(nodes, workflowEdges || []);
-    
+
     return { layoutedNodes: finalNodes, layoutedEdges: finalEdges };
   }, [workflowNodes, workflowEdges, selectedNodeId, onOpenTriggerModal, onReplaceTrigger, onOpenTriggerConfig, onDeleteNode]);
 
@@ -142,6 +144,17 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
   }, [layoutedEdges, setEdges]);
 
 
+  // console.log("The present nodes are : " , nodes);
+  // console.log("The present edges are : " , edges);
+
+
+  nodes.forEach((item, index) => {
+    console.log("The node index is : ", index);
+    console.log("The node data is the ", item)
+  })
+
+
+
   return (
     <div className="flex-1 h-full overflow-auto">
       <div style={{
@@ -154,22 +167,22 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
           onNodeClick={handleNodeClick}
           nodeTypes={nodeTypes as any}
           edgeTypes={edgeTypes as any}
-          defaultViewport={{ x: 500, y: 10, zoom: 1 }}
           minZoom={0.25}
           maxZoom={2}
           attributionPosition="bottom-left"
           proOptions={{ hideAttribution: true }}
-          fitView={false}
           panOnScroll={true}
           selectionOnDrag={false}
-          panOnDrag={[1, 2]}
+          panOnDrag={true}
           zoomOnScroll={true}
           zoomOnPinch={true}
           zoomOnDoubleClick={true}
           preventScrolling={false}
           deleteKeyCode={['Backspace', 'Delete']}
           multiSelectionKeyCode={['Meta', 'Ctrl']}
-          style={{ backgroundColor: '#f8fafc', width: '100%', height: '100%' }}
+          // style={{ backgroundColor: '#f8fafc', width: '100%', height: '100%' }}
+          defaultViewport={{ x: 500, y: 70, zoom: 1 }}
+
         >
           <Controls
             position="bottom-left"
@@ -196,6 +209,8 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
         </ReactFlow>
       </div>
     </div>
+
+  
   );
 };
 

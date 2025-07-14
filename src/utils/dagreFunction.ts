@@ -39,7 +39,7 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
     ranksep: isHorizontal ? 120 : 90, // INCREASED: Vertical spacing between ranks (this is key!)
     marginx: 10,
     marginy: 10,
-    acyclicer: "greedy",
+    // acyclicer: "greedy",
     ranker: "longest-path",
     // ranker: "network-simplex",
     // ranker: "tight-tree", // Use tight-tree for better hierarchical layout

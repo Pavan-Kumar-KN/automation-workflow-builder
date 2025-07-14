@@ -34,6 +34,7 @@ import {
   BookX,
   Zap,
   RefreshCw,
+  CalendarDays,
 } from 'lucide-react';
 import { NodeData } from './types';
 
@@ -216,7 +217,7 @@ export const categorizedActions: ActionCategory[] = [
         id: 'calendar-subcategory',
         name: 'Calendar',
         description: 'Calendar-related evaluations',
-        icon: 'CalendarDays', // Better icon for a calendar-based category
+        icon: CalendarDays, // Better icon for a calendar-based category
         actions: [
           {
             id: 'appointment-booked-action',
