@@ -24,8 +24,8 @@ export function calculateChildCounts(nodes, edges) {
 
 export const getLayoutedElements = (nodes, edges, direction = "TB") => {
   // Create a new dagre graph instance for each layout
-  const nodeWidth = 280;
-  const nodeHeight = 60;
+  const nodeWidth = 260;
+  const nodeHeight = 50;
 
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -37,10 +37,12 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
     rankdir: direction,
     nodesep: isHorizontal ? 150 : 110, // Horizontal spacing between nodes
     ranksep: isHorizontal ? 120 : 90, // INCREASED: Vertical spacing between ranks (this is key!)
-    marginx: 50,
-    marginy: 50,
+    marginx: 10,
+    marginy: 10,
     acyclicer: "greedy",
-    ranker: "network-simplex",
+    ranker: "longest-path",
+    // ranker: "network-simplex",
+    // ranker: "tight-tree", // Use tight-tree for better hierarchical layout
   });
 
   // Validate that all nodes and edges are valid
@@ -70,12 +72,6 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
   nodes.forEach((node) => {
     let width = node.width || nodeWidth;
     let height = node.height || nodeHeight;
-
-    // // Special handling for placeholder nodes to make them smaller
-    // if (node.type === 'placeholder') {
-    //   width = 120;
-    //   height = 80;
-    // }
 
     dagreGraph.setNode(node.id, {
       width,

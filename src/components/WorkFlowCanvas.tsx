@@ -20,7 +20,7 @@ import { TriggerNode } from './nodes/TriggerNode';
 import { ActionNode } from './nodes/ActionNode';
 import { NodeData } from '@/data/types';
 import EndNode from './nodes/EndNode';
-import { getLayoutedElements } from '@/utils/dagreFunction';
+import { getLayoutedElements, tightenConditionBranches } from '@/utils/dagreFunction';
 import ConditionEdge from './edges/ConditionEdge';
 import PlaceHolderNode from './canvas/PlaceHolderNode';
 
@@ -116,7 +116,7 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
 
     // Apply dagre layout to all nodes and edges
     const { nodes: finalNodes, edges: finalEdges } = getLayoutedElements(nodes, workflowEdges || []);
-
+    
     return { layoutedNodes: finalNodes, layoutedEdges: finalEdges };
   }, [workflowNodes, workflowEdges, selectedNodeId, onOpenTriggerModal, onReplaceTrigger, onOpenTriggerConfig, onDeleteNode]);
 

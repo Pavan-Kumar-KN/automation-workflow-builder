@@ -1184,7 +1184,7 @@ export const WorkflowBuilder = () => {
         }
 
       } else if (nextNode) {
-        // ➕ Add edge: new ➝ next
+        // // ➕ Add edge: new ➝ next
         newEdges.push({
           id: `edge-${nodeId}-${nextNode.id}`,
           source: nodeId,
