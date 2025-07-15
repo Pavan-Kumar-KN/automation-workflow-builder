@@ -144,8 +144,6 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
   }, [layoutedEdges, setEdges]);
 
 
-  // console.log("The present nodes are : " , nodes);
-  // console.log("The present edges are : " , edges);
 
 
   nodes.forEach((item, index) => {
