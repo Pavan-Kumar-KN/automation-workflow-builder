@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, Play, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { X, Play, CheckCircle, XCircle, Clock, AlertCircle, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface RunsPanelProps {
   isOpen: boolean;
@@ -114,6 +115,23 @@ const getLogLevelColor = (level: LogEntry['level']) => {
 
 export const RunsPanel: React.FC<RunsPanelProps> = ({ isOpen, onClose }) => {
   const [selectedRun, setSelectedRun] = React.useState<WorkflowRun | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  // Filter runs based on search query
+  const filteredRuns = mockRuns.filter(run => 
+    run.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    run.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    run.triggeredBy.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    run.startTime.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Filter logs based on search query
+  const filteredLogs = selectedRun?.logs.filter(log =>
+    log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.level.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (log.nodeName && log.nodeName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    log.timestamp.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   if (!isOpen) return null;
 
@@ -130,46 +148,65 @@ export const RunsPanel: React.FC<RunsPanelProps> = ({ isOpen, onClose }) => {
         </Button>
       </div>
 
+      {/* Search Bar */}
+      <div className="p-4 border-b border-gray-100">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={selectedRun ? "Search logs..." : "Search runs..."}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {!selectedRun ? (
           // Runs List
           <div className="h-full overflow-y-auto">
             <div className="p-4 space-y-3">
-              {mockRuns.map((run) => (
-                <div
-                  key={run.id}
-                  onClick={() => setSelectedRun(run)}
-                  className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(run.status)}
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(run.status)}`}>
-                        {run.status.charAt(0).toUpperCase() + run.status.slice(1)}
-                      </span>
-                    </div>
-                    <span className="text-xs text-gray-500">{run.id}</span>
-                  </div>
-                  
-                  <div className="text-sm space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Started:</span>
-                      <span className="font-medium">{run.startTime}</span>
-                    </div>
-                    {run.duration && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Duration:</span>
-                        <span className="font-medium">{run.duration}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Triggered by:</span>
-                      <span className="font-medium">{run.triggeredBy}</span>
-                    </div>
-                  </div>
+              {searchQuery && filteredRuns.length === 0 ? (
+                <div className="text-sm text-gray-500 p-4 text-center">
+                  No runs found for "{searchQuery}"
                 </div>
-              ))}
+              ) : (
+                filteredRuns.map((run) => (
+                  <div
+                    key={run.id}
+                    onClick={() => setSelectedRun(run)}
+                    className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(run.status)}
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(run.status)}`}>
+                          {run.status.charAt(0).toUpperCase() + run.status.slice(1)}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-500">{run.id}</span>
+                    </div>
+                    
+                    <div className="text-sm space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Started:</span>
+                        <span className="font-medium">{run.startTime}</span>
+                      </div>
+                      {run.duration && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Duration:</span>
+                          <span className="font-medium">{run.duration}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Triggered by:</span>
+                        <span className="font-medium">{run.triggeredBy}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         ) : (
@@ -203,20 +240,26 @@ export const RunsPanel: React.FC<RunsPanelProps> = ({ isOpen, onClose }) => {
             <div className="flex-1 overflow-y-auto p-4">
               <h3 className="text-sm font-medium mb-3">Execution Logs</h3>
               <div className="space-y-2">
-                {selectedRun.logs.map((log) => (
-                  <div key={log.id} className="p-2 bg-gray-50 rounded text-xs">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-gray-500">{log.timestamp}</span>
-                      <span className={`font-medium ${getLogLevelColor(log.level)}`}>
-                        {log.level.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="text-gray-800">{log.message}</div>
-                    {log.nodeName && (
-                      <div className="text-gray-500 mt-1">Node: {log.nodeName}</div>
-                    )}
+                {searchQuery && filteredLogs.length === 0 ? (
+                  <div className="text-sm text-gray-500 p-4 text-center">
+                    No logs found for "{searchQuery}"
                   </div>
-                ))}
+                ) : (
+                  (searchQuery ? filteredLogs : selectedRun.logs).map((log) => (
+                    <div key={log.id} className="p-2 bg-gray-50 rounded text-xs">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-gray-500">{log.timestamp}</span>
+                        <span className={`font-medium ${getLogLevelColor(log.level)}`}>
+                          {log.level.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="text-gray-800">{log.message}</div>
+                      {log.nodeName && (
+                        <div className="text-gray-500 mt-1">Node: {log.nodeName}</div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

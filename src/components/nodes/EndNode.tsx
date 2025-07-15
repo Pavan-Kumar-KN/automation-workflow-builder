@@ -14,14 +14,23 @@ interface EndNodeProps extends NodeProps {
   data: EndNodeData;
 }
 
-const EndNode: React.FC<EndNodeProps> = ({ data }) => {
+const EndNode: React.FC<EndNodeProps> = ({
+  data,
+  targetPosition = Position.Top
+}) => {
   return (
     <div className="flex flex-col items-center relative w-[280px] h-[56px]">
       <Handle
         type="target"
-        position={Position.Top}
-        className="w-3  border-2 border-white"
-        style={{ left: '50%', bottom: '-12px' , visibility: 'hidden' }}
+        position={targetPosition}
+        className="w-3 border-2 border-white"
+        style={{
+          left: targetPosition === Position.Top || targetPosition === Position.Bottom ? '50%' : undefined,
+          top: targetPosition === Position.Left || targetPosition === Position.Right ? '70%' : undefined,
+          bottom: targetPosition === Position.Top ? '-12px' : undefined,
+          right: targetPosition === Position.Left ? '-12px' : undefined,
+          visibility: 'hidden'
+        }}
         id='in'
       />
 

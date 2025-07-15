@@ -8,6 +8,7 @@ interface WorkflowState {
   selectedNode: Node | null;
   workflowName: string;
   isActive: boolean;
+  layoutDirection: 'TB' | 'LR'; // Added layout direction
 
   // Nodes and edges
   nodes: Node[];
@@ -17,6 +18,7 @@ interface WorkflowState {
   setSelectedNode: (node: Node | null) => void;
   setWorkflowName: (name: string) => void;
   setIsActive: (active: boolean) => void;
+  setLayoutDirection: (direction: 'TB' | 'LR') => void; // Added setter
 
   // Actions for nodes and edges
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
@@ -42,6 +44,7 @@ export const useWorkflowStore = create<WorkflowState>()(
         selectedNode: null,
         workflowName: 'My workflow',
         isActive: false,
+        layoutDirection: 'TB', // Default to vertical layout
         nodes: [],
         edges: [],
 
@@ -49,6 +52,7 @@ export const useWorkflowStore = create<WorkflowState>()(
         setSelectedNode: (node) => set({ selectedNode: node }, false, 'setSelectedNode'),
         setWorkflowName: (name) => set({ workflowName: name }, false, 'setWorkflowName'),
         setIsActive: (active) => set({ isActive: active }, false, 'setIsActive'),
+        setLayoutDirection: (direction) => set({ layoutDirection: direction }, false, 'setLayoutDirection'),
 
         // Nodes and edges actions
         setNodes: (nodes) => set((state) => ({
@@ -107,6 +111,7 @@ export const useWorkflowStore = create<WorkflowState>()(
         partialize: (state) => ({
           workflowName: state.workflowName,
           isActive: state.isActive,
+          layoutDirection: state.layoutDirection, // Persist layout direction
           nodes: state.nodes,
           edges: state.edges,
         }),

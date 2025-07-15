@@ -14,7 +14,9 @@ export const ActionNode = ({
   id,
   data,
   isSelected = false,
-  onDelete
+  onDelete,
+  targetPosition = Position.Top,
+  sourcePosition = Position.Bottom
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const deleteHandler = onDelete || data.onDelete;
@@ -33,13 +35,18 @@ export const ActionNode = ({
   
 
 
-      {/* Top Handle */}
+      {/* Input Handle */}
       <Handle
         type="target"
-        position={Position.Top}
+        position={targetPosition}
         id="in"
         className="w-3 bg-white border-2 border-white"
-        style={{ left: '50%', bottom: '-12px' }}
+        style={{
+          left: targetPosition === Position.Top || targetPosition === Position.Bottom ? '50%' : undefined,
+          top: targetPosition === Position.Left || targetPosition === Position.Right ? '50%' : undefined,
+          bottom: targetPosition === Position.Top ? '-12px' : undefined,
+          right: targetPosition === Position.Left ? '-12px' : undefined
+        }}
       />
 
       {/* Node Box - ActivePieces Style */}
@@ -63,7 +70,7 @@ export const ActionNode = ({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm truncate">
-                  {data.label}
+                  {data.customLabel || data.label}
                 </h3>
                 {/* Warning icon positioned at the end of title */}
                 {data.showWarning && (
@@ -108,13 +115,18 @@ export const ActionNode = ({
       </div>
 
 
-      {/* Bottom Handle */}
+      {/* Output Handle */}
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={sourcePosition}
         id="out"
         className="w-3 bg-white border-2 border-white"
-        style={{ left: '50%', bottom: '-6px' }}
+        style={{
+          left: sourcePosition === Position.Top || sourcePosition === Position.Bottom ? '50%' : undefined,
+          top: sourcePosition === Position.Left || sourcePosition === Position.Right ? '50%' : undefined,
+          bottom: sourcePosition === Position.Bottom ? '-6px' : undefined,
+          right: sourcePosition === Position.Right ? '-6px' : undefined
+        }}
       />
     </div>
   );

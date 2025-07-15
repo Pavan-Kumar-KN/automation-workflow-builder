@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Upload, CheckCircle, AlertTriangle, Info, Globe, Lock, Users } from 'lucide-react';
+import { X, Upload, CheckCircle, AlertTriangle, Info, Globe, Lock, Users, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -86,6 +86,7 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
   });
 
   const [isPublishing, setIsPublishing] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   const handlePublish = async () => {
     setIsPublishing(true);
@@ -103,6 +104,12 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
   const hasErrors = mockValidationIssues.some(issue => issue.type === 'error');
   const hasWarnings = mockValidationIssues.some(issue => issue.type === 'warning');
 
+  // Filter validation issues based on search query
+  const filteredIssues = mockValidationIssues.filter(issue => 
+    issue.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (issue.nodeId && issue.nodeId.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -118,6 +125,19 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
         </Button>
       </div>
 
+      {/* Search Bar */}
+      <div className="p-4 border-b border-gray-100">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search validation issues..."
+            className="pl-10"
+          />
+        </div>
+      </div>
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Validation Status */}
@@ -131,17 +151,23 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
             </div>
           ) : (
             <div className="space-y-2">
-              {mockValidationIssues.map((issue, index) => (
-                <div key={index} className={`flex items-start gap-2 p-3 border rounded-lg ${getIssueColor(issue.type)}`}>
-                  {getIssueIcon(issue.type)}
-                  <div className="flex-1">
-                    <span className="text-sm">{issue.message}</span>
-                    {issue.nodeId && (
-                      <div className="text-xs mt-1 opacity-75">Node: {issue.nodeId}</div>
-                    )}
-                  </div>
+              {searchQuery && filteredIssues.length === 0 ? (
+                <div className="text-sm text-gray-500 p-3 text-center">
+                  No validation issues found for "{searchQuery}"
                 </div>
-              ))}
+              ) : (
+                (searchQuery ? filteredIssues : mockValidationIssues).map((issue, index) => (
+                  <div key={index} className={`flex items-start gap-2 p-3 border rounded-lg ${getIssueColor(issue.type)}`}>
+                    {getIssueIcon(issue.type)}
+                    <div className="flex-1">
+                      <span className="text-sm">{issue.message}</span>
+                      {issue.nodeId && (
+                        <div className="text-xs mt-1 opacity-75">Node: {issue.nodeId}</div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>

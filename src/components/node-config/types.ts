@@ -3,6 +3,7 @@ export interface NodeConfig {
   // Common fields
   id?: string;
   label?: string;
+  customLabel?: string;
   description?: string;
   webhookUrl?: string;
   enabled?: boolean;

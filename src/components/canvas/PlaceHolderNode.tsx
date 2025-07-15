@@ -7,61 +7,78 @@ interface PlaceHolderNodeProps {
   data: {
     branchType: string;
     conditionNodeId: string;
-    handleAddNodeToBranch: (branchType: string, placeholderNodeId: string) => void;
+    handleAddNodeToBranch: (branchType: string, placeholderNodeId: string, conditionNodeId: string) => void;
   };
   isSelected?: boolean;
+  targetPosition?: typeof Position.Top | typeof Position.Left | typeof Position.Right | typeof Position.Bottom;
+  sourcePosition?: typeof Position.Top | typeof Position.Left | typeof Position.Right | typeof Position.Bottom;
 }
 
-const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({ id, data, isSelected = false }) => {
+const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
+  id,
+  data,
+  isSelected = false,
+  targetPosition = Position.Top,
+  sourcePosition = Position.Bottom
+}) => {
+  // Simple icon styling - just use gray with blue hover
+  // const getIconColors = () => {
+  //   if (isSelected) {
+  //     return 'bg-blue-500 text-white';
+  //   }
+
+  //   return 'bg-gray-200 text-gray-500 hover:bg-blue-500 hover:text-white';
+  // };
+
   return (
     <div className="relative">
-      {/* Top Handle */}
+      {/* Input Handle */}
       <Handle
         type="target"
-        position={Position.Top}
+        position={targetPosition}
         id="in"
-        style={{ 
-          background: '#4CAF50', 
-          border: '2px solid #fff', 
-          visibility: 'hidden', 
-          top: '-12px' 
+        style={{
+          background: '#4CAF50',
+          border: '2px solid #fff',
+          visibility: 'hidden',
+          left: targetPosition === Position.Top || targetPosition === Position.Bottom ? '50%' : undefined,
+          top: targetPosition === Position.Left || targetPosition === Position.Right ? '50%' : undefined,
+          bottom: targetPosition === Position.Top ? '-12px' : undefined,
+          right: targetPosition === Position.Left ? '-12px' : undefined
         }}
       />
 
-      {/* Main Container */}
+      {/* Simple Plus Icon Only */}
       <div
         className={`
           flex items-center justify-center
-          w-[280px] h-6
-
+          bg-[#f8fafc]
+          w-[280px] h-10 
           cursor-pointer
           transition-all duration-200
+          hover:scale-110
+          active:scale-95
         `}
         onClick={() => data.handleAddNodeToBranch(data.branchType, id, data.conditionNodeId)}
       >
-      <div className='border'>
-          {/* Plus Icon */}
-        <LucideIcons.Plus 
-          className={`
-            w-12 h-8
-            transition-colors duration-200
-            ${isSelected
-              ? 'text-blue-600'
-              : 'text-gray-400 hover:text-blue-600'
-            }
-          `} 
-        />
-      </div>
+        <div className='flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 hover:bg-blue-500 hover:text-white'>
+        <LucideIcons.Plus className="w-5 h-5" />
+
+        </div>
       </div>
 
-      {/* Bottom Handle */}
+      {/* Output Handle */}
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={sourcePosition}
         id="out"
-        style={{ 
-          background: '#fff', 
-          border: '2px solid #fff' 
+        style={{
+          background: '#fff',
+          border: '2px solid #fff',
+          left: sourcePosition === Position.Top || sourcePosition === Position.Bottom ? '50%' : undefined,
+          top: sourcePosition === Position.Left || sourcePosition === Position.Right ? '50%' : undefined,
+          bottom: sourcePosition === Position.Bottom ? '-6px' : undefined,
+          right: sourcePosition === Position.Right ? '-6px' : undefined
         }}
       />
     </div>

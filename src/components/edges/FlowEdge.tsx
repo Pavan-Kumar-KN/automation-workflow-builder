@@ -1,31 +1,66 @@
 import React from 'react';
-import { EdgeLabelRenderer, EdgeProps } from '@xyflow/react';
+import { EdgeLabelRenderer } from '@xyflow/react';
 import { Plus } from 'lucide-react';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
 
-interface FlowEdgeData {
-  onOpenActionModal?: (index: number) => void;
-  index?: number;
+// Define the props type explicitly
+interface FlowEdgeProps {
+  id: string;
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  sourcePosition?: string;
+  targetPosition?: string;
+  style?: React.CSSProperties;
+  data?: {
+    onOpenActionModal?: (index: number) => void;
+    index?: number;
+  };
 }
 
-const FlowEdge: React.FC<EdgeProps<FlowEdgeData>> = ({
+const FlowEdge: React.FC<FlowEdgeProps> = ({
   sourceX,
   sourceY,
   targetX,
   targetY,
+  sourcePosition,
+  targetPosition,
   style = {},
   data,
   id,
 }) => {
-  const centerX = sourceX;
-  const centerY = (sourceY + targetY) / 2;
+  const { layoutDirection } = useWorkflowStore();
+  const isHorizontal = layoutDirection === 'LR';
 
-  const edgePath = `M ${sourceX},${sourceY} L ${sourceX},${targetY}`;
-  const arrowSize = 6;
-  const arrowPath = `M ${sourceX - arrowSize},${targetY - arrowSize} L ${sourceX},${targetY} L ${sourceX + arrowSize},${targetY - arrowSize}`;
+  // Calculate edge path and center point based on layout direction
+  let edgePath: string;
+  let centerX: number;
+  let centerY: number;
+  let arrowPath: string;
 
+  if (isHorizontal) {
+    // Horizontal layout (LR)
+    // Create a straight line from source to target
+    edgePath = `M ${sourceX},${sourceY} L ${targetX},${targetY}`;
 
-  console.log("The edge path is : ", data.index);
-  console.log("The Data is in the flow edge  : ", data);
+    // Center point for the plus button
+    centerX = (sourceX + targetX) / 2;
+    centerY = (sourceY + targetY) / 2;
+
+    // Horizontal arrow pointing right
+    const arrowSize = 6;
+    arrowPath = `M ${targetX - arrowSize},${targetY - arrowSize} L ${targetX},${targetY} L ${targetX - arrowSize},${targetY + arrowSize}`;
+  } else {
+    // Vertical layout (TB) - original implementation
+    edgePath = `M ${sourceX},${sourceY} L ${sourceX},${targetY}`;
+    centerX = sourceX;
+    centerY = (sourceY + targetY) / 2;
+
+    // Vertical arrow pointing down
+    const arrowSize = 6;
+    arrowPath = `M ${sourceX - arrowSize},${targetY - arrowSize} L ${sourceX},${targetY} L ${sourceX + arrowSize},${targetY - arrowSize}`;
+  }
 
   return (
     <>

@@ -19,7 +19,9 @@ import {
   Star,
   ChevronDown,
   Zap,
-  Badge
+  Badge,
+  ArrowDown,
+  ArrowRight
 } from 'lucide-react';
 import {
   DropdownMenu,

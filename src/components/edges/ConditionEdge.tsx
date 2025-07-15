@@ -1,56 +1,104 @@
 import React from 'react';
 import { EdgeLabelRenderer } from '@xyflow/react';
 import { Plus } from 'lucide-react';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
 
 interface ConditionEdgeData {
   onOpenActionModal?: (index: number) => void;
   index?: number;
 }
 
-const ConditionEdge = ({ 
-  id, 
-  sourceX, 
-  sourceY, 
-  targetX, 
-  targetY, 
-  label,
-  data
-}: {
+interface ConditionEdgeProps {
   id: string;
   sourceX: number;
   sourceY: number;
   targetX: number;
   targetY: number;
+  sourcePosition?: string;
+  targetPosition?: string;
   label?: string;
   data?: ConditionEdgeData;
+}
+
+const ConditionEdge: React.FC<ConditionEdgeProps> = ({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  label,
+  data
 }) => {
-  const curveRadius = 30;
-  const verticalDrop = 35;
-  const directionX = targetX > sourceX ? 1 : -1;
-  
-  const curveStartY = sourceY + verticalDrop;
-  const curveMidX = targetX - directionX * curveRadius;
-  const curveEndY = curveStartY + curveRadius;
-  
-  const path = `
-    M ${sourceX},${sourceY}
-    L ${sourceX},${curveStartY - curveRadius}
-    Q ${sourceX},${curveStartY} ${sourceX + directionX * curveRadius},${curveStartY}
-    L ${curveMidX},${curveStartY}
-    Q ${targetX},${curveStartY} ${targetX},${curveEndY}
-    L ${targetX},${targetY}
-  `;
-  
-  const labelX = (sourceX + targetX) / 2;
-  const labelY = curveStartY - 20;
-  
-  // Plus button position (at the middle of the curved section)
-  const plusX = labelX;
-  const plusY = curveStartY;
-  
-  // Create arrowhead path
-  const arrowSize = 5;
-  const arrowPath = `M ${targetX - arrowSize},${targetY - arrowSize} L ${targetX},${targetY} L ${targetX + arrowSize},${targetY - arrowSize}`;
+  const { layoutDirection } = useWorkflowStore();
+  const isHorizontal = layoutDirection === 'LR';
+
+  let path: string;
+  let labelX: number;
+  let labelY: number;
+  let plusX: number;
+  let plusY: number;
+  let arrowPath: string;
+
+  if (isHorizontal) {
+    // Horizontal layout (LR) - Simplified curved path
+    const curveRadius = 20;
+    const horizontalOffset = 40;
+    const directionY = targetY > sourceY ? 1 : -1;
+
+    const midX = sourceX + horizontalOffset;
+    const midY = (sourceY + targetY) / 2;
+
+    // Create a smoother curved path for horizontal layout
+    path = `
+      M ${sourceX},${sourceY}
+      L ${midX},${sourceY}
+      Q ${midX + curveRadius},${sourceY} ${midX + curveRadius},${midY}
+      Q ${midX + curveRadius},${targetY} ${midX + curveRadius * 2},${targetY}
+      L ${targetX},${targetY}
+    `;
+
+    labelX = midX + curveRadius;
+    labelY = midY - 15;
+
+    // Plus button position (at the middle of the curved section)
+    plusX = midX + curveRadius;
+    plusY = midY;
+
+    // Create arrowhead path for horizontal layout
+    const arrowSize = 5;
+    arrowPath = `M ${targetX - arrowSize},${targetY - arrowSize} L ${targetX},${targetY} L ${targetX - arrowSize},${targetY + arrowSize}`;
+  } else {
+    // Vertical layout (TB) - original implementation
+    const curveRadius = 30;
+    const verticalDrop = 35;
+    const directionX = targetX > sourceX ? 1 : -1;
+
+    const curveStartY = sourceY + verticalDrop;
+    const curveMidX = targetX - directionX * curveRadius;
+    const curveEndY = curveStartY + curveRadius;
+
+    path = `
+      M ${sourceX},${sourceY}
+      L ${sourceX},${curveStartY - curveRadius}
+      Q ${sourceX},${curveStartY} ${sourceX + directionX * curveRadius},${curveStartY}
+      L ${curveMidX},${curveStartY}
+      Q ${targetX},${curveStartY} ${targetX},${curveEndY}
+      L ${targetX},${targetY}
+    `;
+
+    labelX = (sourceX + targetX) / 2;
+    labelY = curveStartY - 20;
+
+    // Plus button position (at the middle of the curved section)
+    plusX = labelX;
+    plusY = curveStartY;
+
+    // Create arrowhead path for vertical layout
+    const arrowSize = 5;
+    arrowPath = `M ${targetX - arrowSize},${targetY - arrowSize} L ${targetX},${targetY} L ${targetX + arrowSize},${targetY - arrowSize}`;
+  }
   
   return (
     <>

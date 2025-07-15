@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, GitBranch, Download, Eye, Star, Clock, User } from 'lucide-react';
+import { X, GitBranch, Download, Eye, Star, Clock, User, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface VersionsPanelProps {
@@ -113,6 +113,7 @@ export const VersionsPanel: React.FC<VersionsPanelProps> = ({
   onLoadVersion 
 }) => {
   const [selectedVersion, setSelectedVersion] = React.useState<WorkflowVersion | null>(null);
+  const [searchTerm, setSearchTerm] = React.useState('');
 
   const handleLoadVersion = (versionId: string) => {
     if (onLoadVersion) {
@@ -120,6 +121,13 @@ export const VersionsPanel: React.FC<VersionsPanelProps> = ({
       onClose();
     }
   };
+
+  const filteredVersions = mockVersions.filter(version =>
+    version.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    version.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    version.version.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    version.createdBy.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (!isOpen) return null;
 
@@ -136,13 +144,27 @@ export const VersionsPanel: React.FC<VersionsPanelProps> = ({
         </Button>
       </div>
 
+      {/* Search Box */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search versions..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {!selectedVersion ? (
           // Versions List
           <div className="h-full overflow-y-auto">
             <div className="p-4 space-y-3">
-              {mockVersions.map((version) => (
+              {filteredVersions.map((version) => (
                 <div
                   key={version.id}
                   className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

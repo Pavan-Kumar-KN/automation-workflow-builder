@@ -12,7 +12,7 @@ import {
   ControlButton,
   useReactFlow
 } from '@xyflow/react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, ArrowDown, ArrowRight } from 'lucide-react';
 import '@xyflow/react/dist/style.css';
 import ConditionNode from './nodes/ConditionNode';
 import FlowEdge from './edges/FlowEdge';
@@ -24,6 +24,8 @@ import { GhostNode } from './nodes/GhostNode';
 import { getLayoutedElements } from '@/utils/dagreFunction';
 import ConditionEdge from './edges/ConditionEdge';
 import PlaceHolderNode from './canvas/PlaceHolderNode';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
+import { generateNodesAndEdges } from '@/utils/helpers/generateActions';
 
 interface SimpleWorkflowCanvasProps {
   nodes: Node[];
@@ -70,7 +72,8 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
   onOpenTriggerConfig,
 
 }) => {
-  const { fitView, zoomIn, zoomOut, setCenter } = useReactFlow();
+  const { fitView, setCenter } = useReactFlow();
+  const { layoutDirection, setLayoutDirection } = useWorkflowStore(); // Get layout direction and setter from store
 
   // Custom reset function - Reset view position and zoom only
   const handleReset = useCallback(() => {
@@ -78,8 +81,8 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
     setCenter(500, 100, { zoom: 1 });
     // Also trigger fit view to properly position all nodes
     setTimeout(() => {
-      fitView({ padding: 0.1, duration: 500 });
-    }, 100);
+      fitView({ padding: 0.1, duration: 50 });
+    }, 50);
   }, [setCenter, fitView]);
 
   // Convert workflow nodes to React Flow format and apply layout
@@ -116,11 +119,11 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
       };
     });
 
-    // Apply dagre layout to all nodes and edges
-    const { nodes: finalNodes, edges: finalEdges } = getLayoutedElements(nodes, workflowEdges || []);
+    // Apply dagre layout to all nodes and edges with layout direction
+    const { nodes: finalNodes, edges: finalEdges } = getLayoutedElements(nodes, workflowEdges || [], layoutDirection);
 
     return { layoutedNodes: finalNodes, layoutedEdges: finalEdges };
-  }, [workflowNodes, workflowEdges, selectedNodeId, onOpenTriggerModal, onReplaceTrigger, onOpenTriggerConfig, onDeleteNode]);
+  }, [workflowNodes, workflowEdges, selectedNodeId, onOpenTriggerModal, onReplaceTrigger, onOpenTriggerConfig, onDeleteNode, layoutDirection]);
 
   const [nodes, setNodes] = useNodesState(layoutedNodes);
   const [edges, setEdges] = useEdgesState(layoutedEdges);
@@ -142,15 +145,6 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
   useEffect(() => {
     setEdges(layoutedEdges);
   }, [layoutedEdges, setEdges]);
-
-
-
-
-  nodes.forEach((item, index) => {
-    console.log("The node index is : ", index);
-    console.log("The node data is the ", item)
-  })
-
 
 
   return (
@@ -194,6 +188,29 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
               maxZoom: 2
             }}
           >
+            {/* Layout Direction Controls */}
+            <ControlButton
+              onClick={() => setLayoutDirection('TB')}
+              title="Vertical Layout"
+              style={{
+                backgroundColor: layoutDirection === 'TB' ? '#3b82f6' : 'white',
+                color: layoutDirection === 'TB' ? 'white' : '#374151'
+              }}
+            >
+              <ArrowDown size={16} />
+            </ControlButton>
+            <ControlButton
+              onClick={() => setLayoutDirection('LR')}
+              title="Horizontal Layout"
+              style={{
+                backgroundColor: layoutDirection === 'LR' ? '#3b82f6' : 'white',
+                color: layoutDirection === 'LR' ? 'white' : '#374151'
+              }}
+            >
+              <ArrowRight size={16} />
+            </ControlButton>
+
+            {/* Reset Control */}
             <ControlButton onClick={handleReset} title="Reset View Position & Zoom">
               <RotateCcw size={16} />
             </ControlButton>
@@ -208,7 +225,7 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
       </div>
     </div>
 
-  
+
   );
 };
 
@@ -220,3 +237,4 @@ export const WorkFlowCanvas: React.FC<SimpleWorkflowCanvasProps> = (props) => {
     </ReactFlowProvider>
   );
 };
+

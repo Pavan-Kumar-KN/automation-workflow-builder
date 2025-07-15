@@ -1,4 +1,5 @@
 import dagre from "@dagrejs/dagre";
+import { Position } from "@xyflow/react";
 
 // Simplified function to calculate child counts for edge width
 export function calculateChildCounts(nodes, edges) {
@@ -124,16 +125,18 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
 
     return {
       ...node,
-      targetPosition: isHorizontal ? "left" : "top",
-      sourcePosition: isHorizontal ? "right" : "bottom",
+      targetPosition: isHorizontal ? Position.Left : Position.Top,
+      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
       position: finalPosition,
     };
   });
 
-  // Update edges with consistent styling
+  // Update edges with consistent styling and handle positions
   const newEdges = validEdges.map((edge) => {
     return {
       ...edge,
+      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+      targetPosition: isHorizontal ? Position.Left : Position.Top,
       style: {
         ...edge.style,
         // strokeWidth: 2, // Consistent width

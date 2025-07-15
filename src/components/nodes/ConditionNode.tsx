@@ -42,7 +42,13 @@ interface ConditionNodeProps {
 }
 
 // ConditionNode Component
-const ConditionNode = ({ id, data, isSelected = false }) => {
+const ConditionNode = ({
+  id,
+  data,
+  isSelected = false,
+  targetPosition = Position.Top,
+  sourcePosition = Position.Bottom
+}) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const IconComponent = React.useMemo(() => {
@@ -56,13 +62,18 @@ const ConditionNode = ({ id, data, isSelected = false }) => {
 
   return (
     <div className="relative">
-      {/* Top Handle */}
+      {/* Input Handle */}
       <Handle
         type="target"
-        position={Position.Top}
+        position={targetPosition}
         id="in"
         className="w-3 bg-white border-2 border-white"
-        style={{ left: '50%', bottom: '-12px' }}
+        style={{
+          left: targetPosition === Position.Top || targetPosition === Position.Bottom ? '50%' : undefined,
+          top: targetPosition === Position.Left || targetPosition === Position.Right ? '50%' : undefined,
+          bottom: targetPosition === Position.Top ? '-12px' : undefined,
+          right: targetPosition === Position.Left ? '-12px' : undefined
+        }}
       />
 
       {/* Node Box - ActivePieces Style */}
@@ -89,7 +100,7 @@ const ConditionNode = ({ id, data, isSelected = false }) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm truncate">
-                  {data.label}
+                  {data.customLabel || data.label}
                 </h3>
                 {/* Warning icon positioned at the end of title */}
                 {data.showWarning && (
@@ -151,20 +162,30 @@ const ConditionNode = ({ id, data, isSelected = false }) => {
         </div>
       </div>
 
-      {/* Bottom Handles for Yes/No branches */}
+      {/* Output Handles for Yes/No branches */}
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={sourcePosition}
         id="yes"
         className="w-3 bg-white border-2 border-white"
-        style={{ left: '50%', bottom: '-6px' }}
+        style={{
+          left: sourcePosition === Position.Bottom ? '50%' : undefined,
+          top: sourcePosition === Position.Right ? '50%' : undefined,
+          bottom: sourcePosition === Position.Bottom ? '-6px' : undefined,
+          right: sourcePosition === Position.Right ? '-6px' : undefined
+        }}
       />
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={sourcePosition}
         id="no"
         className="w-3 bg-white border-2 border-white"
-        style={{ left: '50%', bottom: '-6px' }}
+        style={{
+          left: sourcePosition === Position.Bottom ? '50%' : undefined,
+          top: sourcePosition === Position.Right ? '50%' : undefined,
+          bottom: sourcePosition === Position.Bottom ? '-6px' : undefined,
+          right: sourcePosition === Position.Right ? '-6px' : undefined
+        }}
       />
     </div>
   );
