@@ -1,9 +1,5 @@
 export const getSubTree = (startNodeId, nodes, edges) => {
 
-    console.log("node from the subtree function", nodes);
-
-    console.log("the edges are " , edges);
-
     // this will tract which node has to be yet visited
     let visited = new Set();
 
@@ -24,16 +20,23 @@ export const getSubTree = (startNodeId, nodes, edges) => {
         // Get the current node form id that is returned by queue
         let currNode = nodes.find((node) => node.id === currNodeId);
 
-        if (currNode) {
+        // Skip end nodes (virtual-end, end, etc.)
+        if (currNode && !currNode.id.includes('end') && currNode.type !== 'end') {
             subNode.push(currNode);
         }
 
+        // Get all outgoing edges from current node
         let outgoingEdges = edges.filter((edge) => edge.source === currNodeId);
 
+    
+        // push the target nodes to the queue if it's not present on the visited set
         outgoingEdges.forEach(edge => {
-            subEdge.push(edge);
-            if (!visited.has(edge.target)) {
-                queue.push(edge.target);
+            // Skip edges that connect to end nodes
+            if (!edge.target.includes('end')) {
+                subEdge.push(edge);
+                if (!visited.has(edge.target)) {
+                    queue.push(edge.target);
+                }
             }
         });
 

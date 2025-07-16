@@ -21,8 +21,12 @@ import {
   Zap,
   Badge,
   ArrowDown,
-  ArrowRight
+  ArrowRight,
+  Copy,
+  X
 } from 'lucide-react';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
+import { useCopyPaste } from '@/hooks/useCopyPaste';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +62,10 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
 }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [lastSaved, setLastSaved] = useState(new Date());
+
+  // Copy state management
+  const { isCopy, copiedNodes } = useWorkflowStore();
+  const { clearCopyState } = useCopyPaste();
 
   const handleSave = () => {
     onSave();
@@ -139,6 +147,24 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Copy State Indicator */}
+        {isCopy && (
+          <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <Copy className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-medium text-blue-700">
+              {copiedNodes.length} node{copiedNodes.length !== 1 ? 's' : ''} copied
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearCopyState}
+              className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
 
         {/* Right Section - Actions */}
         <div className="flex items-center space-x-2">

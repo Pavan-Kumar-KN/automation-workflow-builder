@@ -8,6 +8,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import FlowEdge from '../edges/FlowEdge';
+import { useCopyPaste } from '@/hooks/useCopyPaste';
+import { useCutPaste } from '@/hooks/useCutPaste';
 
 // ActionNode Component
 export const ActionNode = ({
@@ -20,6 +22,8 @@ export const ActionNode = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const deleteHandler = onDelete || data.onDelete;
+  const { copyNode, copyFlowFromNode } = useCopyPaste();
+  const { cutNode, cutFlowFromNode } = useCutPaste();
 
   const IconComponent = React.useMemo(() => {
     if (!data.icon) return LucideIcons.Phone;
@@ -32,7 +36,7 @@ export const ActionNode = ({
 
   return (
     <div className="relative flex flex-col items-center w-full mt-1">
-  
+
 
 
       {/* Input Handle */}
@@ -92,7 +96,113 @@ export const ActionNode = ({
                     <LucideIcons.ChevronDown className="w-4 h-4" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent
+                  align="start"
+                  side="right"
+                  sideOffset={30}
+                  className="w-56 bg-white border border-gray-200 rounded-lg shadow-lg p-1"
+                >
+
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        copyNode(id);
+                      } catch (err) {
+                        console.error('Copy error:', err);
+                      }
+                    }}
+                    className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
+                  >
+                    <LucideIcons.Copy className="w-4 h-4 mr-3" />
+                    <span className="font-medium">Copy Action</span>
+                  </DropdownMenuItem>
+
+
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        copyFlowFromNode(id);
+                      } catch (err) {
+                        console.error('Copy error:', err);
+                      }
+                    }}
+                    className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
+                  >
+                    <LucideIcons.GitBranch className="w-4 h-4 mr-3" />
+                    <span className="font-medium">Copy Flow From Here</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        cutNode(id);
+                      } catch (err) {
+                        console.error('Cut error:', err);
+                      }
+                    }}
+                    className="flex items-center px-3 py-2 text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-md cursor-pointer transition-colors"
+                  >
+                    <LucideIcons.Scissors className="w-4 h-4 mr-3" />
+                    <span className="font-medium">Cut Action</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        cutFlowFromNode(id);
+                      } catch (err) {
+                        console.error('Cut error:', err);
+                      }
+                    }}
+                    className="flex items-center px-3 py-2 text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-md cursor-pointer transition-colors"
+                  >
+                    <LucideIcons.Move className="w-4 h-4 mr-3" />
+                    <span className="font-medium">Cut Flow From Here</span>
+                  </DropdownMenuItem>
+
+
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        // TODO: Implement clone flow functionality
+                        console.log('Clone flow from node:', id);
+                      } catch (err) {
+                        console.error('Clone error:', err);
+                      }
+                    }}
+                    className="flex items-center px-3 py-2 text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-md cursor-pointer transition-colors"
+                  >
+                    <LucideIcons.GitBranch className="w-4 h-4 mr-3" />
+                    <span className="font-medium">Clone Flow</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        // TODO: Implement duplicate node functionality
+                        console.log('Duplicate node:', id);
+                        if (data.onDuplicate) {
+                          data.onDuplicate(id);
+                        }
+                      } catch (err) {
+                        console.error('Duplicate error:', err);
+                      }
+                    }}
+                    className="flex items-center px-3 py-2 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md cursor-pointer transition-colors"
+                  >
+                    <LucideIcons.Copy className="w-4 h-4 mr-3" />
+                    <span className="font-medium">Duplicate Node</span>
+                  </DropdownMenuItem>
+
+                  {/* Divider */}
+                  <div className="h-px bg-gray-200 my-1 mx-2"></div>
+
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
@@ -102,11 +212,12 @@ export const ActionNode = ({
                         console.error('Delete error:', err);
                       }
                     }}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="flex items-center px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md cursor-pointer transition-colors"
                   >
-                    <LucideIcons.Trash2 className="w-4 h-4 mr-2" />
-                    Delete Action
+                    <LucideIcons.Trash2 className="w-4 h-4 mr-3" />
+                    <span className="font-medium">Delete Action</span>
                   </DropdownMenuItem>
+
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

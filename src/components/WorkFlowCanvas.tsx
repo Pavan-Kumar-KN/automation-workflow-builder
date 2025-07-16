@@ -37,6 +37,7 @@ interface SimpleWorkflowCanvasProps {
   onOpenActionModal: (insertIndex?: number) => void;
   onInsertNode?: (afterNodeIndex: number, nodeType: string, nodeData: NodeData) => void;
   onDeleteNode?: (nodeId: string | number) => void;
+  onDuplicateNode?: (nodeId: string) => void;
   onReplaceTrigger?: () => void;
   onOpenTriggerConfig?: (node: Node) => void;
 
@@ -68,6 +69,7 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
   onNodeClick,
   onOpenTriggerModal,
   onDeleteNode,
+  onDuplicateNode,
   onReplaceTrigger,
   onOpenTriggerConfig,
 
@@ -114,6 +116,7 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
           onOpenConfig: node.type === 'trigger' ? onOpenTriggerConfig : undefined,
           // Use the unified delete function for all nodes
           onDelete: onDeleteNode ? () => onDeleteNode(node.id) : undefined,
+          onDuplicate: onDuplicateNode ? () => onDuplicateNode(node.id) : undefined,
         },
         selected: node.id === selectedNodeId,
       };
@@ -123,7 +126,7 @@ const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
     const { nodes: finalNodes, edges: finalEdges } = getLayoutedElements(nodes, workflowEdges || [], layoutDirection);
 
     return { layoutedNodes: finalNodes, layoutedEdges: finalEdges };
-  }, [workflowNodes, workflowEdges, selectedNodeId, onOpenTriggerModal, onReplaceTrigger, onOpenTriggerConfig, onDeleteNode, layoutDirection]);
+  }, [workflowNodes, workflowEdges, selectedNodeId, onOpenTriggerModal, onReplaceTrigger, onOpenTriggerConfig, onDeleteNode, onDuplicateNode, layoutDirection]);
 
   const [nodes, setNodes] = useNodesState(layoutedNodes);
   const [edges, setEdges] = useEdgesState(layoutedEdges);

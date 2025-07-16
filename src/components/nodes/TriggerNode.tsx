@@ -121,17 +121,22 @@ export const TriggerNode = ({
                     <LucideIcons.ChevronDown className="w-4 h-4" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent
+                  align="start"
+                  side="right"
+                  sideOffset={30}
+                  className="w-56 bg-white border border-gray-200 rounded-lg shadow-lg p-1"
+                >
                   {onReplaceTrigger && (
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
                         onReplaceTrigger();
                       }}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
                     >
-                      <LucideIcons.RefreshCw className="w-4 h-4 mr-2" />
-                      Replace Trigger
+                      <LucideIcons.RefreshCw className="w-4 h-4 mr-3" />
+                      <span className="font-medium">Replace Trigger</span>
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>

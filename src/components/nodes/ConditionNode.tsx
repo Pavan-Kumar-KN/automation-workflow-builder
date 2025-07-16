@@ -8,6 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useCopyPaste } from '@/hooks/useCopyPaste';
+import { useCutPaste } from '@/hooks/useCutPaste';
 
 interface Branch {
   label: string;
@@ -37,6 +39,7 @@ interface ConditionNodeProps {
     // New props for replace and delete functionality
     onReplace?: (conditionId: string) => void;
     onDelete?: (conditionId: string) => void;
+    onDuplicate?: (conditionId: string) => void;
   };
   isSelected?: boolean;
 }
@@ -50,6 +53,8 @@ const ConditionNode = ({
   sourcePosition = Position.Bottom
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { copyNode, copyFlowFromNode } = useCopyPaste();
+  const { cutNode, cutFlowFromNode } = useCutPaste();
 
   const IconComponent = React.useMemo(() => {
     if (!data.icon) return LucideIcons.GitBranch;
@@ -78,11 +83,10 @@ const ConditionNode = ({
 
       {/* Node Box - ActivePieces Style */}
       <div
-        className={`relative bg-white rounded-xl border-2 px-4 py-3 w-[280px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer ${
-          isSelected
-            ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
-            : 'border-gray-200 hover:border-gray-300'
-        }`}
+        className={`relative bg-white rounded-xl border-2 px-4 py-3 w-[280px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer ${isSelected
+          ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
+          : 'border-gray-200 hover:border-gray-300'
+          }`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -122,7 +126,94 @@ const ConditionNode = ({
                     <LucideIcons.ChevronDown className="w-4 h-4" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent
+                  align="start"
+                  side="right"
+                  sideOffset={30}
+                  className="w-56 bg-white border border-gray-200 rounded-lg shadow-lg p-1"
+                >
+
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        copyNode(id);
+                      } catch (err) {
+                        console.error('Copy error:', err);
+                      }
+                    }}
+                    className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
+                  >
+                    <LucideIcons.Copy className="w-4 h-4 mr-3" />
+                    <span className="font-medium">Copy Condition</span>
+                  </DropdownMenuItem>
+
+
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        copyFlowFromNode(id);
+                      } catch (err) {
+                        console.error('Copy error:', err);
+                      }
+                    }}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    <LucideIcons.GitBranch className="w-4 h-4 mr-2" />
+                    Copy the flow from this node
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        cutNode(id);
+                      } catch (err) {
+                        console.error('Cut error:', err);
+                      }
+                    }}
+                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                  >
+                    <LucideIcons.Scissors className="w-4 h-4 mr-2" />
+                    Cut Condition
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        cutFlowFromNode(id);
+                      } catch (err) {
+                        console.error('Cut error:', err);
+                      }
+                    }}
+                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                  >
+                    <LucideIcons.Move className="w-4 h-4 mr-2" />
+                    Cut the flow from this node
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        if (data.onDuplicate) {
+                          data.onDuplicate(id);
+                        }
+                      } catch (err) {
+                        console.error('Duplicate error:', err);
+                      }
+                    }}
+                    className="flex items-center px-3 py-2 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md cursor-pointer transition-colors"
+                  >
+                    <LucideIcons.Copy className="w-4 h-4 mr-3" />
+                    <span className="font-medium">Duplicate</span>
+                  </DropdownMenuItem>
+
+                  {/* Divider */}
+                  <div className="h-px bg-gray-200 my-1 mx-2"></div>
+
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();

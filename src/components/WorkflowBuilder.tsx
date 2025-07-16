@@ -7,12 +7,15 @@ import { NodeConfigPanel } from './node-config/NodeConfigPanel';
 import { WorkflowHeader } from './WorkflowHeader';
 import { TriggerCategoryModal } from './TriggerCategoryModal';
 import { ActionCategoryModal } from './ActionCategoryModal';
+import { BranchSelectionModal } from './modals/BranchSelectionModal';
 import { RunsPanel } from './panels/RunsPanel';
 import { VersionsPanel } from './panels/VersionsPanel';
 import { PublishPanel } from './panels/PublishPanel';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useWorkflowActions } from '@/hooks/useWorkflowActions';
 import { useWorkflowJSON } from '@/hooks/useWorkflowJSON';
+import { useCopyPaste } from '@/hooks/useCopyPaste';
+import { useCutPaste } from '@/hooks/useCutPaste';
 import { NodeData } from '@/data/nodeData';
 import { toast } from 'sonner';
 import { WorkFlowCanvas } from './WorkFlowCanvas';
@@ -76,6 +79,15 @@ export const WorkflowBuilder = () => {
   const [showTriggerModal, setShowTriggerModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionInsertIndex, setActionInsertIndex] = useState<number | null>(null);
+
+  // Branch selection modal state for conditional copy-paste
+  const [showBranchSelectionModal, setShowBranchSelectionModal] = useState(false);
+  const [pendingConditionalPaste, setPendingConditionalPaste] = useState<{
+    insertIndex: number;
+    aboveNodeId: string;
+    belowNodeId: string;
+    downstreamNodeCount: number;
+  } | null>(null);
   // Removed isReplacementMode - simplified approach
 
   // Panel states - only one panel can be open at a time
@@ -113,6 +125,37 @@ export const WorkflowBuilder = () => {
     setShowActionModal(true);
   }, []);
 
+  // Handle conditional paste request
+  const handleConditionalPasteRequest = useCallback((insertIndex: number, aboveNodeId: string, belowNodeId: string, downstreamCount: number) => {
+    setPendingConditionalPaste({
+      insertIndex,
+      aboveNodeId,
+      belowNodeId,
+      downstreamNodeCount: downstreamCount
+    });
+    setShowBranchSelectionModal(true);
+  }, []);
+
+  // Initialize copy-paste functionality with openActionModal and conditional paste callback
+  const { clearCopyState, isCopy, pasteConditionalFlow } = useCopyPaste(openActionModal, handleConditionalPasteRequest);
+
+  // Initialize cut-paste functionality
+  const { clearCutState, isCut } = useCutPaste(openActionModal);
+
+  // Handle branch selection for conditional paste
+  const handleBranchSelection = useCallback((selectedBranch: 'yes' | 'no') => {
+    if (pendingConditionalPaste) {
+      pasteConditionalFlow(
+        pendingConditionalPaste.insertIndex,
+        pendingConditionalPaste.aboveNodeId,
+        pendingConditionalPaste.belowNodeId,
+        selectedBranch
+      );
+      setPendingConditionalPaste(null);
+    }
+    setShowBranchSelectionModal(false);
+  }, [pendingConditionalPaste, pasteConditionalFlow]);
+
   const handleNodeDeletion = useCallback((nodeId: string | number) => {
     const nodeIdStr = String(nodeId);
 
@@ -136,7 +179,15 @@ export const WorkflowBuilder = () => {
 
       if (incomingEdge && outgoingEdge) {
         // Find the index of the source node for proper insertion
-        const sourceNodeIndex = nodes.findIndex(n => n.id === incomingEdge.source);
+        const filteredNodes = nodes.filter(node => node.id !== nodeIdStr);
+        const sourceNodeIndex = filteredNodes.findIndex(n => n.id === incomingEdge.source);
+
+        console.log('🔍 Reconnecting after deletion:', {
+          source: incomingEdge.source,
+          target: outgoingEdge.target,
+          sourceNodeIndex,
+          totalNodes: filteredNodes.length
+        });
 
         newEdges.push({
           id: `edge-${incomingEdge.source}-${outgoingEdge.target}`,
@@ -148,7 +199,7 @@ export const WorkflowBuilder = () => {
               console.log('🔍 Plus button clicked after deletion, insertIndex:', insertIndex);
               openActionModal(insertIndex);
             },
-            index: sourceNodeIndex, // ✅ Add the missing index
+            index: sourceNodeIndex, // Use the index in the filtered nodes array
           },
         });
       }
@@ -339,6 +390,7 @@ export const WorkflowBuilder = () => {
           console.log('🔍 Deleting regular node from handleNodeSelection');
           handleNodeDeletion(newNodeId);
         },
+        onDuplicate: () => handleNodeDuplication(newNodeId),
       },
     };
 
@@ -833,6 +885,14 @@ export const WorkflowBuilder = () => {
 
 
   const handleNodeInsertion = useCallback((afterNodeIndex: number, nodeType: string, nodeData: NodeData) => {
+    console.log('🔍 handleNodeInsertion called:', {
+      afterNodeIndex,
+      nodeType,
+      nodeData: nodeData.label,
+      currentNodesCount: nodes.length,
+      currentNodes: nodes.map(n => `${n.id} (${n.type})`)
+    });
+
     const isConditionNode = nodeType === 'condition' || nodeData.type === 'condition';
     const actualNodeType = isConditionNode ? 'condition' : nodeType;
     const actualNodeData = isConditionNode
@@ -855,6 +915,7 @@ export const WorkflowBuilder = () => {
         openTriggerModal: actualNodeType === 'trigger' ? () => setShowTriggerModal(true) : undefined,
         isConfigured: false,
         onDelete: isConditionNode ? () => handleConditionNodeDeletion(nodeId) : () => handleNodeDeletion(nodeId),
+        onDuplicate: () => handleNodeDuplication(nodeId),
         // Store the placeholder IDs for consistent edge creation
         ...(isConditionNode && {
           yesPlaceholderId: yesId,
@@ -1043,7 +1104,9 @@ export const WorkflowBuilder = () => {
             });
           }
 
-          // Note: Ghost node logic removed as requested - not needed for main flow insertion
+          // ✅ Do NOT create ghost nodes for conditional branches
+          // Conditional nodes should only connect to placeholders or existing nodes
+          // Ghost nodes are only for regular action nodes
 
         } else if (nextNode) {
           // // ➕ Add edge: new ➝ next
@@ -1210,6 +1273,207 @@ export const WorkflowBuilder = () => {
     console.log('🔍 Detected regular node deletion:', nodeIdStr);
     handleNodeDeletion(nodeIdStr);
   }, [nodes, edges, handleConditionBranchNodeDeletion, handleConditionNodeDeletion, handleNodeDeletion]);
+
+  // Handle node duplication - creates a copy of the node below the original
+  const handleNodeDuplication = useCallback((nodeId: string) => {
+    console.log('🔍 Duplicating node:', nodeId);
+
+    const originalNode = nodes.find(n => n.id === nodeId);
+    if (!originalNode) {
+      console.error('Original node not found:', nodeId);
+      return;
+    }
+
+    // Generate new ID for the duplicate
+    const timestamp = Date.now();
+    const duplicateId = `${originalNode.type}-${timestamp}`;
+
+    // Special handling for condition nodes - duplicate goes to Yes branch
+    if (originalNode.type === 'condition') {
+      console.log('🔍 Duplicating condition node to Yes branch');
+
+      // Find the Yes placeholder for this condition
+      const yesPlaceholder = nodes.find(n =>
+        n.type === 'placeholder' &&
+        n.data?.branchType === 'yes' &&
+        n.data?.conditionNodeId === nodeId
+      );
+
+      if (yesPlaceholder) {
+        // Create new placeholders for the duplicated condition
+        const newYesId = `placeholder-yes-${timestamp}`;
+        const newNoId = `placeholder-no-${timestamp}`;
+
+        // Create the duplicate condition in the Yes branch
+        const duplicateCondition: Node = {
+          id: duplicateId,
+          type: 'condition',
+          position: { x: 0, y: 0 },
+          data: {
+            ...originalNode.data,
+            isConfigured: false,
+            branchType: 'yes',
+            conditionNodeId: nodeId,
+            // Store placeholder IDs for consistent edge creation
+            yesPlaceholderId: newYesId,
+            noPlaceholderId: newNoId,
+            onDelete: () => handleConditionBranchNodeDeletion(duplicateId, nodeId, 'yes'),
+            onDuplicate: () => handleNodeDuplication(duplicateId),
+          },
+        };
+
+        const newYesPlaceholder: Node = {
+          id: newYesId,
+          type: 'placeholder',
+          position: { x: 0, y: 0 },
+          width: nodeWidth,
+          height: nodeWidth,
+          data: {
+            label: 'Add Action',
+            branchType: 'yes',
+            conditionNodeId: duplicateId,
+            handleAddNodeToBranch,
+          },
+        };
+
+        const newNoPlaceholder: Node = {
+          id: newNoId,
+          type: 'placeholder',
+          position: { x: 0, y: 0 },
+          width: nodeWidth,
+          height: nodeWidth,
+          data: {
+            label: 'Add Action',
+            branchType: 'no',
+            conditionNodeId: duplicateId,
+            handleAddNodeToBranch,
+          },
+        };
+
+        // Update nodes - replace Yes placeholder with duplicate condition and add new placeholders
+        setNodes((nds) => {
+          const filteredNodes = nds.filter(n => n.id !== yesPlaceholder.id);
+          return [...filteredNodes, duplicateCondition, newYesPlaceholder, newNoPlaceholder];
+        });
+
+        // Update edges
+        setEdges((eds) => {
+          let newEdges = [...eds];
+
+          // Remove edge to old Yes placeholder
+          newEdges = newEdges.filter(edge => edge.target !== yesPlaceholder.id);
+
+          // Add edge from original condition to duplicate condition (Yes branch)
+          newEdges.push({
+            id: `edge-${nodeId}-yes`,
+            source: nodeId,
+            sourceHandle: 'yes',
+            target: duplicateId,
+            type: 'condition',
+            label: 'Yes',
+            data: { branchType: 'yes' },
+          });
+
+          // Add edges from duplicate condition to its placeholders
+          newEdges.push({
+            id: `edge-${duplicateId}-yes`,
+            source: duplicateId,
+            sourceHandle: 'yes',
+            target: newYesId,
+            type: 'condition',
+            label: 'Yes',
+            data: { branchType: 'yes' },
+          });
+
+          newEdges.push({
+            id: `edge-${duplicateId}-no`,
+            source: duplicateId,
+            sourceHandle: 'no',
+            target: newNoId,
+            type: 'condition',
+            label: 'No',
+            data: { branchType: 'no' },
+          });
+
+          return newEdges;
+        });
+
+        toast.success('Condition duplicated to Yes branch!');
+        return;
+      }
+    }
+
+    // Regular node duplication logic (for action nodes)
+    const duplicateNode: Node = {
+      id: duplicateId,
+      type: originalNode.type,
+      position: { x: 0, y: 0 }, // Let dagre handle positioning
+      data: {
+        ...originalNode.data,
+        isConfigured: false, // Reset configuration state
+        onDelete: originalNode.type === 'condition'
+          ? () => handleConditionNodeDeletion(duplicateId)
+          : () => handleNodeDeletion(duplicateId),
+        onDuplicate: () => handleNodeDuplication(duplicateId), // Add duplicate handler to new node
+      },
+    };
+
+    setNodes((nds) => {
+      // Find the original node index
+      const originalIndex = nds.findIndex(n => n.id === nodeId);
+      if (originalIndex === -1) return nds;
+
+      // Insert duplicate after the original node
+      const newNodes = [...nds];
+      newNodes.splice(originalIndex + 1, 0, duplicateNode);
+      return newNodes;
+    });
+
+    setEdges((eds) => {
+      // Find the outgoing edge from the original node
+      const outgoingEdge = eds.find(edge => edge.source === nodeId);
+
+      if (outgoingEdge) {
+        // Calculate the correct index for the duplicate node
+        const originalNodeIndex = nodes.findIndex(n => n.id === nodeId);
+        const duplicateIndex = originalNodeIndex + 1;
+
+        // Create new edge from original to duplicate with correct index
+        const originalToDuplicate = {
+          id: `edge-${nodeId}-${duplicateId}`,
+          source: nodeId,
+          target: duplicateId,
+          type: 'flowEdge',
+          animated: false,
+          data: {
+            onOpenActionModal: (insertIndex: number) => openActionModal(insertIndex),
+            index: duplicateIndex, // Use the correct index for the duplicate
+          },
+        };
+
+        // Update the outgoing edge to come from duplicate instead with incremented index
+        const duplicateToNext = {
+          ...outgoingEdge,
+          id: `edge-${duplicateId}-${outgoingEdge.target}`,
+          source: duplicateId,
+          data: {
+            ...outgoingEdge.data,
+            index: duplicateIndex + 1, // Increment index for the next edge
+          },
+        };
+
+        // Remove original outgoing edge and add new edges
+        const newEdges = eds.filter(edge => edge.id !== outgoingEdge.id);
+        newEdges.push(originalToDuplicate, duplicateToNext);
+
+        return newEdges;
+      }
+
+      return eds;
+    });
+
+    toast.success('Node duplicated successfully!');
+  }, [nodes, handleConditionNodeDeletion, handleNodeDeletion, openActionModal, setNodes, setEdges]);
 
 
   // Handle insertion logic when a node is inserted between existing nodes
@@ -1382,6 +1646,7 @@ export const WorkflowBuilder = () => {
               onDelete: isCondition
                 ? () => handleConditionNodeDeletion(newNodeId)
                 : () => handleConditionBranchNodeDeletion(newNodeId, conditionNodeId, branchType),
+              onDuplicate: () => handleNodeDuplication(newNodeId),
               // ✅ Store placeholder IDs for conditional nodes - determine targets upfront
               ...(isCondition && {
                 yesPlaceholderId: nextNode && nextNode.id !== 'virtual-end' ? nextNode.id : yesId,
@@ -1668,6 +1933,7 @@ export const WorkflowBuilder = () => {
             onDelete: isCondition
               ? () => handleConditionNodeDeletion(newNodeId)
               : undefined,
+            onDuplicate: () => handleNodeDuplication(newNodeId),
             // Store the placeholder IDs for edge creation
             ...(isCondition && {
               yesPlaceholderId: yesId,
@@ -2071,8 +2337,19 @@ export const WorkflowBuilder = () => {
     setEdges([initialEdge]);
   }, [setNodes, setEdges, openActionModal]);
 
+  // Add keyboard event listener for Escape key to clear copy state
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isCopy) {
+        clearCopyState();
+      }
+    };
 
-
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isCopy, clearCopyState]);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
@@ -2101,6 +2378,7 @@ export const WorkflowBuilder = () => {
             onOpenActionModal={openActionModal}
             onInsertNode={handleNodeInsertion}
             onDeleteNode={handleUnifiedNodeDeletion}
+            onDuplicateNode={handleNodeDuplication}
             onReplaceTrigger={handleReplaceTrigger}
             onOpenTriggerConfig={handleOpenTriggerConfig}
           />
@@ -2164,6 +2442,17 @@ export const WorkflowBuilder = () => {
           setActionInsertIndex(null);
         }}
         onSelectAction={handleActionSelection}
+      />
+
+      {/* Branch Selection Modal for Conditional Paste */}
+      <BranchSelectionModal
+        isOpen={showBranchSelectionModal}
+        onClose={() => {
+          setShowBranchSelectionModal(false);
+          setPendingConditionalPaste(null);
+        }}
+        onSelectBranch={handleBranchSelection}
+        downstreamNodeCount={pendingConditionalPaste?.downstreamNodeCount || 0}
       />
 
       {/* Slide-out Panels */}

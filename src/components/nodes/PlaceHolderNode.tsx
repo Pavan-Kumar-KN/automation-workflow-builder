@@ -21,14 +21,7 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
   targetPosition = Position.Top,
   sourcePosition = Position.Bottom
 }) => {
-  // Simple icon styling - just use gray with blue hover
-  // const getIconColors = () => {
-  //   if (isSelected) {
-  //     return 'bg-blue-500 text-white';
-  //   }
 
-  //   return 'bg-gray-200 text-gray-500 hover:bg-blue-500 hover:text-white';
-  // };
 
   return (
     <div className="relative">
@@ -61,10 +54,10 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
         `}
         onClick={() => data.handleAddNodeToBranch(data.branchType, id, data.conditionNodeId)}
       >
-        <div className='flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 hover:bg-blue-500 hover:text-white'>
-        <LucideIcons.Plus className="w-5 h-5" />
-
+        <div className="w-6 h-5 bg-gray-400 border border-gray-500 rounded-md flex items-center justify-center transition-colors shadow-sm">
+          <LucideIcons.Plus className="w-4 h-4 text-white stroke-[2.5]" />
         </div>
+
       </div>
 
       {/* Output Handle */}

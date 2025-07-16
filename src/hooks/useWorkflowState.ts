@@ -10,10 +10,15 @@ interface WorkflowState {
   isActive: boolean;
   layoutDirection: 'TB' | 'LR'; // Added layout direction
 
-  // These states are used to store the copied node and edges 
-  copiedNodes: [],
-  copiedEdges: [],
-  isCopy: false,
+  // These states are used to store the copied/cut node and edges
+  copiedNodes: Node[];
+  copiedEdges: Edge[];
+  isCopy: boolean;
+
+  // Cut and paste state
+  cutNodes: Node[];
+  cutEdges: Edge[];
+  isCut: boolean;
 
   // Nodes and edges
   nodes: Node[];
@@ -39,6 +44,15 @@ interface WorkflowState {
   setCopiedEdges: (edges: Edge[]) => void;
   setIsCopy: (isCopy: boolean) => void;
 
+  // Actions for the cut and paste functionality
+  setCutNodes: (nodes: Node[]) => void;
+  setCutEdges: (edges: Edge[]) => void;
+  setIsCut: (isCut: boolean) => void;
+
+  // Force reset copy/cut state
+  forceResetCopyState: () => void;
+  forceResetCutState: () => void;
+
 
 
   // Utility actions
@@ -62,6 +76,11 @@ export const useWorkflowStore = create<WorkflowState>()(
         copiedNodes: [],
         copiedEdges: [],
         isCopy: false,
+
+        // Cut and paste states
+        cutNodes: [],
+        cutEdges: [],
+        isCut: false,
 
         // Core state actions
         setSelectedNode: (node) => set({ selectedNode: node }, false, 'setSelectedNode'),
@@ -112,6 +131,11 @@ export const useWorkflowStore = create<WorkflowState>()(
         setCopiedEdges: (edges) => set({ copiedEdges: edges }, false, 'setCopiedEdges'),
         setIsCopy: (isCopy) => set({ isCopy: isCopy }, false, 'setIsCopy'),
 
+        // Cut and paste actions
+        setCutNodes: (nodes) => set({ cutNodes: nodes }, false, 'setCutNodes'),
+        setCutEdges: (edges) => set({ cutEdges: edges }, false, 'setCutEdges'),
+        setIsCut: (isCut) => set({ isCut: isCut }, false, 'setIsCut'),
+
         // Utility actions
         clearWorkflow: () => set({
           nodes: [],
@@ -124,6 +148,19 @@ export const useWorkflowStore = create<WorkflowState>()(
         resetUI: () => set({
           selectedNode: null,
         }, false, 'resetUI'),
+
+        // Force reset copy/cut state
+        forceResetCopyState: () => set({
+          isCopy: false,
+          copiedNodes: [],
+          copiedEdges: []
+        }, false, 'forceResetCopyState'),
+
+        forceResetCutState: () => set({
+          isCut: false,
+          cutNodes: [],
+          cutEdges: []
+        }, false, 'forceResetCutState'),
       }),
       {
         name: 'workflow-storage',
