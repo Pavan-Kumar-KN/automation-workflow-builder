@@ -10,6 +10,11 @@ interface WorkflowState {
   isActive: boolean;
   layoutDirection: 'TB' | 'LR'; // Added layout direction
 
+  // These states are used to store the copied node and edges 
+  copiedNodes: [],
+  copiedEdges: [],
+  isCopy: false,
+
   // Nodes and edges
   nodes: Node[];
   edges: Edge[];
@@ -29,6 +34,11 @@ interface WorkflowState {
   addEdge: (edge: Edge) => void;
   removeEdge: (edgeId: string) => void;
 
+  // Actions for the copy and paste functionality
+  setCopiedNodes: (nodes: Node[]) => void;
+  setCopiedEdges: (edges: Edge[]) => void;
+  setIsCopy: (isCopy: boolean) => void;
+
 
 
   // Utility actions
@@ -47,6 +57,11 @@ export const useWorkflowStore = create<WorkflowState>()(
         layoutDirection: 'TB', // Default to vertical layout
         nodes: [],
         edges: [],
+
+        // Copy and paste states
+        copiedNodes: [],
+        copiedEdges: [],
+        isCopy: false,
 
         // Core state actions
         setSelectedNode: (node) => set({ selectedNode: node }, false, 'setSelectedNode'),
@@ -92,6 +107,10 @@ export const useWorkflowStore = create<WorkflowState>()(
         }), false, 'removeEdge'),
 
 
+        // Copy and paste actions
+        setCopiedNodes: (nodes) => set({ copiedNodes: nodes }, false, 'setCopiedNodes'),
+        setCopiedEdges: (edges) => set({ copiedEdges: edges }, false, 'setCopiedEdges'),
+        setIsCopy: (isCopy) => set({ isCopy: isCopy }, false, 'setIsCopy'),
 
         // Utility actions
         clearWorkflow: () => set({

@@ -16,6 +16,8 @@ interface FlowEdgeProps {
   data?: {
     onOpenActionModal?: (index: number) => void;
     index?: number;
+    isBranch?: boolean;
+
   };
 }
 

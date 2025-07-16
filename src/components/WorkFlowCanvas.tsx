@@ -23,7 +23,7 @@ import EndNode from './nodes/EndNode';
 import { GhostNode } from './nodes/GhostNode';
 import { getLayoutedElements } from '@/utils/dagreFunction';
 import ConditionEdge from './edges/ConditionEdge';
-import PlaceHolderNode from './canvas/PlaceHolderNode';
+import PlaceHolderNode from './nodes/PlaceHolderNode';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { generateNodesAndEdges } from '@/utils/helpers/generateActions';
 
