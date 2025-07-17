@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import FlowEdge from '../edges/FlowEdge';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
-import { useCutPaste } from '@/hooks/useCutPaste';
+import { useGraphCutPaste } from '@/hooks/useGraphCutPaste';
 
 // ActionNode Component
 export const ActionNode = ({
@@ -23,7 +23,7 @@ export const ActionNode = ({
   const [isHovered, setIsHovered] = useState(false);
   const deleteHandler = onDelete || data.onDelete;
   const { copyNode, copyFlowFromNode } = useCopyPaste();
-  const { cutNode, cutFlowFromNode } = useCutPaste();
+  const { cutNode, cutFlowFromNode } = useGraphCutPaste();
 
   const IconComponent = React.useMemo(() => {
     if (!data.icon) return LucideIcons.Phone;

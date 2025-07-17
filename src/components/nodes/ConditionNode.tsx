@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
-import { useCutPaste } from '@/hooks/useCutPaste';
+import { useGraphCutPaste } from '@/hooks/useGraphCutPaste';
 
 interface Branch {
   label: string;
@@ -54,7 +54,7 @@ const ConditionNode = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const { copyNode, copyFlowFromNode } = useCopyPaste();
-  const { cutNode, cutFlowFromNode } = useCutPaste();
+  const { cutNode, cutFlowFromNode } = useGraphCutPaste();
 
   const IconComponent = React.useMemo(() => {
     if (!data.icon) return LucideIcons.GitBranch;

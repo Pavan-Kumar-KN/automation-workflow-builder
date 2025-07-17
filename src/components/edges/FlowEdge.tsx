@@ -3,7 +3,7 @@ import { EdgeLabelRenderer } from '@xyflow/react';
 import { Plus, Copy, Scissors, X } from 'lucide-react';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
-import { useCutPaste } from '@/hooks/useCutPaste';
+import { useGraphCutPaste } from '@/hooks/useGraphCutPaste';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,8 @@ import {
 // Define the props type explicitly
 interface FlowEdgeProps {
   id: string;
+  source: string;
+  target: string;
   sourceX: number;
   sourceY: number;
   targetX: number;
@@ -30,6 +32,8 @@ interface FlowEdgeProps {
 }
 
 const FlowEdge: React.FC<FlowEdgeProps> = ({
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -42,7 +46,7 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
 }) => {
   const { layoutDirection, isCopy, isCut } = useWorkflowStore();
   const { handleDropdownSelection: handleCopyDropdown } = useCopyPaste();
-  const { handleDropdownSelection: handleCutDropdown } = useCutPaste();
+  const { handleDropdownSelection: handleCutDropdown } = useGraphCutPaste();
   const isHorizontal = layoutDirection === 'LR';
   const [showStickyPanel, setShowStickyPanel] = useState(false);
 
@@ -127,10 +131,27 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
+
+                      // Calculate insertion index dynamically
+                      const { nodes } = useWorkflowStore.getState();
+                      const flowNodes = nodes.filter(node =>
+                        node.type !== 'placeholder' &&
+                        node.id !== 'virtual-end' &&
+                        !node.id.startsWith('placeholder-')
+                      );
+                      const sourceNodeIndex = flowNodes.findIndex(node => node.id === source);
+                      const insertionIndex = sourceNodeIndex >= 0 ? sourceNodeIndex : 0;
+
+                      // Create a dynamic action modal handler
+                      const dynamicActionModal = (index: number) => {
+                        console.log('🔍 Dynamic action modal called with index:', insertionIndex);
+                        data.onOpenActionModal?.(insertionIndex);
+                      };
+
                       if (isCopy) {
-                        handleCopyDropdown('addNode', id, data.onOpenActionModal!);
+                        handleCopyDropdown('addNode', id, dynamicActionModal);
                       } else {
-                        handleCutDropdown('addNode', id, data.onOpenActionModal!);
+                        handleCutDropdown('addNode', id, dynamicActionModal);
                       }
                     }}
                     className="flex items-center px-3 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md cursor-pointer transition-colors"
@@ -142,7 +163,24 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleCopyDropdown('pasteFlow', id, data.onOpenActionModal!);
+
+                        // Calculate insertion index dynamically
+                        const { nodes } = useWorkflowStore.getState();
+                        const flowNodes = nodes.filter(node =>
+                          node.type !== 'placeholder' &&
+                          node.id !== 'virtual-end' &&
+                          !node.id.startsWith('placeholder-')
+                        );
+                        const sourceNodeIndex = flowNodes.findIndex(node => node.id === source);
+                        const insertionIndex = sourceNodeIndex >= 0 ? sourceNodeIndex : 0;
+
+                        // Create a dynamic action modal handler
+                        const dynamicActionModal = (index: number) => {
+                          console.log('🔍 Dynamic paste flow called with index:', insertionIndex);
+                          data.onOpenActionModal?.(insertionIndex);
+                        };
+
+                        handleCopyDropdown('pasteFlow', id, dynamicActionModal);
                       }}
                       className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
                     >
@@ -154,7 +192,24 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleCutDropdown('pasteCutFlow', id, data.onOpenActionModal!);
+
+                        // Calculate insertion index dynamically
+                        const { nodes } = useWorkflowStore.getState();
+                        const flowNodes = nodes.filter(node =>
+                          node.type !== 'placeholder' &&
+                          node.id !== 'virtual-end' &&
+                          !node.id.startsWith('placeholder-')
+                        );
+                        const sourceNodeIndex = flowNodes.findIndex(node => node.id === source);
+                        const insertionIndex = sourceNodeIndex >= 0 ? sourceNodeIndex : 0;
+
+                        // Create a dynamic action modal handler
+                        const dynamicActionModal = (index: number) => {
+                          console.log('🔍 Dynamic move flow called with index:', insertionIndex);
+                          data.onOpenActionModal?.(insertionIndex);
+                        };
+
+                        handleCutDropdown('pasteCutFlow', id, dynamicActionModal);
                       }}
                       className="flex items-center px-3 py-2 text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-md cursor-pointer transition-colors"
                     >
@@ -167,7 +222,26 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
             ) : (
               // Normal mode - direct button click
               <button
-                onClick={() => data.onOpenActionModal?.(data.index!)}
+                onClick={() => {
+                  // Calculate insertion index dynamically based on current flow state
+                  const { nodes } = useWorkflowStore.getState();
+                  const flowNodes = nodes.filter(node =>
+                    node.type !== 'placeholder' &&
+                    node.id !== 'virtual-end' &&
+                    !node.id.startsWith('placeholder-')
+                  );
+                  const sourceNodeIndex = flowNodes.findIndex(node => node.id === source);
+                  const insertionIndex = sourceNodeIndex >= 0 ? sourceNodeIndex : 0;
+
+                  console.log('🔍 Plus button clicked - dynamic calculation:', {
+                    source,
+                    sourceNodeIndex,
+                    insertionIndex,
+                    flowNodes: flowNodes.map(n => n.id)
+                  });
+
+                  data.onOpenActionModal?.(insertionIndex);
+                }}
                 className="w-6 h-5 bg-gray-400 border border-gray-500 rounded-md flex items-center justify-center transition-colors shadow-sm"
               >
                 <Plus className="w-4 h-4 text-white stroke-[2.5]" />

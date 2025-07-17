@@ -104,9 +104,19 @@ export const useCutPaste = (openActionModal?: (insertIndex?: number) => void) =>
    */
   const getEdgeConnectionInfo = useCallback((edgeId: string) => {
     const edge = edges.find(e => e.id === edgeId);
-    if (!edge) return null;
+    if (!edge) {
+      console.log('❌ Edge not found for cut operation:', edgeId);
+      return null;
+    }
 
     const insertIndex = (edge.data?.index as number) || 0;
+    console.log('✂️ Cut getEdgeConnectionInfo:', {
+      edgeId,
+      edgeSource: edge.source,
+      edgeTarget: edge.target,
+      insertIndex,
+      edgeData: edge.data
+    });
 
     // For most cases, the belowNodeId is simply the edge target
     // This works correctly for insertion between nodes

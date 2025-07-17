@@ -10,7 +10,7 @@ const getSubTree = (startNodeId: string, nodes: Node[], edges: Edge[]) => {
 
   while (queue.length > 0) {
     const currentNodeId = queue.shift()!;
-    
+
     if (visited.has(currentNodeId)) continue;
     visited.add(currentNodeId);
 
@@ -22,10 +22,10 @@ const getSubTree = (startNodeId: string, nodes: Node[], edges: Edge[]) => {
 
     // Find all outgoing edges from current node
     const outgoingEdges = edges.filter(edge => edge.source === currentNodeId);
-    
+
     for (const edge of outgoingEdges) {
       subEdges.push(edge);
-      
+
       // Add target node to queue if not visited
       if (!visited.has(edge.target)) {
         queue.push(edge.target);
@@ -40,7 +40,7 @@ const getSubTree = (startNodeId: string, nodes: Node[], edges: Edge[]) => {
 const findFirstNodeInFlow = (nodes: Node[], edges: Edge[]): string | null => {
   const nodeIds = new Set(nodes.map(n => n.id));
   const internalTargets = new Set(edges.filter(e => nodeIds.has(e.source)).map(e => e.target));
-  
+
   const firstNode = nodes.find(node => !internalTargets.has(node.id));
   return firstNode?.id || null;
 };
@@ -49,7 +49,7 @@ const findFirstNodeInFlow = (nodes: Node[], edges: Edge[]): string | null => {
 const findLastNodeInFlow = (nodes: Node[], edges: Edge[]): string | null => {
   const nodeIds = new Set(nodes.map(n => n.id));
   const internalSources = new Set(edges.filter(e => nodeIds.has(e.target)).map(e => e.source));
-  
+
   const lastNode = nodes.find(node => !internalSources.has(node.id));
   return lastNode?.id || null;
 };
@@ -165,11 +165,21 @@ export const createCutPasteHandler = (
     } else {
       // For regular nodes, use the original logic
       const connectedEdges = edges.filter(edge => edge.source === nodeId || edge.target === nodeId);
+      console.log('✂️ Cutting regular node:', {
+        nodeId,
+        nodeType: nodeToCut.type,
+        nodeLabel: nodeToCut.data?.label,
+        connectedEdgesCount: connectedEdges.length
+      });
       setCutNodes([nodeToCut]);
       setCutEdges(connectedEdges);
     }
 
     setIsCut(true);
+
+    // Find incoming and outgoing edges for reconnection
+    const incomingEdge = edges.find(edge => edge.target === nodeId);
+    const outgoingEdge = edges.find(edge => edge.source === nodeId);
 
     // Remove the node and its connected edges
     let newNodes = nodes.filter(node => node.id !== nodeId);
@@ -231,7 +241,7 @@ export const createCutPasteHandler = (
     setCutNodes(filteredSubNodes);
     setCutEdges(filteredSubEdges);
     setIsCut(true);
-    
+
     // Remove only the filtered cut nodes and edges from the current workflow (preserve End node)
     const cutNodeIds = new Set(filteredSubNodes.map(n => n.id));
     const cutEdgeIds = new Set(filteredSubEdges.map(e => e.id));
@@ -299,6 +309,11 @@ export const createCutPasteHandler = (
     if (cutNodes.length === 1) {
       const cutNode = cutNodes[0];
 
+      console.log('✂️ Pasting single node:', {
+        nodeId: cutNode.id,
+        nodeType: cutNode.type,
+        nodeLabel: cutNode.data?.label
+      });
       // Remove the edge between above and below nodes (if it exists)
       const cleanedEdges = edges.filter(edge => !(edge.source === aboveNodeId && edge.target === belowNodeId));
 
