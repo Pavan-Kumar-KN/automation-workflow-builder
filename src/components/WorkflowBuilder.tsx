@@ -121,6 +121,10 @@ export const WorkflowBuilder = () => {
 
   // Open action modal for insertion
   const openActionModal = useCallback((insertIndex?: number) => {
+    console.log('🔍 openActionModal called with insertIndex:', insertIndex);
+    // Get current nodes from store to avoid dependency loop
+    const currentNodes = useWorkflowStore.getState().nodes;
+    console.log('🔍 Current nodes:', currentNodes.map((n, i) => `${i}: ${n.id} (${n.data.label})`));
     setActionInsertIndex(insertIndex ?? null);
     setShowActionModal(true);
   }, []);
@@ -141,6 +145,47 @@ export const WorkflowBuilder = () => {
 
   // Initialize cut-paste functionality
   const { clearCutState, isCut } = useCutPaste(openActionModal);
+
+  // Fix edges after copy-paste operations (like duplication does)
+  useEffect(() => {
+    setEdges(currentEdges => {
+      return currentEdges.map((edge, edgeIndex) => {
+        // Fix ALL flowEdge type edges that don't have proper onOpenActionModal
+        if (edge.type === 'flowEdge' && (!edge.data?.onOpenActionModal || edge.data.onOpenActionModal.toString().includes('Plus clicked:'))) {
+          // Use the existing index if available, otherwise calculate it
+          let insertIndex = edge.data?.index;
+
+          if (insertIndex === undefined || insertIndex === null) {
+            // Calculate the correct index based on the edge's position in the workflow
+            const sourceNode = nodes.find(n => n.id === edge.source);
+            if (sourceNode) {
+              const sourceIndex = nodes.findIndex(n => n.id === sourceNode.id);
+              insertIndex = sourceIndex >= 0 ? sourceIndex + 1 : edgeIndex;
+            } else {
+              insertIndex = edgeIndex;
+            }
+          }
+
+          console.log('🔍 Fixing edge:', edge.id, 'using insertIndex:', insertIndex);
+
+          return {
+            ...edge,
+            data: {
+              ...edge.data,
+              // Use the SAME pattern as duplication - direct function reference
+              onOpenActionModal: (clickedIndex: number) => {
+                console.log('🔍 Plus clicked from fixed edge:', edge.id, 'using stored insertIndex:', insertIndex);
+                openActionModal(insertIndex); // Use the stored insertIndex, not the clicked one
+              },
+              // Preserve the calculated index
+              index: insertIndex
+            }
+          };
+        }
+        return edge;
+      });
+    });
+  }, [edges.length, nodes.length, openActionModal]); // Run when edges or nodes change
 
   // Handle branch selection for conditional paste
   const handleBranchSelection = useCallback((selectedBranch: 'yes' | 'no') => {
@@ -937,6 +982,14 @@ export const WorkflowBuilder = () => {
       const previousNode = safeIndex >= 0 ? newNodes[safeIndex] : newNodes.find(n => n.type === 'trigger');
       const nextNode = newNodes[safeIndex + 1];
 
+      console.log('🔍 Node insertion context:', {
+        afterNodeIndex,
+        safeIndex,
+        previousNode: previousNode ? `${previousNode.id} (${previousNode.data.label})` : 'none',
+        nextNode: nextNode ? `${nextNode.id} (${nextNode.data.label})` : 'none',
+        totalNodes: newNodes.length
+      });
+
       // Insert the new node
       newNodes.splice(safeIndex + 1, 0, newNode);
 
@@ -1051,6 +1104,9 @@ export const WorkflowBuilder = () => {
 
         // 🧹 Remove edge between previous ➝ next
         if (previousNode && nextNode) {
+          console.log('🔍 Removing edge between:', previousNode.id, '->', nextNode.id);
+          const edgeToRemove = newEdges.find(edge => edge.source === previousNode.id && edge.target === nextNode.id);
+          console.log('🔍 Found edge to remove:', edgeToRemove ? edgeToRemove.id : 'none');
           newEdges = newEdges.filter(edge =>
             !(edge.source === previousNode.id && edge.target === nextNode.id)
           );
@@ -1058,6 +1114,7 @@ export const WorkflowBuilder = () => {
 
         // ➕ Add edge: previous ➝ new
         if (previousNode) {
+          console.log('🔍 Adding edge:', previousNode.id, '->', nodeId);
           newEdges.push({
             id: `edge-${previousNode.id}-${nodeId}`,
             source: previousNode.id,
@@ -1110,6 +1167,7 @@ export const WorkflowBuilder = () => {
 
         } else if (nextNode) {
           // // ➕ Add edge: new ➝ next
+          console.log('🔍 Adding edge:', nodeId, '->', nextNode.id);
           newEdges.push({
             id: `edge-${nodeId}-${nextNode.id}`,
             source: nodeId,

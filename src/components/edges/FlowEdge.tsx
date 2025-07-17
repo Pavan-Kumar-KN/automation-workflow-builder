@@ -46,6 +46,8 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
   const isHorizontal = layoutDirection === 'LR';
   const [showStickyPanel, setShowStickyPanel] = useState(false);
 
+
+
   // Calculate edge path and center point based on layout direction
   let edgePath: string;
   let centerX: number;

@@ -161,7 +161,7 @@ const ConditionNode = ({
                     className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                   >
                     <LucideIcons.GitBranch className="w-4 h-4 mr-2" />
-                    Copy the flow from this node
+                    Copy From Here
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
@@ -176,7 +176,7 @@ const ConditionNode = ({
                     className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                   >
                     <LucideIcons.Scissors className="w-4 h-4 mr-2" />
-                    Cut Condition
+                    Move Condition
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
@@ -191,7 +191,7 @@ const ConditionNode = ({
                     className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                   >
                     <LucideIcons.Move className="w-4 h-4 mr-2" />
-                    Cut the flow from this node
+                    Move From Here
                   </DropdownMenuItem>
 
                   <DropdownMenuItem

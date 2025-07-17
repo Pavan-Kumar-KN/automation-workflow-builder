@@ -291,7 +291,7 @@ export interface CopyPasteHandler {
     newNodes: Node[];
     newEdges: Edge[];
   };
-  generateNewIds: (copiedNodes: Node[], copiedEdges: Edge[]) => {
+  generateNewIds: (copiedNodes: Node[], copiedEdges: Edge[], insertIndex: number) => {
     newNodes: Node[];
     newEdges: Edge[];
     idMapping: Record<string, string>;
@@ -325,9 +325,31 @@ export const createCopyPasteHandler = (
   const copyNode = (nodeId: string, nodes: Node[], edges: Edge[]) => {
     const nodeToCopy = nodes.find(node => node.id === nodeId);
     if (!nodeToCopy) return;
-    const connectedEdges = edges.filter(edge => edge.source === nodeId || edge.target === nodeId);
-    setCopiedNodes([nodeToCopy]);
-    setCopiedEdges(connectedEdges);
+
+    // Check if it's a conditional node
+    const isConditionalNode = nodeToCopy.type === 'condition';
+
+    if (isConditionalNode) {
+      console.log('📋 Copying conditional node with full structure:', nodeId);
+
+      // For conditional nodes, we need to copy the entire branch structure
+      const conditionalStructure = getConditionalNodeStructure(nodeId, nodes, edges);
+      setCopiedNodes(conditionalStructure.nodes);
+      setCopiedEdges(conditionalStructure.edges);
+
+      console.log('📋 Conditional copy result:', {
+        mainNode: nodeId,
+        totalNodes: conditionalStructure.nodes.length,
+        totalEdges: conditionalStructure.edges.length,
+        nodeTypes: conditionalStructure.nodes.map(n => `${n.id}:${n.type}`)
+      });
+    } else {
+      // For regular nodes, use the original logic
+      const connectedEdges = edges.filter(edge => edge.source === nodeId || edge.target === nodeId);
+      setCopiedNodes([nodeToCopy]);
+      setCopiedEdges(connectedEdges);
+    }
+
     setIsCopy(true);
   };
 
@@ -345,7 +367,7 @@ export const createCopyPasteHandler = (
     setIsCopy(true);
   };
 
-  const generateNewIds = (copiedNodes: Node[], copiedEdges: Edge[]) => {
+  const generateNewIds = (copiedNodes: Node[], copiedEdges: Edge[], insertIndex: number) => {
     const idMapping: Record<string, string> = {};
     copiedNodes.forEach(node => {
       idMapping[node.id] = nanoid();
@@ -364,11 +386,33 @@ export const createCopyPasteHandler = (
       // Only include edges where both source and target were copied
       if (!newSource || !newTarget) return null;
 
+      // Calculate the correct workflow index for this edge
+      let workflowIndex = insertIndex;
+
+      // Find the position of the source node in the new nodes array
+      const sourceNodeIndex = newNodes.findIndex(node => node.id === newSource);
+      if (sourceNodeIndex >= 0) {
+        // The edge should insert after the source node
+        workflowIndex = insertIndex + sourceNodeIndex + 1;
+      }
+
+      // Fix flowEdge data to have proper onOpenActionModal function
+      const edgeData = edge.type === 'flowEdge' && openActionModal ? {
+        ...edge.data,
+        onOpenActionModal: (_clickedIndex: number) => {
+          console.log('🔍 Plus button clicked from copied internal edge, using workflowIndex:', workflowIndex);
+          openActionModal(workflowIndex); // Use calculated workflow index
+        },
+        // Use the calculated workflow index
+        index: workflowIndex
+      } : edge.data;
+
       return {
         ...edge,
         id: `c${index + 1}`,
         source: newSource,
-        target: newTarget
+        target: newTarget,
+        data: edgeData
       };
     }).filter(edge => edge !== null) as Edge[];
 
@@ -376,6 +420,7 @@ export const createCopyPasteHandler = (
   };
 
   const pasteFlow = (insertIndex: number, aboveNodeId: string, belowNodeId: string, nodes: Node[], edges: Edge[]) => {
+    console.log('🔍 PasteFlow Debug - openActionModal available:', !!openActionModal);
     if (!isCopy || copiedNodes.length === 0) return { newNodes: nodes, newEdges: edges };
 
     // Check if we're pasting conditional nodes and there are downstream nodes
@@ -395,7 +440,7 @@ export const createCopyPasteHandler = (
       return { newNodes: nodes, newEdges: edges }; // Return unchanged until user selects branch
     }
 
-    const { newNodes, newEdges } = generateNewIds(copiedNodes, copiedEdges);
+    const { newNodes, newEdges } = generateNewIds(copiedNodes, copiedEdges, insertIndex);
     const firstNodeId = findFirstNodeInFlow(newNodes, newEdges);
     const lastNodeId = findLastNodeInFlow(newNodes, newEdges);
 
@@ -416,6 +461,7 @@ export const createCopyPasteHandler = (
     const connectionEdges: Edge[] = [];
 
     if (aboveNodeId && firstNodeId) {
+      console.log('🔍 Creating connection edge 1 - openActionModal available:', !!openActionModal);
       connectionEdges.push({
         id: `conn-${Date.now()}-1`,
         source: aboveNodeId,
@@ -435,6 +481,7 @@ export const createCopyPasteHandler = (
     }
 
     if (belowNodeId && lastNodeId) {
+      console.log('🔍 Creating connection edge 2 - openActionModal available:', !!openActionModal);
       connectionEdges.push({
         id: `conn-${Date.now()}-2`,
         source: lastNodeId,
@@ -453,12 +500,77 @@ export const createCopyPasteHandler = (
       });
     }
 
+    // Always remove the original edge to create proper linear flow
     const cleanedEdges = edges.filter(edge => !(edge.source === aboveNodeId && edge.target === belowNodeId));
+
+    console.log('🔍 Edge cleaning logic:', {
+      aboveNodeId,
+      belowNodeId,
+      originalEdgeCount: edges.length,
+      cleanedEdgeCount: cleanedEdges.length,
+      removedEdge: `${aboveNodeId} -> ${belowNodeId}`
+    });
 
     return {
       newNodes: [...nodes, ...newNodes],
       newEdges: [...cleanedEdges, ...newEdges, ...connectionEdges]
     };
+  };
+
+  // Helper function to get the complete structure of a conditional node
+  const getConditionalNodeStructure = (conditionNodeId: string, nodes: Node[], edges: Edge[]) => {
+    const structureNodes: Node[] = [];
+    const structureEdges: Edge[] = [];
+
+    // 1. Add the main condition node
+    const conditionNode = nodes.find(n => n.id === conditionNodeId);
+    if (!conditionNode) return { nodes: [], edges: [] };
+
+    structureNodes.push(conditionNode);
+
+    // 2. Find all condition edges (Yes/No branches)
+    const conditionEdges = edges.filter(edge =>
+      edge.source === conditionNodeId && edge.type === 'condition'
+    );
+    structureEdges.push(...conditionEdges);
+
+    // 3. Find all nodes in the Yes and No branches
+    for (const conditionEdge of conditionEdges) {
+      const branchTargetId = conditionEdge.target;
+      const branchNode = nodes.find(n => n.id === branchTargetId);
+
+      if (branchNode) {
+        // Add the direct branch target (could be placeholder or action node)
+        structureNodes.push(branchNode);
+
+        // If it's a placeholder, we're done for this branch
+        // If it's an action node, we need to get all downstream nodes in this branch
+        if (branchNode.type !== 'placeholder') {
+          const branchSubtree = getSubTree(branchTargetId, nodes, edges);
+
+          // Add all nodes in the branch subtree (excluding the target we already added)
+          const additionalNodes = branchSubtree.subNode.filter(n => n.id !== branchTargetId);
+          structureNodes.push(...additionalNodes);
+          structureEdges.push(...branchSubtree.subEdge);
+        }
+      }
+    }
+
+    // 4. Add any regular edges connected to the condition node (non-condition edges)
+    const regularEdges = edges.filter(edge =>
+      (edge.source === conditionNodeId || edge.target === conditionNodeId) &&
+      edge.type !== 'condition'
+    );
+    structureEdges.push(...regularEdges);
+
+    console.log('📋 getConditionalNodeStructure result:', {
+      conditionNodeId,
+      foundNodes: structureNodes.length,
+      foundEdges: structureEdges.length,
+      nodeDetails: structureNodes.map((n: Node) => `${n.id}:${n.type}`)
+    });
+
+    return { nodes: structureNodes, edges: structureEdges };
   };
 
   const findFirstNodeInFlow = (nodes: Node[], edges: Edge[]): string | null => {
@@ -480,7 +592,7 @@ export const createCopyPasteHandler = (
   const pasteConditionalFlow = (insertIndex: number, aboveNodeId: string, belowNodeId: string, selectedBranch: 'yes' | 'no', nodes: Node[], edges: Edge[]) => {
     if (!isCopy || copiedNodes.length === 0) return { newNodes: nodes, newEdges: edges };
 
-    const { newNodes, newEdges } = generateNewIds(copiedNodes, copiedEdges);
+    const { newNodes, newEdges } = generateNewIds(copiedNodes, copiedEdges, insertIndex);
     const firstNodeId = findFirstNodeInFlow(newNodes, newEdges);
     const lastNodeId = findLastNodeInFlow(newNodes, newEdges);
 
@@ -711,6 +823,9 @@ export const createCopyPasteHandler = (
     copyFlowFromNode,
     pasteFlow,
     pasteConditionalFlow,
+    cutNode,
+    cutFlowFromNode,
+    pasteCutFlow,
     generateNewIds,
     handlePlusIconClick
   };

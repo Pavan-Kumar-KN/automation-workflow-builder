@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { useWorkflowStore } from './useWorkflowState';
 import { createCopyPasteHandler } from '@/utils/copyPasteHandler';
@@ -22,7 +22,9 @@ export const useCopyPaste = (
     forceResetCopyState
   } = useWorkflowStore();
 
-  const handler = createCopyPasteHandler(openActionModal, onConditionalPasteRequest);
+  const handler = useMemo(() => {
+    return createCopyPasteHandler(openActionModal, onConditionalPasteRequest);
+  }, [openActionModal, onConditionalPasteRequest]);
 
   /**
    * Copy a single node
@@ -48,39 +50,11 @@ export const useCopyPaste = (
     aboveNodeId: string,
     belowNodeId: string
   ) => {
-    console.log('🔍 PasteFlow called with:', { insertIndex, aboveNodeId, belowNodeId });
-    console.log('🔍 Current nodes count:', nodes.length);
-    console.log('🔍 Current edges count:', edges.length);
-
     const result = handler.pasteFlow(insertIndex, aboveNodeId, belowNodeId, nodes, edges);
 
-    console.log('🔍 PasteFlow result:', {
-      newNodesCount: result.newNodes.length,
-      newEdgesCount: result.newEdges.length
-    });
-
-    // Fix edge data to have proper onOpenActionModal callbacks
-    const fixedEdges = result.newEdges.map(edge => {
-      // Fix all flowEdge type edges to have proper onOpenActionModal callbacks
-      if (edge.type === 'flowEdge' && openActionModal) {
-        return {
-          ...edge,
-          data: {
-            ...edge.data,
-            onOpenActionModal: (insertIndex: number) => {
-              console.log('🔍 Plus button clicked from pasted edge, insertIndex:', insertIndex);
-              openActionModal(insertIndex);
-            },
-            // Preserve existing index if available, otherwise use a default
-            index: edge.data?.index ?? 0
-          }
-        };
-      }
-      return edge;
-    });
-
+    // Don't fix edges here - let WorkflowBuilder handle it like duplication does
     setNodes(result.newNodes);
-    setEdges(fixedEdges);
+    setEdges(result.newEdges);
 
     // Force clear copy state immediately using the force reset function
     forceResetCopyState();
@@ -145,10 +119,31 @@ export const useCopyPaste = (
     const edge = edges.find(e => e.id === edgeId);
     if (!edge) return null;
 
+    const insertIndex = (edge.data?.index as number) || 0;
+
+    // For most cases, the belowNodeId is simply the edge target
+    // This works correctly for insertion between nodes
+    let belowNodeId = edge.target;
+
+    // Special case: if target is virtual-end, keep it as virtual-end
+    // This handles pasting at the end of workflow correctly
+    if (edge.target === 'virtual-end') {
+      belowNodeId = 'virtual-end';
+    }
+
+    console.log('🔍 getEdgeConnectionInfo:', {
+      edgeId,
+      edgeSource: edge.source,
+      edgeTarget: edge.target,
+      insertIndex,
+      finalBelowNodeId: belowNodeId,
+      isEndOfWorkflow: edge.target === 'virtual-end'
+    });
+
     return {
       aboveNodeId: edge.source,
-      belowNodeId: edge.target,
-      insertIndex: (edge.data?.index as number) || 0
+      belowNodeId: belowNodeId,
+      insertIndex
     };
   }, [edges]);
 

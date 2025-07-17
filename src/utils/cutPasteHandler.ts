@@ -74,6 +74,62 @@ export interface CutPasteHandler {
   ) => void;
 }
 
+// Helper function to get the complete structure of a conditional node
+const getConditionalNodeStructure = (conditionNodeId: string, nodes: Node[], edges: Edge[]) => {
+  const structureNodes: Node[] = [];
+  const structureEdges: Edge[] = [];
+
+  // 1. Add the main condition node
+  const conditionNode = nodes.find(n => n.id === conditionNodeId);
+  if (!conditionNode) return { nodes: [], edges: [] };
+
+  structureNodes.push(conditionNode);
+
+  // 2. Find all condition edges (Yes/No branches)
+  const conditionEdges = edges.filter(edge =>
+    edge.source === conditionNodeId && edge.type === 'condition'
+  );
+  structureEdges.push(...conditionEdges);
+
+  // 3. Find all nodes in the Yes and No branches
+  for (const conditionEdge of conditionEdges) {
+    const branchTargetId = conditionEdge.target;
+    const branchNode = nodes.find(n => n.id === branchTargetId);
+
+    if (branchNode) {
+      // Add the direct branch target (could be placeholder or action node)
+      structureNodes.push(branchNode);
+
+      // If it's a placeholder, we're done for this branch
+      // If it's an action node, we need to get all downstream nodes in this branch
+      if (branchNode.type !== 'placeholder') {
+        const branchSubtree = getSubTree(branchTargetId, nodes, edges);
+
+        // Add all nodes in the branch subtree (excluding the target we already added)
+        const additionalNodes = branchSubtree.subNode.filter(n => n.id !== branchTargetId);
+        structureNodes.push(...additionalNodes);
+        structureEdges.push(...branchSubtree.subEdge);
+      }
+    }
+  }
+
+  // 4. Add any regular edges connected to the condition node (non-condition edges)
+  const regularEdges = edges.filter(edge =>
+    (edge.source === conditionNodeId || edge.target === conditionNodeId) &&
+    edge.type !== 'condition'
+  );
+  structureEdges.push(...regularEdges);
+
+  console.log('✂️ getConditionalNodeStructure result:', {
+    conditionNodeId,
+    foundNodes: structureNodes.length,
+    foundEdges: structureEdges.length,
+    nodeDetails: structureNodes.map((n: Node) => `${n.id}:${n.type}`)
+  });
+
+  return { nodes: structureNodes, edges: structureEdges };
+};
+
 export const createCutPasteHandler = (
   openActionModal?: (insertIndex?: number) => void
 ): CutPasteHandler => {
@@ -89,14 +145,30 @@ export const createCutPasteHandler = (
 
     console.log('✂️ Cutting node:', nodeId, 'from', nodes.length, 'nodes');
 
-    // Find edges connected to this node
-    const incomingEdge = edges.find(edge => edge.target === nodeId);
-    const outgoingEdge = edges.find(edge => edge.source === nodeId);
-    const connectedEdges = edges.filter(edge => edge.source === nodeId || edge.target === nodeId);
+    // Check if it's a conditional node
+    const isConditionalNode = nodeToCut.type === 'condition';
 
-    // Store the cut node and its edges
-    setCutNodes([nodeToCut]);
-    setCutEdges(connectedEdges);
+    if (isConditionalNode) {
+      console.log('✂️ Cutting conditional node with full structure:', nodeId);
+
+      // For conditional nodes, we need to cut the entire branch structure
+      const conditionalStructure = getConditionalNodeStructure(nodeId, nodes, edges);
+      setCutNodes(conditionalStructure.nodes);
+      setCutEdges(conditionalStructure.edges);
+
+      console.log('✂️ Conditional cut result:', {
+        mainNode: nodeId,
+        totalNodes: conditionalStructure.nodes.length,
+        totalEdges: conditionalStructure.edges.length,
+        nodeTypes: conditionalStructure.nodes.map((n: Node) => `${n.id}:${n.type}`)
+      });
+    } else {
+      // For regular nodes, use the original logic
+      const connectedEdges = edges.filter(edge => edge.source === nodeId || edge.target === nodeId);
+      setCutNodes([nodeToCut]);
+      setCutEdges(connectedEdges);
+    }
+
     setIsCut(true);
 
     // Remove the node and its connected edges
@@ -235,6 +307,7 @@ export const createCutPasteHandler = (
 
       // Connect above node to cut node
       if (aboveNodeId) {
+        console.log('✂️ Creating single node connection edge 1');
         newEdges.push({
           id: `edge-${aboveNodeId}-${cutNode.id}`,
           source: aboveNodeId,
@@ -244,14 +317,18 @@ export const createCutPasteHandler = (
           data: {
             index: insertIndex,
             onOpenActionModal: openActionModal ?
-              (insertIndex: number) => openActionModal(insertIndex) :
-              () => {}
+              (_clickedIndex: number) => {
+                console.log('✂️ Plus clicked from single cut edge 1, insertIndex:', insertIndex);
+                openActionModal(insertIndex);
+              } :
+              (_clickedIndex: number) => console.log('Plus clicked:', insertIndex)
           }
         });
       }
 
       // Connect cut node to below node (including End node)
       if (belowNodeId) {
+        console.log('✂️ Creating single node connection edge 2');
         newEdges.push({
           id: `edge-${cutNode.id}-${belowNodeId}`,
           source: cutNode.id,
@@ -261,8 +338,11 @@ export const createCutPasteHandler = (
           data: {
             index: insertIndex + 1,
             onOpenActionModal: openActionModal ?
-              (insertIndex: number) => openActionModal(insertIndex) :
-              () => {}
+              (_clickedIndex: number) => {
+                console.log('✂️ Plus clicked from single cut edge 2, insertIndex:', insertIndex + 1);
+                openActionModal(insertIndex + 1);
+              } :
+              (_clickedIndex: number) => console.log('Plus clicked:', insertIndex + 1)
           }
         });
       }
@@ -288,6 +368,7 @@ export const createCutPasteHandler = (
 
     // Connect above node to first cut node
     if (aboveNodeId && firstNodeId) {
+      console.log('✂️ Creating connection edge 1 - openActionModal available:', !!openActionModal);
       connectionEdges.push({
         id: `edge-${aboveNodeId}-${firstNodeId}`,
         source: aboveNodeId,
@@ -297,14 +378,18 @@ export const createCutPasteHandler = (
         data: {
           index: insertIndex,
           onOpenActionModal: openActionModal ?
-            (insertIndex: number) => openActionModal(insertIndex) :
-            () => {}
+            (_clickedIndex: number) => {
+              console.log('✂️ Plus clicked from cut connection edge 1, insertIndex:', insertIndex);
+              openActionModal(insertIndex);
+            } :
+            (_clickedIndex: number) => console.log('Plus clicked:', insertIndex)
         }
       });
     }
 
     // Connect last cut node to below node (including End node)
     if (lastNodeId && belowNodeId) {
+      console.log('✂️ Creating connection edge 2 - openActionModal available:', !!openActionModal);
       connectionEdges.push({
         id: `edge-${lastNodeId}-${belowNodeId}`,
         source: lastNodeId,
@@ -312,16 +397,27 @@ export const createCutPasteHandler = (
         type: 'flowEdge',
         animated: false,
         data: {
-          index: insertIndex + 1,
+          index: insertIndex + cutNodes.length,
           onOpenActionModal: openActionModal ?
-            (insertIndex: number) => openActionModal(insertIndex) :
-            () => {}
+            (_clickedIndex: number) => {
+              console.log('✂️ Plus clicked from cut connection edge 2, insertIndex:', insertIndex + cutNodes.length);
+              openActionModal(insertIndex + cutNodes.length);
+            } :
+            (_clickedIndex: number) => console.log('Plus clicked:', insertIndex + cutNodes.length)
         }
       });
     }
 
     // Remove the edge between above and below nodes
     const cleanedEdges = edges.filter(edge => !(edge.source === aboveNodeId && edge.target === belowNodeId));
+
+    console.log('✂️ Edge cleaning logic:', {
+      aboveNodeId,
+      belowNodeId,
+      originalEdgeCount: edges.length,
+      cleanedEdgeCount: cleanedEdges.length,
+      removedEdge: `${aboveNodeId} -> ${belowNodeId}`
+    });
 
     // Clear cut state
     setCutNodes([]);

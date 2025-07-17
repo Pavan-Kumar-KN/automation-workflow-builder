@@ -106,10 +106,31 @@ export const useCutPaste = (openActionModal?: (insertIndex?: number) => void) =>
     const edge = edges.find(e => e.id === edgeId);
     if (!edge) return null;
 
+    const insertIndex = (edge.data?.index as number) || 0;
+
+    // For most cases, the belowNodeId is simply the edge target
+    // This works correctly for insertion between nodes
+    let belowNodeId = edge.target;
+
+    // Special case: if target is virtual-end, keep it as virtual-end
+    // This handles pasting at the end of workflow correctly
+    if (edge.target === 'virtual-end') {
+      belowNodeId = 'virtual-end';
+    }
+
+    console.log('✂️ getEdgeConnectionInfo:', {
+      edgeId,
+      edgeSource: edge.source,
+      edgeTarget: edge.target,
+      insertIndex,
+      finalBelowNodeId: belowNodeId,
+      isEndOfWorkflow: edge.target === 'virtual-end'
+    });
+
     return {
       aboveNodeId: edge.source,
-      belowNodeId: edge.target,
-      insertIndex: (edge.data?.index as number) || 0
+      belowNodeId: belowNodeId,
+      insertIndex
     };
   }, [edges]);
 
@@ -126,6 +147,11 @@ export const useCutPaste = (openActionModal?: (insertIndex?: number) => void) =>
 
     if (action === 'addNode') {
       // Normal flow - open action modal
+      console.log('✂️ handleDropdownSelection addNode:', {
+        edgeId,
+        insertIndex: connectionInfo.insertIndex,
+        onOpenActionModalExists: !!onOpenActionModal
+      });
       onOpenActionModal(connectionInfo.insertIndex);
     } else if (action === 'pasteCutFlow') {
       // Paste cut flow

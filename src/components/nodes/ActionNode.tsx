@@ -38,7 +38,6 @@ export const ActionNode = ({
     <div className="relative flex flex-col items-center w-full mt-1">
 
 
-
       {/* Input Handle */}
       <Handle
         type="target"
@@ -131,7 +130,7 @@ export const ActionNode = ({
                     className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
                   >
                     <LucideIcons.GitBranch className="w-4 h-4 mr-3" />
-                    <span className="font-medium">Copy Flow From Here</span>
+                    <span className="font-medium">Copy From Here</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
@@ -146,7 +145,7 @@ export const ActionNode = ({
                     className="flex items-center px-3 py-2 text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-md cursor-pointer transition-colors"
                   >
                     <LucideIcons.Scissors className="w-4 h-4 mr-3" />
-                    <span className="font-medium">Cut Action</span>
+                    <span className="font-medium">Move Action</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
@@ -161,7 +160,7 @@ export const ActionNode = ({
                     className="flex items-center px-3 py-2 text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-md cursor-pointer transition-colors"
                   >
                     <LucideIcons.Move className="w-4 h-4 mr-3" />
-                    <span className="font-medium">Cut Flow From Here</span>
+                    <span className="font-medium">Move From here</span>
                   </DropdownMenuItem>
 
 
