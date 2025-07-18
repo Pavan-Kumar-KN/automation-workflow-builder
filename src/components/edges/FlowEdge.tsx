@@ -44,9 +44,18 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
   data,
   id,
 }) => {
-  const { layoutDirection, isCopy, isCut } = useWorkflowStore();
+  const { layoutDirection, isCopy, isCut, nodes } = useWorkflowStore();
   const { handleDropdownSelection: handleCopyDropdown } = useCopyPaste();
   const { handleDropdownSelection: handleCutDropdown } = useGraphCutPaste();
+
+  // Helper function to check if a node is a "Remove Workflow" node
+  const isRemoveWorkflowNode = (nodeId: string): boolean => {
+    const node = nodes.find(n => n.id === nodeId);
+    return node?.data?.id === 'remove-workflow-action' || node?.data?.id === 'exit-workflow-operation-action';
+  };
+
+  // Check if the source node is a Remove Workflow node - if so, don't show plus button
+  const shouldHidePlusButton = isRemoveWorkflowNode(source);
   const isHorizontal = layoutDirection === 'LR';
   const [showStickyPanel, setShowStickyPanel] = useState(false);
 
@@ -103,8 +112,8 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
         strokeLinejoin="round"
       />
 
-      {/* Center Plus Button */}
-      {data?.onOpenActionModal && (
+      {/* Center Plus Button - Hide if source is Remove Workflow node */}
+      {data?.onOpenActionModal && !shouldHidePlusButton && (
         <EdgeLabelRenderer>
           <div
             className="pointer-events-auto absolute"

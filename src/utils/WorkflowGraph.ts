@@ -713,23 +713,36 @@ export class WorkflowGraph {
     const subtreeNodes: GraphNode[] = [];
     const subtreeEdges: GraphEdge[] = [];
 
-    // Collect nodes
+    // 🎯 FIX: Collect nodes but EXCLUDE ghost nodes from cut/paste operations
     downstreamIds.forEach(id => {
       const node = this.nodes.get(id);
-      if (node && !id.includes('end') && node.type !== 'end') {
+      if (node &&
+          !id.includes('end') &&
+          node.type !== 'end' &&
+          node.type !== 'ghost') { // 🎯 EXCLUDE ghost nodes
         subtreeNodes.push(node);
+        console.log('🔍 Including node in subtree:', id, node.type);
+      } else if (node?.type === 'ghost') {
+        console.log('🔍 Excluding ghost node from subtree:', id);
       }
     });
 
-    // Collect edges within the subtree
+    // Collect edges within the subtree (only between non-ghost nodes)
     this.edges.forEach(edge => {
-      if (downstreamIds.includes(edge.source) && 
+      const sourceNode = this.nodes.get(edge.source);
+      const targetNode = this.nodes.get(edge.target);
+
+      if (downstreamIds.includes(edge.source) &&
           downstreamIds.includes(edge.target) &&
-          !edge.target.includes('end')) {
+          !edge.target.includes('end') &&
+          sourceNode?.type !== 'ghost' && // 🎯 EXCLUDE edges from/to ghost nodes
+          targetNode?.type !== 'ghost') {
         subtreeEdges.push(edge);
+        console.log('🔍 Including edge in subtree:', `${edge.source}->${edge.target}`);
       }
     });
 
+    console.log('🔍 Subtree result:', { nodes: subtreeNodes.length, edges: subtreeEdges.length });
     return { nodes: subtreeNodes, edges: subtreeEdges };
   }
 
@@ -1040,18 +1053,65 @@ export class WorkflowGraph {
       console.log('🔍 Creating No placeholder edge:', noEdge.id);
       newGraph.addEdge(noEdge);
 
-      // ✅ DON'T move downstream nodes to Yes branch - keep both branches empty
-      // This creates a proper tree structure where both Yes and No are empty placeholders
-      // The downstream flow should continue from the condition node itself, not from branches
-      console.log('🔍 Creating empty Yes and No branches for proper tree structure');
+      // ✅ Check if we should move downstream flow to Yes branch or create empty placeholders
+      // 🎯 FOR CONDITIONAL NODES: Only move REAL nodes (action/condition), NOT ghost nodes
+      const hasRealDownstreamNodes = targetOutgoingEdges.some(edge => {
+        const targetNode = this.nodes.get(edge.target);
+        return targetNode &&
+               !edge.target.startsWith('placeholder-') &&
+               edge.target !== 'virtual-end' &&
+               targetNode.type !== 'placeholder' &&
+               // 🎯 CONDITIONAL NODES: Ghost nodes should be DELETED, not moved
+               // Only move real action/condition nodes to Yes branch
+               (targetNode.type === 'action' || targetNode.type === 'condition');
+      });
 
-      // Remove any existing downstream edges from the target node
-      if (targetOutgoingEdges.length > 0) {
+      if (hasRealDownstreamNodes) {
+        console.log('🔍 Condition inserted in middle of flow - moving REAL downstream to Yes branch');
+
+        // Move only REAL downstream nodes (action/condition) to Yes branch
         targetOutgoingEdges.forEach(edge => {
-          console.log('🔍 Removing downstream edge to create clean conditional structure:', `${edge.source} -> ${edge.target}`);
-          newGraph.removeEdge(edge.id);
+          const downstreamNode = this.nodes.get(edge.target);
+
+          if (downstreamNode && (downstreamNode.type === 'action' || downstreamNode.type === 'condition')) {
+            console.log('🔍 Moving REAL downstream node to Yes branch:', `${edge.source} -> ${edge.target}`);
+
+            // Remove the old edge from target node
+            newGraph.removeEdge(edge.id);
+
+            // Create new edge from Yes placeholder to the downstream target
+            const yesToDownstreamEdge: GraphEdge = {
+              id: newGraph.generateEdgeId(yesPlaceholderId, edge.target),
+              source: yesPlaceholderId,
+              target: edge.target,
+              type: edge.type || 'flowEdge',
+              label: edge.label,
+              sourceHandle: edge.sourceHandle,
+              data: edge.data
+            };
+            newGraph.addEdge(yesToDownstreamEdge);
+          }
         });
       }
+
+      // 🎯 ALWAYS remove ghost nodes and placeholder connections for conditional nodes
+      console.log('🔍 Conditional node: Deleting ghost nodes and placeholder connections');
+
+      targetOutgoingEdges.forEach(edge => {
+        const downstreamNode = this.nodes.get(edge.target);
+
+        if (downstreamNode && (downstreamNode.type === 'ghost' || downstreamNode.type === 'placeholder' || edge.target === 'virtual-end')) {
+          console.log('🔍 Deleting ghost/placeholder node:', edge.target);
+
+          // Remove the edge
+          newGraph.removeEdge(edge.id);
+
+          // Delete ghost nodes completely
+          if (downstreamNode.type === 'ghost') {
+            newGraph.removeNode(edge.target);
+          }
+        }
+      });
     } else {
       // Regular node - reconnect all downstream edges to go through the new node
       targetOutgoingEdges.forEach(edge => {
@@ -1300,9 +1360,22 @@ export class WorkflowGraph {
     });
 
     // Reconnect parent nodes to reconnection targets
+    // ✅ BUT ONLY if the parent node is NOT a conditional node
     if (reconnectionTargets.length > 0 && parentEdges.length > 0) {
       parentEdges.forEach(parentEdge => {
+        // ✅ Check if the parent node should connect to End node
+        const parentNode = newGraph.nodes.get(parentEdge.source);
+
+        if (parentNode && parentNode.type === 'condition') {
+          console.log('🔍 Skipping reconnection - parent node is condition:', parentEdge.source, parentNode.type);
+          // Only ACTION and TRIGGER nodes should connect to End node
+          // CONDITION nodes should NOT connect to End node
+          return;
+        }
+
+        // ✅ Only reconnect if parent is NOT a conditional node
         reconnectionTargets.forEach(target => {
+          console.log('🔍 Reconnecting non-conditional parent:', parentEdge.source, '->', target);
           const reconnectEdge: GraphEdge = {
             id: newGraph.generateEdgeId(parentEdge.source, target),
             source: parentEdge.source,
@@ -1314,6 +1387,30 @@ export class WorkflowGraph {
           };
           newGraph.addEdge(reconnectEdge);
         });
+      });
+    } else if (reconnectionTargets.length === 0 && parentEdges.length > 0) {
+      // ✅ Special case: If there are no reconnection targets (e.g., deleting a condition node)
+      // but there are parent edges, we should connect the parent to virtual-end
+      parentEdges.forEach(parentEdge => {
+        const parentNode = newGraph.nodes.get(parentEdge.source);
+
+        if (parentNode && parentNode.type === 'condition') {
+          console.log('🔍 Skipping virtual-end reconnection - parent node is condition:', parentEdge.source);
+          return;
+        }
+
+        // Connect parent to virtual-end if it's an action or trigger node
+        if (parentNode && (parentNode.type === 'action' || parentNode.type === 'trigger')) {
+          console.log('🔍 Reconnecting parent to virtual-end after condition deletion:', parentEdge.source, '-> virtual-end');
+          const reconnectToEndEdge: GraphEdge = {
+            id: newGraph.generateEdgeId(parentEdge.source, 'virtual-end'),
+            source: parentEdge.source,
+            target: 'virtual-end',
+            type: 'flowEdge',
+            data: parentEdge.data
+          };
+          newGraph.addEdge(reconnectToEndEdge);
+        }
       });
     }
 
@@ -1348,7 +1445,23 @@ export class WorkflowGraph {
     connectedEdges.forEach(edge => newGraph.removeEdge(edge.id));
 
     // If the node was in the middle of a flow, reconnect the edges
+    // ✅ BUT ONLY if the source node is NOT a conditional node
     if (incomingEdge && outgoingEdge) {
+      // ✅ Check if the source node should connect to End node
+      const sourceNode = newGraph.nodes.get(incomingEdge.source);
+
+      if (sourceNode && sourceNode.type === 'condition') {
+        console.log('🔍 Skipping reconnection in cutNode - source node is condition:', incomingEdge.source, sourceNode.type);
+        // Only ACTION and TRIGGER nodes should connect to End node
+        // CONDITION nodes should NOT connect to End node
+        return {
+          cutNodes: [nodeToCut],
+          cutEdges: connectedEdges,
+          newGraph
+        };
+      }
+
+      // ✅ Only reconnect if source is NOT a conditional node
       const reconnectionEdge: GraphEdge = {
         id: `reconnect-${Date.now()}`,
         source: incomingEdge.source,
@@ -1360,7 +1473,7 @@ export class WorkflowGraph {
         }
       };
       newGraph.addEdge(reconnectionEdge);
-      console.log('🔍 Reconnected flow:', incomingEdge.source, '->', outgoingEdge.target);
+      console.log('🔍 Reconnected flow in cutNode (non-conditional source):', incomingEdge.source, '->', outgoingEdge.target);
     }
 
     console.log('✅ Node cut successfully:', nodeId);
@@ -1399,7 +1512,19 @@ export class WorkflowGraph {
     connectedEdges.forEach(edge => newGraph.removeEdge(edge.id));
 
     // If the node was in the middle of a flow, reconnect the edges
+    // ✅ BUT ONLY if the source node is NOT a conditional node
     if (incomingEdge && outgoingEdge) {
+      // ✅ Check if the source node should connect to End node
+      const sourceNode = newGraph.nodes.get(incomingEdge.source);
+
+      if (sourceNode && sourceNode.type === 'condition') {
+        console.log('🔍 Skipping reconnection in deleteSingleNode - source node is condition:', incomingEdge.source, sourceNode.type);
+        // Only ACTION and TRIGGER nodes should connect to End node
+        // CONDITION nodes should NOT connect to End node
+        return newGraph;
+      }
+
+      // ✅ Only reconnect if source is NOT a conditional node
       const reconnectionEdge: GraphEdge = {
         id: `reconnect-${Date.now()}`,
         source: incomingEdge.source,
@@ -1411,7 +1536,7 @@ export class WorkflowGraph {
         }
       };
       newGraph.addEdge(reconnectionEdge);
-      console.log('🔍 Reconnected flow after single node deletion:', incomingEdge.source, '->', outgoingEdge.target);
+      console.log('🔍 Reconnected flow after single node deletion (non-conditional source):', incomingEdge.source, '->', outgoingEdge.target);
     }
 
     console.log('✅ Single node deleted successfully:', nodeId);
@@ -1419,7 +1544,7 @@ export class WorkflowGraph {
   }
 
   /**
-   * Delete a node from a conditional branch and replace with placeholder
+   * Delete a node from a conditional branch using comprehensive graph-based cleanup
    */
   deleteConditionalBranchNode(
     nodeId: string,
@@ -1427,77 +1552,246 @@ export class WorkflowGraph {
     branchType: 'yes' | 'no',
     handleAddNodeToBranch?: (insertionIndex: number, branchType: 'yes' | 'no', conditionNodeId: string, placeholderNodeId: string, action: unknown) => void
   ): WorkflowGraph {
-    console.log('🔍 WorkflowGraph.deleteConditionalBranchNode:', { nodeId, conditionNodeId, branchType });
+    console.log('🔍 🎯 GRAPH-BASED DELETION:', { nodeId, conditionNodeId, branchType });
 
     const newGraph = this.clone();
     const nodeToDelete = newGraph.nodes.get(nodeId);
 
     if (!nodeToDelete) {
-      console.error('❌ Conditional branch node not found for deletion:', nodeId);
+      console.error('❌ Node not found for deletion:', nodeId);
       return this;
     }
 
-    // Preserve the node's position and branch context
-    const nodePosition = nodeToDelete.position;
-    const branchPath = nodeToDelete.data?.branchPath;
-    const level = nodeToDelete.data?.level || 0;
-    const parentConditions = nodeToDelete.data?.parentConditions || [];
+    // 🎯 STEP 1: Find ALL edges connected to this node
+    const allEdges = Array.from(this.edges.values());
+    const incomingEdges = allEdges.filter(edge => edge.target === nodeId);
+    const outgoingEdges = allEdges.filter(edge => edge.source === nodeId);
 
-    // Create a new placeholder to replace the deleted node
-    const newPlaceholderId = `placeholder-${branchType}-${Date.now()}`;
-    const newPlaceholder: GraphNode = {
-      id: newPlaceholderId,
-      type: 'placeholder',
-      position: nodePosition,
-      data: {
-        label: 'Add Node',
-        isConfigured: false,
-        branchType: branchType,
-        conditionNodeId: conditionNodeId,
-        branchPath: branchPath,
-        level: level,
-        parentConditions: parentConditions,
-        onAddNode: handleAddNodeToBranch ?
-          (action: unknown) => handleAddNodeToBranch(0, branchType, conditionNodeId, newPlaceholderId, action) :
-          undefined,
-      }
-    };
+    console.log('🔍 Edge analysis:', {
+      incoming: incomingEdges.map(e => `${e.source}->${e.target}`),
+      outgoing: outgoingEdges.map(e => `${e.source}->${e.target}`)
+    });
 
-    // Remove the original node
+    // 🎯 STEP 2: Remove the node and ALL its edges completely
     newGraph.removeNode(nodeId);
-
-    // Add the placeholder
-    newGraph.addNode(newPlaceholder);
-
-    // Update edges that were connected to the deleted node
-    const connectedEdges = Array.from(this.edges.values()).filter(
-      edge => edge.source === nodeId || edge.target === nodeId
-    );
-
-    connectedEdges.forEach(edge => {
+    [...incomingEdges, ...outgoingEdges].forEach(edge => {
       newGraph.removeEdge(edge.id);
+      console.log('🔍 Removed edge:', `${edge.source}->${edge.target}`);
+    });
 
-      if (edge.target === nodeId) {
-        // Incoming edge - redirect to placeholder
-        const newEdge: GraphEdge = {
-          ...edge,
-          id: `${edge.source}-${newPlaceholderId}`,
-          target: newPlaceholderId
+    // 🎯 STEP 3: Smart reconnection logic - ALWAYS CREATE PLACEHOLDER FOR BRANCH
+    if (outgoingEdges.length > 0 && incomingEdges.length > 0) {
+      // Case 1: Node has both incoming and outgoing - direct reconnection
+      console.log('🔍 Case 1: Direct reconnection (bypass placeholder)');
+      incomingEdges.forEach(incomingEdge => {
+        outgoingEdges.forEach(outgoingEdge => {
+          const directEdge: GraphEdge = {
+            ...incomingEdge,
+            id: `${incomingEdge.source}-${outgoingEdge.target}`,
+            target: outgoingEdge.target
+          };
+          newGraph.addEdge(directEdge);
+          console.log('🔍 ✅ Direct edge created:', `${directEdge.source}->${directEdge.target}`);
+        });
+      });
+    } else {
+      // Case 2: ALWAYS create placeholder when deleting branch nodes
+      console.log('🔍 Case 2: Create placeholder for branch (incoming:', incomingEdges.length, 'outgoing:', outgoingEdges.length, ')');
+
+      const nodePosition = nodeToDelete.position;
+      const newPlaceholderId = `placeholder-${branchType}-${Date.now()}`;
+      const newPlaceholder: GraphNode = {
+        id: newPlaceholderId,
+        type: 'placeholder',
+        position: nodePosition,
+        width: 280,
+        height: 280,
+        data: {
+          label: 'Add Node',
+          isConfigured: false,
+          branchType: branchType,
+          conditionNodeId: conditionNodeId,
+          handleAddNodeToBranch: handleAddNodeToBranch ?
+            (branchType: string, placeholderNodeId: string, conditionNodeId: string) => {
+              console.log('🔍 Placeholder clicked:', { branchType, placeholderNodeId, conditionNodeId });
+              handleAddNodeToBranch(0, branchType as 'yes' | 'no', conditionNodeId, placeholderNodeId, {});
+            } : undefined,
+        }
+      };
+
+      newGraph.addNode(newPlaceholder);
+
+      // 🎯 CRITICAL FIX: Always connect condition to placeholder, regardless of incoming edges
+      if (incomingEdges.length > 0) {
+        // Connect existing incoming edges to placeholder
+        incomingEdges.forEach(incomingEdge => {
+          const placeholderEdge: GraphEdge = {
+            ...incomingEdge,
+            id: `${incomingEdge.source}-${newPlaceholderId}`,
+            target: newPlaceholderId
+          };
+          newGraph.addEdge(placeholderEdge);
+          console.log('🔍 ✅ Placeholder edge created:', `${placeholderEdge.source}->${placeholderEdge.target}`);
+        });
+      } else {
+        // 🎯 CRITICAL: Create direct edge from condition to placeholder
+        const conditionToPlaceholderEdge: GraphEdge = {
+          id: `edge-${conditionNodeId}-${branchType}-${newPlaceholderId}`,
+          source: conditionNodeId,
+          target: newPlaceholderId,
+          sourceHandle: branchType,
+          type: 'condition',
+          label: branchType === 'yes' ? 'Yes' : 'No',
+          data: { branchType: branchType }
         };
-        newGraph.addEdge(newEdge);
-      } else if (edge.source === nodeId) {
-        // Outgoing edge - redirect from placeholder
-        const newEdge: GraphEdge = {
-          ...edge,
-          id: `${newPlaceholderId}-${edge.target}`,
-          source: newPlaceholderId
+        newGraph.addEdge(conditionToPlaceholderEdge);
+        console.log('🔍 ✅ Direct condition->placeholder edge created:', `${conditionNodeId}->${newPlaceholderId}`);
+      }
+    }
+
+    // 🎯 STEP 4: Ensure the other branch always has a placeholder
+    this.ensureBothBranchesHavePlaceholders(newGraph, conditionNodeId, branchType, handleAddNodeToBranch);
+
+    // 🎯 STEP 5: Clean up any orphaned edges or nodes
+    this.cleanupOrphanedElements(newGraph);
+
+    console.log('✅ GRAPH-BASED: Branch node deletion completed');
+    return newGraph;
+  }
+
+  /**
+   * Ensure both branches of a condition node have placeholders when needed
+   * This implements the array-based approach logic for stable branch management
+   */
+  private ensureBothBranchesHavePlaceholders(
+    graph: WorkflowGraph,
+    conditionNodeId: string,
+    deletedBranchType: 'yes' | 'no',
+    handleAddNodeToBranch?: (insertionIndex: number, branchType: 'yes' | 'no', conditionNodeId: string, placeholderNodeId: string, action: unknown) => void
+  ): void {
+    console.log('🔍 🎯 ENSURING BOTH BRANCHES HAVE PLACEHOLDERS:', { conditionNodeId, deletedBranchType });
+
+    const conditionNode = graph.nodes.get(conditionNodeId);
+    if (!conditionNode || conditionNode.type !== 'condition') {
+      console.log('🔍 Condition node not found or not a condition:', conditionNodeId);
+      return;
+    }
+
+    // Find existing edges from the condition node
+    const conditionEdges = Array.from(graph.edges.values()).filter(edge => edge.source === conditionNodeId);
+    const yesEdge = conditionEdges.find(edge => edge.sourceHandle === 'yes' || edge.label === 'Yes');
+    const noEdge = conditionEdges.find(edge => edge.sourceHandle === 'no' || edge.label === 'No');
+
+    console.log('🔍 Current condition edges:', {
+      yesEdge: yesEdge ? `${yesEdge.source} -> ${yesEdge.target}` : 'none',
+      noEdge: noEdge ? `${noEdge.source} -> ${noEdge.target}` : 'none'
+    });
+
+    // 🎯 CRITICAL FIX: Check BOTH branches and create placeholders for ANY empty branch
+    const branchesToCheck: Array<'yes' | 'no'> = ['yes', 'no'];
+
+    branchesToCheck.forEach(branchType => {
+      const branchEdge = branchType === 'yes' ? yesEdge : noEdge;
+      const needsPlaceholder = !branchEdge ||
+                              branchEdge.target === 'virtual-end' ||
+                              !graph.nodes.has(branchEdge.target);
+
+      if (needsPlaceholder) {
+        console.log('🔍 🎯 Creating placeholder for', branchType, 'branch (missing or invalid edge)');
+
+        const placeholderId = `placeholder-${branchType}-${Date.now()}`;
+        const placeholder: GraphNode = {
+          id: placeholderId,
+          type: 'placeholder',
+          position: { x: 0, y: 0 },
+          width: 280,
+          height: 280,
+          data: {
+            label: 'Add Node',
+            isConfigured: false,
+            branchType: branchType,
+            conditionNodeId: conditionNodeId,
+            handleAddNodeToBranch: handleAddNodeToBranch ?
+              (branchType: string, placeholderNodeId: string, conditionNodeId: string) => {
+                console.log('🔍 Branch placeholder clicked:', { branchType, placeholderNodeId, conditionNodeId });
+                handleAddNodeToBranch(0, branchType as 'yes' | 'no', conditionNodeId, placeholderNodeId, {});
+              } :
+              undefined,
+          }
         };
-        newGraph.addEdge(newEdge);
+
+        // Add the placeholder node
+        graph.addNode(placeholder);
+
+        // Remove existing edge if it exists
+        if (branchEdge) {
+          graph.removeEdge(branchEdge.id);
+        }
+
+        // Create edge from condition to placeholder
+        const placeholderEdge: GraphEdge = {
+          id: `edge-${conditionNodeId}-${branchType}-${Date.now()}`,
+          source: conditionNodeId,
+          target: placeholderId,
+          sourceHandle: branchType,
+          type: 'condition',
+          label: branchType === 'yes' ? 'Yes' : 'No',
+          data: { branchType: branchType }
+        };
+        graph.addEdge(placeholderEdge);
+
+        console.log('✅ Created placeholder for', branchType, 'branch:', placeholderId);
+      }
+    });
+  }
+
+  /**
+   * Clean up orphaned edges and nodes that are no longer connected
+   */
+  private cleanupOrphanedElements(graph: WorkflowGraph): void {
+    console.log('🔍 Cleaning up orphaned elements');
+
+    // Find edges that point to non-existent nodes
+    const orphanedEdges: string[] = [];
+    graph.edges.forEach((edge, edgeId) => {
+      const sourceExists = graph.nodes.has(edge.source);
+      const targetExists = graph.nodes.has(edge.target);
+
+      if (!sourceExists || !targetExists) {
+        orphanedEdges.push(edgeId);
+        console.log('🔍 Found orphaned edge:', `${edge.source}->${edge.target}`, { sourceExists, targetExists });
       }
     });
 
-    console.log('✅ Conditional branch node deleted and replaced with placeholder:', newPlaceholderId);
-    return newGraph;
+    // Remove orphaned edges
+    orphanedEdges.forEach(edgeId => {
+      graph.removeEdge(edgeId);
+      console.log('🔍 ✅ Removed orphaned edge:', edgeId);
+    });
+
+    // Find nodes that have no connections (except virtual-end and triggers)
+    const orphanedNodes: string[] = [];
+    graph.nodes.forEach((node, nodeId) => {
+      if (node.type === 'trigger' || nodeId === 'virtual-end') {
+        return; // Skip triggers and virtual-end
+      }
+
+      const hasIncoming = Array.from(graph.edges.values()).some(edge => edge.target === nodeId);
+      const hasOutgoing = Array.from(graph.edges.values()).some(edge => edge.source === nodeId);
+
+      if (!hasIncoming && !hasOutgoing) {
+        orphanedNodes.push(nodeId);
+        console.log('🔍 Found orphaned node:', nodeId, node.type);
+      }
+    });
+
+    // Remove orphaned nodes
+    orphanedNodes.forEach(nodeId => {
+      graph.removeNode(nodeId);
+      console.log('🔍 ✅ Removed orphaned node:', nodeId);
+    });
+
+    console.log('✅ Cleanup completed:', { orphanedEdges: orphanedEdges.length, orphanedNodes: orphanedNodes.length });
   }
 
   /**
@@ -1632,21 +1926,73 @@ export class WorkflowGraph {
    * Cut entire flow from a node using BFS traversal
    */
   cutFlowFromNode(nodeId: string): { cutNodes: GraphNode[], cutEdges: GraphEdge[], newGraph: WorkflowGraph } {
-    console.log('🔍 WorkflowGraph.cutFlowFromNode:', nodeId);
+    console.log('🔍 🎯 ENHANCED cutFlowFromNode:', nodeId);
 
     const newGraph = this.clone();
     const { nodes: subNodes, edges: subEdges } = this.getSubtree(nodeId);
+
+    // Find incoming edge to the start node for branch analysis
+    const incomingEdge = Array.from(this.edges.values()).find(edge => edge.target === nodeId);
+
+    // 🎯 BRANCH ANALYSIS: Check if this is a branch node
+    let isBranchNode = false;
+    let conditionNodeId = '';
+    let branchType: 'yes' | 'no' = 'yes';
+
+    if (incomingEdge) {
+      const sourceNode = this.nodes.get(incomingEdge.source);
+      if (sourceNode?.type === 'condition') {
+        isBranchNode = true;
+        conditionNodeId = incomingEdge.source;
+        branchType = (incomingEdge.sourceHandle as 'yes' | 'no') ||
+                    (incomingEdge.label?.toLowerCase() === 'no' ? 'no' : 'yes');
+        console.log('🔍 Cutting from branch:', { conditionNodeId, branchType });
+      }
+    }
 
     // Remove all nodes and edges in the subtree
     subNodes.forEach(node => newGraph.removeNode(node.id));
     subEdges.forEach(edge => newGraph.removeEdge(edge.id));
 
-    // Find incoming edge to the start node for reconnection
-    const incomingEdge = Array.from(this.edges.values()).find(edge => edge.target === nodeId);
+    // 🎯 BRANCH PLACEHOLDER: If cutting from a branch, create placeholder
+    if (isBranchNode && incomingEdge) {
+      console.log('🔍 Creating placeholder for cut branch:', branchType);
 
-    // If there was an incoming edge, we might need to reconnect to End node
-    if (incomingEdge) {
-      // Check if any of the cut nodes were connected to End
+      const placeholderId = `placeholder-${branchType}-${Date.now()}`;
+      const placeholder: GraphNode = {
+        id: placeholderId,
+        type: 'placeholder',
+        position: { x: 0, y: 0 },
+        width: 280,
+        height: 280,
+        data: {
+          label: 'Add Node',
+          isConfigured: false,
+          branchType: branchType,
+          conditionNodeId: conditionNodeId,
+          handleAddNodeToBranch: (branchType: string, placeholderNodeId: string, conditionNodeId: string) => {
+            console.log('🔍 Cut branch placeholder clicked:', { branchType, placeholderNodeId, conditionNodeId });
+          },
+        }
+      };
+
+      newGraph.addNode(placeholder);
+
+      // Create edge from condition to placeholder
+      const placeholderEdge: GraphEdge = {
+        id: `edge-${conditionNodeId}-${branchType}-${Date.now()}`,
+        source: conditionNodeId,
+        target: placeholderId,
+        sourceHandle: branchType,
+        type: 'condition',
+        label: branchType === 'yes' ? 'Yes' : 'No',
+        data: { branchType: branchType }
+      };
+      newGraph.addEdge(placeholderEdge);
+      console.log('🔍 ✅ Created placeholder for cut branch:', placeholderId);
+
+    } else if (incomingEdge) {
+      // 🎯 MAIN FLOW: Reconnect to End node if needed
       const edgeToEnd = subEdges.find(edge => edge.target === 'virtual-end' || edge.target.includes('end'));
       if (edgeToEnd) {
         const reconnectionEdge: GraphEdge = {
@@ -1663,7 +2009,7 @@ export class WorkflowGraph {
       }
     }
 
-    console.log('✅ Flow cut successfully from:', nodeId, 'nodes:', subNodes.length);
+    console.log('✅ Enhanced flow cut completed:', { nodeId, nodes: subNodes.length, isBranchNode });
     return {
       cutNodes: subNodes,
       cutEdges: subEdges,

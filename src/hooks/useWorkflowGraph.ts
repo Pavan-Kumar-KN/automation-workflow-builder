@@ -153,7 +153,7 @@ export const useWorkflowGraph = () => {
     console.log('🔍 Converting index to node ID:', { afterNodeIndex, targetNodeId: targetNode.id, targetLabel: targetNode.data?.label });
     return insertNodeAfter(targetNode.id, nodeType, nodeData, openActionModal);
   }, [nodes, insertNodeAfter]);
-
+     
 
 
   /**
