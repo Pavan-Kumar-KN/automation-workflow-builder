@@ -52,7 +52,19 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
           hover:scale-110
           active:scale-95
         `}
-        onClick={() => data.handleAddNodeToBranch(data.branchType, id, data.conditionNodeId)}
+        onClick={() => {
+          console.log('🔍 Placeholder clicked:', { 
+            branchType: data.branchType, 
+            placeholderNodeId: id, 
+            conditionNodeId: data.conditionNodeId,
+            hasHandler: !!data.handleAddNodeToBranch 
+          });
+          if (data.handleAddNodeToBranch) {
+            data.handleAddNodeToBranch(data.branchType, id, data.conditionNodeId);
+          } else {
+            console.error('❌ No handleAddNodeToBranch function found on placeholder node');
+          }
+        }}
       >
         <div className="w-6 h-5 bg-gray-400 border border-gray-500 rounded-md flex items-center justify-center transition-colors shadow-sm">
           <LucideIcons.Plus className="w-4 h-4 text-white stroke-[2.5]" />

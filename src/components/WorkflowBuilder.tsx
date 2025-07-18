@@ -201,7 +201,7 @@ export const WorkflowBuilder = () => {
               // Use the SAME pattern as duplication - direct function reference
               onOpenActionModal: (clickedIndex: number) => {
                 console.log('🔍 Plus clicked from fixed edge:', edge.id, 'using stored insertIndex:', insertIndex);
-                openActionModal(insertIndex); // Use the stored insertIndex, not the clicked one
+                openActionModal(Number(insertIndex)); // Use the stored insertIndex, not the clicked one
               },
               // Preserve the calculated index
               index: insertIndex
@@ -324,58 +324,13 @@ export const WorkflowBuilder = () => {
       const updatedNodes = [...prevNodes, newNode];
 
       if (isConditionNode) {
-        console.log('🔍 Adding conditional node using ORIGINAL array-based approach');
-
-        const yesPlaceholder = {
-          id: `placeholder-yes-${Date.now()}`,
-          type: 'placeholder',
-          position: { x: 0, y: 0 }, // Let dagre handle positioning
-          width: nodeWidth,
-          height: nodeWidth,
-          data: {
-            label: 'Add Action',
-            isConfigured: false,
-            branchType: 'yes' as const,
-            conditionNodeId: newNodeId,
-            handleAddNodeToBranch: handleAddNodeToBranch,
-          }
-        };
-
-        const noPlaceholder = {
-          id: `placeholder-no-${Date.now()}`,
-          type: 'placeholder',
-          position: { x: 0, y: 0 }, // Let dagre handle positioning
-          width: nodeWidth,
-          height: nodeWidth,
-          data: {
-            label: 'Add Action',
-            isConfigured: false,
-            branchType: 'no' as const,
-            conditionNodeId: newNodeId,
-            handleAddNodeToBranch,
-          }
-        };
-
-        updatedNodes.push(yesPlaceholder, noPlaceholder);
-
-        const yesEdge = {
-          id: `e-yes-${yesPlaceholder.id}`,
-          source: newNode.id,
-          target: yesPlaceholder.id,
-          label: "Yes",
-          type: "condition",
-        };
-
-        const noEdge = {
-          id: `e-no-${noPlaceholder.id}`,
-          source: newNode.id,
-          target: noPlaceholder.id,
-          label: "No",
-          type: "condition",
-        };
-
-        setEdges((eds) => [...eds, yesEdge, noEdge]);
-
+        console.log('🔍 Adding conditional node using GRAPH-BASED approach');
+        
+        // Use graph-based conditional node addition
+        addConditionalNodeAtEnd(newNode, null);
+        
+        // Don't add the node manually to the array - let graph operations handle it
+        return prevNodes; // Return original nodes, graph operations will update them
       } else {
         // ✅ Only non-conditional nodes should connect to virtual-end
         // Find the node that currently connects to virtual-end (this should be the last node in the flow)
@@ -451,25 +406,41 @@ export const WorkflowBuilder = () => {
     // ✅ Auto-open configuration panel for all nodes
     if (shouldAutoOpenConfig && (nodeType === 'action' || nodeType === 'condition' || !nodeType)) {
       console.log('🔍 Auto-opening config for node:', newNodeId, nodeData.label);
-      // Use setTimeout to ensure the node is added to state before opening config
-      setTimeout(() => {
-        console.log('🔍 Finding and setting selected node:', newNodeId);
-        // Get the latest nodes from the store and find the newly added node
-        const currentNodes = useWorkflowStore.getState().nodes;
-        const addedNode = currentNodes.find(n => n.id === newNodeId);
-        if (addedNode) {
-          console.log('🔍 Found node, setting as selected:', addedNode.id);
-          setSelectedNode(addedNode);
-        } else {
-          console.log('❌ Node not found in state:', newNodeId);
-        }
-      }, 100); // Increased timeout to ensure state update
+      
+      if (isConditionNode) {
+        // For condition nodes using graph operations, wait a bit longer
+        setTimeout(() => {
+          console.log('🔍 Finding condition node after graph operation:', newNodeId);
+          const currentNodes = useWorkflowStore.getState().nodes;
+          const addedNode = currentNodes.find(n => n.id === newNodeId);
+          if (addedNode) {
+            console.log('🔍 Found condition node, setting as selected:', addedNode.id);
+            setSelectedNode(addedNode);
+          } else {
+            console.log('❌ Condition node not found in state:', newNodeId);
+          }
+        }, 200); // Longer timeout for graph operations
+      } else {
+        // Use setTimeout to ensure the node is added to state before opening config
+        setTimeout(() => {
+          console.log('🔍 Finding and setting selected node:', newNodeId);
+          // Get the latest nodes from the store and find the newly added node
+          const currentNodes = useWorkflowStore.getState().nodes;
+          const addedNode = currentNodes.find(n => n.id === newNodeId);
+          if (addedNode) {
+            console.log('🔍 Found node, setting as selected:', addedNode.id);
+            setSelectedNode(addedNode);
+          } else {
+            console.log('❌ Node not found in state:', newNodeId);
+          }
+        }, 100); // Increased timeout to ensure state update
+      }
     }
   };
 
   // ✅ Removed useCallback to avoid circular dependencies
   const handleAddNodeToBranch = useCallback((branchType: string, placeholderNodeId: string, conditionNodeId: string, existingBranchPath?: string) => {
-    console.log('🔍 Placeholder clicked:', { branchType, placeholderNodeId, conditionNodeId, existingBranchPath });
+    console.log('🔍 🎯 PLACEHOLDER CLICKED - handleAddNodeToBranch called:', { branchType, placeholderNodeId, conditionNodeId, existingBranchPath });
 
     // Create or extend the branch path for nested conditions
     const branchPath = existingBranchPath || createBranchPath(undefined, conditionNodeId, branchType as 'yes' | 'no');
@@ -486,71 +457,468 @@ export const WorkflowBuilder = () => {
       parentConditions
     });
 
+    console.log('🔍 🎯 Setting branch info and opening action modal:', {
+      conditionNodeId,
+      branchType,
+      placeholderNodeId,
+      branchPath,
+      level,
+      parentConditions
+    });
+
+    // ✅ CRITICAL FIX: Open the action modal after setting branch info
     setShowActionModal(true);
+    console.log('🔍 🎯 Action modal state set to TRUE - should now be open for branch:', branchType);
   }, [createBranchPath, getParentConditions, getBranchLevel]);
 
 
-  // Handle node insertion using graph-based operations - SIMPLIFIED VERSION
+  // Handle node insertion with proper conditional flow shifting
   const handleNodeInsertion = useCallback((afterNodeIndex: number, nodeType: string, nodeData: NodeData) => {
-    console.log('🔍 Simple handleNodeInsertion called:', {
+    console.log('🔍 handleNodeInsertion called:', {
       afterNodeIndex,
       nodeType,
       nodeData: nodeData.label,
-      currentNodesCount: nodes.length
+      currentNodesCount: nodes.length,
+      currentNodes: nodes.map(n => `${n.id} (${n.type})`)
     });
 
-    // Debug: Show current flow nodes
-    const flowNodes = nodes.filter(node =>
-      node.type !== 'placeholder' &&
-      node.id !== 'virtual-end' &&
-      !node.id.startsWith('placeholder-')
-    );
-    console.log('🔍 Current flow nodes in handleNodeInsertion:', flowNodes.map((n, i) => `${i}: ${n.id} (${n.data?.label || n.type})`));
-    console.log('🔍 Will insert after node at index:', afterNodeIndex, 'which is:', flowNodes[afterNodeIndex]?.id);
+    const isConditionNode = nodeType === 'condition' || nodeData.type === 'condition';
+    const actualNodeType = isConditionNode ? 'condition' : nodeType;
+    const actualNodeData = isConditionNode
+      ? { ...nodeData, branchNodes: { branch1: [], otherwise: [] }, isConfigured: false }
+      : nodeData;
 
-    // Simple insertion - no complex automation.js logic
-    const newNodeId = insertNodeByIndex(afterNodeIndex, nodeType, nodeData, openActionModal);
+    // 🔑 GENERATE ALL IDs UPFRONT - This is the key fix
+    const timestamp = Date.now();
+    const nodeId = `${actualNodeType}-${timestamp}`;
+    const yesId = `placeholder-yes-${timestamp}`;
+    const noId = `placeholder-no-${timestamp}`;
 
-    if (newNodeId) {
-      toast.success(`${nodeData.label} inserted into workflow!`);
+    const newNode: Node = {
+      id: nodeId,
+      type: actualNodeType,
+      position: { x: 0, y: 0 },
+      data: {
+        ...actualNodeData,
+        label: nodeData.label,
+        openTriggerModal: actualNodeType === 'trigger' ? () => setShowTriggerModal(true) : undefined,
+        isConfigured: false,
+        onDelete: isConditionNode ? () => handleConditionNodeDeletion(nodeId) : () => handleNodeDeletion(nodeId),
+        onDuplicate: () => {
+          // Inline duplicate logic to avoid dependency issues
+          console.log('🔍 Duplicating node:', nodeId);
+          setTimeout(() => {
+            const currentNodes = useWorkflowStore.getState().nodes;
+            const originalNode = currentNodes.find(n => n.id === nodeId);
+            if (originalNode) {
+              const duplicateId = `${originalNode.type}-${Date.now()}`;
+              const duplicateNode: Node = {
+                id: duplicateId,
+                type: originalNode.type,
+                position: { x: 0, y: 0 },
+                data: {
+                  ...originalNode.data,
+                  isConfigured: false,
+                  onDelete: originalNode.type === 'condition'
+                    ? () => handleConditionNodeDeletion(duplicateId)
+                    : () => handleNodeDeletion(duplicateId),
+                },
+              };
+              
+              useWorkflowStore.getState().setNodes((nds) => {
+                const originalIndex = nds.findIndex(n => n.id === nodeId);
+                if (originalIndex !== -1) {
+                  const newNodes = [...nds];
+                  newNodes.splice(originalIndex + 1, 0, duplicateNode);
+                  return newNodes;
+                }
+                return nds;
+              });
+            }
+          }, 50);
+        },
+        ...(isConditionNode && {
+          yesPlaceholderId: yesId,
+          noPlaceholderId: noId,
+        }),
+      },
+    };
 
-      // Auto-open configuration panel for action and condition nodes
-      if (nodeType === 'action' || nodeType === 'condition' || !nodeType) {
-        console.log('🔍 Auto-opening config for inserted node:', newNodeId, nodeData.label);
-        setTimeout(() => {
-          const currentNodes = useWorkflowStore.getState().nodes;
-          const insertedNode = currentNodes.find(n => n.id === newNodeId);
-          if (insertedNode) {
-            console.log('🔍 Found inserted node, setting as selected:', insertedNode.id);
-            setSelectedNode(insertedNode);
-          } else {
-            console.log('❌ Inserted node not found in state:', newNodeId);
-          }
-        }, 100);
+    setNodes((nds) => {
+      console.log('🔍 Current nodes array:', nds.map(n => `${n.id} (${n.type})`));
+      console.log('🔍 afterNodeIndex:', afterNodeIndex);
+
+      const newNodes = [...nds];
+      let safeIndex = afterNodeIndex;
+
+      // 🛡 Ensure the index is valid (within bounds)
+      if (safeIndex < 0 || safeIndex >= newNodes.length) {
+        const triggerNode = newNodes.find(n => n.type === 'trigger');
+        if (triggerNode) {
+          safeIndex = newNodes.findIndex(n => n.id === triggerNode.id);
+        } else {
+          console.warn('No trigger node found. Inserting at start.');
+          safeIndex = -1;
+        }
       }
-    } else {
-      toast.error('Failed to insert node - invalid position');
+
+      const previousNode = safeIndex >= 0 ? newNodes[safeIndex] : newNodes.find(n => n.type === 'trigger');
+      const nextNode = newNodes[safeIndex + 1];
+
+      console.log('🔍 safeIndex:', safeIndex);
+      console.log('🔍 previousNode:', previousNode?.id, previousNode?.type);
+      console.log('🔍 nextNode:', nextNode?.id, nextNode?.type);
+
+      // 🎯 GHOST NODE HANDLING: Check if the nextNode is a ghost node
+      if (nextNode && nextNode.type === 'ghost' && isConditionNode) {
+        console.log('🔍 🎯 GHOST NODE DETECTED: Simply deleting ghost node');
+        console.log('🔍 🎯 Ghost node ID to delete:', nextNode.id);
+        
+        // Simply remove the ghost node from the array - that's it!
+        const filteredNodes = newNodes.filter(n => n.id !== nextNode.id);
+        
+        // Insert the new conditional node normally
+        filteredNodes.splice(safeIndex + 1, 0, newNode);
+
+        // Create both Yes and No placeholders as normal
+        const yesPlaceholder: Node = {
+          id: yesId,
+          type: 'placeholder',
+          position: { x: 0, y: 0 },
+          width: nodeWidth,
+          height: nodeWidth,
+          data: {
+            label: 'Add Action',
+            isConfigured: false,
+            branchType: 'yes' as const,
+            conditionNodeId: newNode.id,
+            handleAddNodeToBranch
+          }
+        };
+
+        const noPlaceholder: Node = {
+          id: noId,
+          type: 'placeholder',
+          position: { x: 0, y: 0 },
+          width: nodeWidth,
+          height: nodeWidth,
+          data: {
+            label: 'Add Action',
+            isConfigured: false,
+            branchType: 'no' as const,
+            conditionNodeId: newNode.id,
+            handleAddNodeToBranch
+          }
+        };
+
+        // Add placeholders after the conditional node
+        filteredNodes.splice(safeIndex + 2, 0, yesPlaceholder, noPlaceholder);
+
+        // Store placeholder IDs for edge creation
+        newNode.data.yesPlaceholderId = yesId;
+        newNode.data.noPlaceholderId = noId;
+
+        console.log('🔍 🎯 Ghost node deleted, conditional node inserted normally');
+        return filteredNodes;
+      }
+
+      // Insert the new node
+      newNodes.splice(safeIndex + 1, 0, newNode);
+
+      if (isConditionNode) {
+        // 🔄 CONDITIONAL RESTRUCTURING LOGIC
+        // When inserting a condition node, move downstream nodes to the "Yes" branch
+        // NOTE: This only runs if we didn't handle a ghost node above
+
+        if (nextNode && nextNode.id !== 'virtual-end' && nextNode.type !== 'ghost') {
+          console.log('🔄 Restructuring flow: Moving downstream to Yes branch');
+
+          // Move the nextNode and all downstream nodes to the Yes branch
+          // by replacing the Yes placeholder with the actual nextNode
+          const yesNodeId = nextNode.id; // Use the existing downstream node as Yes branch
+
+          // Update the nextNode to be part of the Yes branch
+          const updatedNextNode = {
+            ...nextNode,
+            data: {
+              ...nextNode.data,
+              branchType: 'yes',
+              conditionNodeId: newNode.id,
+              // 🔄 Add plus button functionality for action nodes moved to Yes branch
+              showBottomPlus: nextNode.type === 'action' ? true : nextNode.data.showBottomPlus,
+              onInsertBelow: nextNode.type === 'action' ? (nodeId: string) => {
+                console.log('🔍 Insert below clicked in Yes branch:', nodeId);
+                setConditionBranchInfo({
+                  conditionNodeId: newNode.id,
+                  branchType: 'yes',
+                  placeholderNodeId: `after-${nodeId}`
+                });
+                setShowActionModal(true);
+              } : nextNode.data.onInsertBelow,
+            }
+          };
+
+          // Replace the nextNode in the array with the updated version
+          const nextNodeIndex = newNodes.findIndex(n => n.id === nextNode.id);
+          if (nextNodeIndex !== -1) {
+            newNodes[nextNodeIndex] = updatedNextNode;
+          }
+
+          // Create only the No placeholder (Yes branch uses the existing downstream)
+          const noPlaceholder: Node = {
+            id: noId,
+            type: 'placeholder',
+            position: { x: 0, y: 0 },
+            width: nodeWidth,
+            height: nodeWidth,
+            data: {
+              label: 'Add Action',
+              isConfigured: false,
+              branchType: 'no' as const,
+              conditionNodeId: newNode.id,
+              handleAddNodeToBranch
+            }
+          };
+
+          // Add only the No placeholder
+          newNodes.splice(safeIndex + 2, 0, noPlaceholder);
+
+          // Store the Yes node ID for edge creation
+          newNode.data.yesPlaceholderId = yesNodeId;
+          newNode.data.noPlaceholderId = noId;
+
+        } else {
+          // No downstream nodes - create both placeholders as usual
+          console.log('🔍 Creating both Yes and No placeholders (no downstream)');
+
+          const yesPlaceholder: Node = {
+            id: yesId,
+            type: 'placeholder',
+            position: { x: 0, y: 0 },
+            width: nodeWidth,
+            height: nodeWidth,
+            data: {
+              label: 'Add Action',
+              isConfigured: false,
+              branchType: 'yes' as const,
+              conditionNodeId: newNode.id,
+              handleAddNodeToBranch
+            }
+          };
+
+          const noPlaceholder: Node = {
+            id: noId,
+            type: 'placeholder',
+            position: { x: 0, y: 0 },
+            width: nodeWidth,
+            height: nodeWidth,
+            data: {
+              label: 'Add Action',
+              isConfigured: false,
+              branchType: 'no' as const,
+              conditionNodeId: newNode.id,
+              handleAddNodeToBranch
+            }
+          };
+
+          newNodes.splice(safeIndex + 2, 0, yesPlaceholder, noPlaceholder);
+
+          // Store placeholder IDs for edge creation
+          newNode.data.yesPlaceholderId = yesId;
+          newNode.data.noPlaceholderId = noId;
+        }
+      }
+
+      return newNodes;
+    });
+
+    // Handle edges
+    setEdges((eds) => {
+      console.log('🔍 Current edges before insertion:', eds);
+      let newEdges = [...eds];
+
+      const previousNode = nodes[afterNodeIndex];
+      const nextNode = nodes[afterNodeIndex + 1];
+
+      // 🎯 GHOST NODE EDGE HANDLING: Remove edges connecting to the ghost node
+      if (nextNode && nextNode.type === 'ghost' && isConditionNode) {
+        console.log('🔍 🎯 Removing edges to ghost node:', nextNode.id);
+        newEdges = newEdges.filter(edge => edge.target !== nextNode.id);
+        
+        // Add edge from previous node to new conditional node
+        if (previousNode) {
+          newEdges.push({
+            id: `edge-${previousNode.id}-${newNode.id}`,
+            source: previousNode.id,
+            target: newNode.id,
+            type: 'flowEdge',
+            animated: false,
+            data: {
+              onOpenActionModal: (insertIndex: number) => {
+                openActionModal(insertIndex);
+              },
+              index: afterNodeIndex,
+            },
+          });
+        }
+
+        // Create condition edges to placeholders
+        const yesTargetId = String(newNode.data.yesPlaceholderId || '');
+        const noTargetId = String(newNode.data.noPlaceholderId || '');
+
+        if (yesTargetId) {
+          newEdges.push({
+            id: `edge-${newNode.id}-yes`,
+            source: newNode.id,
+            sourceHandle: 'yes',
+            target: yesTargetId,
+            type: 'condition',
+            label: 'Yes',
+            data: { branchType: 'yes' },
+          });
+        }
+
+        if (noTargetId) {
+          newEdges.push({
+            id: `edge-${newNode.id}-no`,
+            source: newNode.id,
+            sourceHandle: 'no',
+            target: noTargetId,
+            type: 'condition',
+            label: 'No',
+            data: { branchType: 'no' },
+          });
+        }
+
+        console.log('🔍 🎯 Ghost node edge handling completed');
+        return newEdges;
+      }
+
+      // Regular insertion logic (non-ghost)
+      if (previousNode && nextNode) {
+        console.log('🔍 Removing edge between:', previousNode.id, '->', nextNode.id);
+        newEdges = newEdges.filter(edge =>
+          !(edge.source === previousNode.id && edge.target === nextNode.id)
+        );
+      }
+
+      if (previousNode) {
+        const newEdge = {
+          id: `edge-${previousNode.id}-${newNode.id}`,
+          source: previousNode.id,
+          target: newNode.id,
+          type: 'flowEdge',
+          data: {
+            onOpenActionModal: (insertIndex: number) => {
+              openActionModal(insertIndex);
+            },
+            index: afterNodeIndex,
+          },
+        };
+        console.log('🔍 Adding edge from previous to new:', newEdge);
+        newEdges.push(newEdge);
+      }
+
+      if (isConditionNode) {
+        // 🔄 Create condition edges based on restructuring
+        const yesTargetId = String(newNode.data.yesPlaceholderId || '');
+        const noTargetId = String(newNode.data.noPlaceholderId || '');
+
+        console.log('🔍 Creating condition edges:', { yesTargetId, noTargetId });
+
+        // Create Yes branch edge
+        if (yesTargetId) {
+          const yesEdge = {
+            id: `edge-${newNode.id}-yes`,
+            source: newNode.id,
+            sourceHandle: 'yes',
+            target: yesTargetId,
+            type: 'condition',
+            label: 'Yes',
+            data: {
+              branchType: 'yes',
+            },
+          };
+          newEdges.push(yesEdge);
+          console.log('🔍 Added Yes edge:', yesEdge);
+        }
+
+        // Create No branch edge
+        if (noTargetId) {
+          const noEdge = {
+            id: `edge-${newNode.id}-no`,
+            source: newNode.id,
+            sourceHandle: 'no',
+            target: noTargetId,
+            type: 'condition',
+            label: 'No',
+            data: {
+              branchType: 'no',
+            },
+          };
+          newEdges.push(noEdge);
+          console.log('🔍 Added No edge:', noEdge);
+        }
+      } else if (nextNode) {
+        // For non-condition nodes, connect to the next node
+        newEdges.push({
+          id: `edge-${newNode.id}-${nextNode.id}`,
+          source: newNode.id,
+          target: nextNode.id,
+          type: 'flowEdge',
+          animated: false,
+          data: {
+            onOpenActionModal: (insertIndex: number) => {
+              openActionModal(insertIndex);
+            },
+            index: afterNodeIndex + 1,
+          },
+        });
+      }
+
+      return newEdges;
+    });
+
+    toast.success(`${nodeData.label} inserted into workflow!`);
+
+    // ✅ Auto-open configuration panel for all nodes inserted via handleNodeInsertion
+    if (nodeType === 'action' || nodeType === 'condition' || !nodeType) {
+      console.log('🔍 Auto-opening config for inserted node:', nodeId, nodeData.label);
+      setTimeout(() => {
+        const currentNodes = useWorkflowStore.getState().nodes;
+        const insertedNode = currentNodes.find(n => n.id === nodeId);
+        if (insertedNode) {
+          console.log('🔍 Found inserted node, setting as selected:', insertedNode.id);
+          setSelectedNode(insertedNode);
+        } else {
+          console.log('❌ Inserted node not found in state:', nodeId);
+        }
+      }, 100);
     }
-  }, [insertNodeByIndex, setSelectedNode, openActionModal, nodes.length]);
+  }, [setNodes, setEdges, openActionModal, handleAddNodeToBranch, handleConditionNodeDeletion, handleNodeDeletion, setSelectedNode, nodes]);
 
   // Fix placeholder nodes after graph operations to set proper handleAddNodeToBranch
   useEffect(() => {
+    console.log('🔍 🎯 useEffect running - checking placeholder nodes. Total nodes:', nodes.length);
     setNodes(currentNodes => {
-      return currentNodes.map(node => {
+      let fixedCount = 0;
+      const updatedNodes = currentNodes.map(node => {
         // Fix placeholder nodes that don't have proper handleAddNodeToBranch
         if (node.type === 'placeholder' && node.data?.branchType && node.data?.conditionNodeId) {
           const hasProperHandler = node.data.handleAddNodeToBranch &&
-            !node.data.handleAddNodeToBranch.toString().includes('handleAddNodeToBranch not properly set');
+            !node.data.handleAddNodeToBranch.toString().includes('placeholder clicked') &&
+            !node.data.handleAddNodeToBranch.toString().includes('not properly set');
 
           if (!hasProperHandler) {
-            console.log('🔍 Fixing placeholder node with missing handleAddNodeToBranch:', node.id);
+            console.log('🔍 🎯 FIXING placeholder node with missing handleAddNodeToBranch:', node.id, 'Branch type:', node.data.branchType);
+            fixedCount++;
 
             return {
               ...node,
               data: {
                 ...node.data,
                 handleAddNodeToBranch: (branchType: string, placeholderNodeId: string, conditionNodeId: string) => {
-                  console.log('🔍 Fixed placeholder clicked:', { branchType, placeholderNodeId, conditionNodeId });
+                  console.log('🔍 🎯 FIXED placeholder clicked - calling handleAddNodeToBranch:', { branchType, placeholderNodeId, conditionNodeId });
                   handleAddNodeToBranch(branchType, placeholderNodeId, conditionNodeId);
                 }
               }
@@ -560,11 +928,14 @@ export const WorkflowBuilder = () => {
 
         return node;
       });
+      
+      console.log('🔍 🎯 Fixed', fixedCount, 'placeholder nodes');
+      return updatedNodes;
     });
   }, [nodes.length, handleAddNodeToBranch]); // Run when nodes change
 
   const handleConditionBranchNodeDeletion = useCallback((nodeId: string, conditionNodeId: string, branchType: 'yes' | 'no') => {
-    console.log('🔍 Graph-based conditional branch node deletion:', { nodeId, conditionNodeId, branchType });
+    console.log('🔍 🎯 Enhanced conditional branch node deletion:', { nodeId, conditionNodeId, branchType });
 
     // Check if the node being deleted is currently selected and close config panel
     if (selectedNode && selectedNode.id === nodeId) {
@@ -572,18 +943,110 @@ export const WorkflowBuilder = () => {
       setSelectedNode(null);
     }
 
-    // Use the graph-based deletion for conditional branch nodes
-    // Create a wrapper function that matches the graph method signature
-    const graphHandleAddNodeToBranch = (insertionIndex: number, branchType: 'yes' | 'no', conditionNodeId: string, placeholderNodeId: string, action: unknown) => {
-      // Call the original handleAddNodeToBranch with the correct signature
-      handleAddNodeToBranch(branchType, placeholderNodeId, conditionNodeId);
-    };
+    // Check if there are downstream nodes after the node being deleted
+    const nodeToDelete = nodes.find(n => n.id === nodeId);
+    const outgoingEdge = edges.find(e => e.source === nodeId);
+    const hasDownstreamNodes = outgoingEdge && outgoingEdge.target !== 'virtual-end';
 
-    deleteConditionalBranchNode(nodeId, conditionNodeId, branchType, graphHandleAddNodeToBranch);
+    console.log('🔍 🎯 Deletion context:', {
+      nodeToDelete: nodeToDelete?.id,
+      nodeType: nodeToDelete?.type,
+      hasDownstreamNodes,
+      outgoingTarget: outgoingEdge?.target
+    });
 
-    toast.success('Branch node replaced with placeholder!');
-    console.log('✅ Conditional branch node deleted successfully using graph operations');
-  }, [deleteConditionalBranchNode, handleAddNodeToBranch, selectedNode, setSelectedNode]);
+    if (!hasDownstreamNodes && nodeToDelete?.type === 'condition') {
+      // If deleting a conditional node with no downstream nodes, we need to create a ghost node
+      console.log('🔍 🎯 Deleting conditional node with no downstream - creating ghost node');
+      
+      // Create a wrapper function that matches the graph method signature
+      const graphHandleAddNodeToBranch = (insertionIndex: number, branchType: 'yes' | 'no', conditionNodeId: string, placeholderNodeId: string, action: unknown) => {
+        handleAddNodeToBranch(branchType, placeholderNodeId, conditionNodeId);
+      };
+      
+      // Use graph-based deletion first
+      deleteConditionalBranchNode(nodeId, conditionNodeId, branchType, graphHandleAddNodeToBranch);
+      
+      // After deletion, create a ghost node to replace the placeholder
+      setTimeout(() => {
+        const currentNodes = useWorkflowStore.getState().nodes;
+        const currentEdges = useWorkflowStore.getState().edges;
+        
+        // Find the placeholder that was created
+        const placeholder = currentNodes.find(n => 
+          n.type === 'placeholder' && 
+          n.data?.branchType === branchType && 
+          n.data?.conditionNodeId === conditionNodeId
+        );
+        
+        if (placeholder) {
+          console.log('🔍 🎯 Found placeholder, replacing with ghost node:', placeholder.id);
+          
+          // Create ghost node
+          const branchPath = (placeholder.data?.branchPath as string) || `${conditionNodeId}.${branchType}`;
+          const ghostNodeId = createGhostNodeId(branchPath);
+          
+          // Check if ghost node already exists
+          const existingGhost = currentNodes.find(n => n.id === ghostNodeId);
+          
+          if (!existingGhost) {
+            const isHorizontal = layoutDirection === 'LR';
+            const ghostNode: Node = {
+              id: ghostNodeId,
+              type: 'ghost',
+              position: placeholder.position,
+              width: isHorizontal ? 20 : 5,
+              height: isHorizontal ? 5 : 20,
+              data: {},
+            };
+            
+            // Replace placeholder with ghost node
+            useWorkflowStore.getState().setNodes((nds) => {
+              return nds.map(n => n.id === placeholder.id ? ghostNode : n);
+            });
+            
+            // Update edges to point to ghost node
+            useWorkflowStore.getState().setEdges((eds) => {
+              return eds.map(e => {
+                if (e.target === placeholder.id) {
+                  return {
+                    ...e,
+                    target: ghostNodeId,
+                    data: {
+                      ...e.data,
+                      onOpenActionModal: () => {
+                        setConditionBranchInfo({
+                          conditionNodeId: conditionNodeId,
+                          branchType: branchType,
+                          placeholderNodeId: `after-${e.source}`,
+                          branchPath: branchPath,
+                        });
+                        setShowActionModal(true);
+                      },
+                    }
+                  };
+                }
+                return e;
+              });
+            });
+            
+            console.log('🔍 🎯 Ghost node created and connected successfully');
+          }
+        }
+      }, 100);
+    } else {
+      // Normal deletion - use graph operations
+      console.log('🔍 🎯 Normal conditional branch deletion');
+      const graphHandleAddNodeToBranch = (insertionIndex: number, branchType: 'yes' | 'no', conditionNodeId: string, placeholderNodeId: string, action: unknown) => {
+        handleAddNodeToBranch(branchType, placeholderNodeId, conditionNodeId);
+      };
+
+      deleteConditionalBranchNode(nodeId, conditionNodeId, branchType, graphHandleAddNodeToBranch);
+    }
+
+    toast.success('Branch node deleted successfully!');
+    console.log('✅ Enhanced conditional branch node deletion completed');
+  }, [deleteConditionalBranchNode, handleAddNodeToBranch, selectedNode, setSelectedNode, nodes, edges, createGhostNodeId, layoutDirection]);
 
   // Unified delete function that automatically detects node type and calls appropriate deletion
   const handleUnifiedNodeDeletion = useCallback((nodeId: string | number) => {
@@ -957,15 +1420,17 @@ export const WorkflowBuilder = () => {
     try {
       const isCondition = action.type === 'condition';
 
-      console.log('🔍 handleActionSelection called:', {
+      console.log('🔍 🎯 handleActionSelection called:', {
         action: action.label,
         type: action.type,
         conditionBranchInfo,
-        actionInsertIndex
+        actionInsertIndex,
+        showActionModal
       });
 
       if (conditionBranchInfo) {
         const { placeholderNodeId, branchType, conditionNodeId, branchPath } = conditionBranchInfo;
+        console.log('🔍 🎯 Processing conditional branch insertion:', { placeholderNodeId, branchType, conditionNodeId, branchPath });
 
         // ✅ Handle insertion after existing nodes in branches
         if (placeholderNodeId.startsWith('after-')) {
@@ -1289,9 +1754,14 @@ export const WorkflowBuilder = () => {
               ...action,
               label: action.label,
               isConfigured: false,
+              branchType,
+              conditionNodeId,
+              branchPath,
+              level: conditionBranchInfo?.level,
+              parentConditions: conditionBranchInfo?.parentConditions,
               onDelete: isCondition
                 ? () => handleConditionNodeDeletion(newNodeId)
-                : undefined,
+                : () => handleConditionBranchNodeDeletion(newNodeId, conditionNodeId, branchType),
               onDuplicate: () => handleNodeDuplication(newNodeId),
               // Store the placeholder IDs for edge creation
               ...(isCondition && {
@@ -1307,6 +1777,12 @@ export const WorkflowBuilder = () => {
 
           // If it's a condition node, add Yes/No placeholders
           if (isCondition) {
+            // Create nested branch paths for the new condition
+            const newYesBranchPath = createBranchPath(branchPath, newNodeId, 'yes');
+            const newNoBranchPath = createBranchPath(branchPath, newNodeId, 'no');
+            const newLevel = (conditionBranchInfo?.level || 0) + 1;
+            const newParentConditions = [...(conditionBranchInfo?.parentConditions || []), newNodeId];
+
             const yesPlaceholder: Node = {
               id: yesId, // ✅ Use the same ID generated above
               type: 'placeholder',
@@ -1317,7 +1793,11 @@ export const WorkflowBuilder = () => {
                 label: 'Add Action',
                 branchType: 'yes',
                 conditionNodeId: newNodeId,
-                handleAddNodeToBranch,
+                branchPath: newYesBranchPath,
+                level: newLevel,
+                parentConditions: newParentConditions,
+                handleAddNodeToBranch: (branchType: string, placeholderNodeId: string, conditionNodeId: string) =>
+                  handleAddNodeToBranch(branchType, placeholderNodeId, conditionNodeId, newYesBranchPath),
               },
             };
 
@@ -1331,7 +1811,11 @@ export const WorkflowBuilder = () => {
                 label: 'Add Action',
                 branchType: 'no',
                 conditionNodeId: newNodeId,
-                handleAddNodeToBranch,
+                branchPath: newNoBranchPath,
+                level: newLevel,
+                parentConditions: newParentConditions,
+                handleAddNodeToBranch: (branchType: string, placeholderNodeId: string, conditionNodeId: string) =>
+                  handleAddNodeToBranch(branchType, placeholderNodeId, conditionNodeId, newNoBranchPath),
               },
             };
 

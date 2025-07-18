@@ -18,6 +18,8 @@ export const ActionCategoryModal: React.FC<ActionCategoryModalProps> = ({
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  console.log('🔍 🎯 ActionCategoryModal render:', { isOpen });
+
   if (!isOpen) return null;
 
   const handleCategorySelect = (categoryId: string) => {
