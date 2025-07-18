@@ -607,6 +607,34 @@ export const createCopyPasteHandler = (
       lastNodeId
     });
 
+    // Get branch context from the above node (the node we're pasting after)
+    const aboveNode = nodes.find(n => n.id === aboveNodeId);
+    const branchContext = aboveNode?.data ? {
+      branchType: aboveNode.data.branchType,
+      conditionNodeId: aboveNode.data.conditionNodeId,
+      branchPath: aboveNode.data.branchPath,
+      level: aboveNode.data.level,
+      parentConditions: aboveNode.data.parentConditions
+    } : null;
+
+    // ✅ Add plus button functionality to pasted action nodes in branches
+    if (branchContext) {
+      newNodes.forEach(node => {
+        if (node.type === 'action') {
+          node.data = {
+            ...node.data,
+            ...branchContext, // Apply branch context
+            showBottomPlus: true,
+            onInsertBelow: (nodeId: string) => {
+              console.log('🔍 Insert below clicked on pasted node in branch:', nodeId);
+              // This will be set by WorkflowBuilder when nodes are added
+              // The callback will be properly bound when the component mounts
+            }
+          };
+        }
+      });
+    }
+
     // Find the first conditional node in the pasted flow
     const firstConditionalNode = newNodes.find(node => node.type === 'condition');
 

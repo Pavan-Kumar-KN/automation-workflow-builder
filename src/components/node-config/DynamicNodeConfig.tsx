@@ -22,6 +22,7 @@ import Calendar from '../../components/node-config/triggers/calendar/Calendar';
 import FinanceConfig from './triggers/finance/FinanceConfig';
 import LessonConfig from './triggers/lms/LessonConfig';
 import Course from './triggers/lms/Course';
+import CommentAddedConfig from './triggers/lms/CommentAddedConfig';
 import ApiConfig from './triggers/api/ApiConfig';
 import SpecificDateConfig from './triggers/schedule/SpecificDateConfig';
 import MonthlyReccurConfig from './triggers/schedule/MonthlyReccurConfig';
@@ -328,7 +329,7 @@ export const DynamicNodeConfig: React.FC<DynamicNodeConfigProps> = ({ node, onUp
 
       case 'comment-added-trigger':
         return (
-          <Course
+          <CommentAddedConfig
             config={node.data as NodeConfig}
             setConfig={(config) => onUpdate(node.id, config)}
           />

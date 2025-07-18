@@ -1030,8 +1030,19 @@ export const WorkflowBuilder = () => {
       return !hasProperHandler;
     });
 
-    if (brokenPlaceholders.length > 0) {
-      console.log('🔍 🎯 Found', brokenPlaceholders.length, 'broken placeholder nodes, fixing...');
+    // ✅ Check for action nodes in branches that need onInsertBelow callbacks
+    const branchActionNodes = nodes.filter(node =>
+      node.type === 'action' &&
+      node.data.branchType &&
+      node.data.conditionNodeId &&
+      (!node.data.onInsertBelow || typeof node.data.onInsertBelow !== 'function')
+    );
+
+    if (brokenPlaceholders.length > 0 || branchActionNodes.length > 0) {
+      console.log('🔍 🎯 Found broken nodes:', {
+        placeholders: brokenPlaceholders.length,
+        branchActions: branchActionNodes.length
+      });
 
       setNodes(currentNodes => {
         return currentNodes.map(node => {
@@ -1058,11 +1069,40 @@ export const WorkflowBuilder = () => {
             }
           }
 
+          // ✅ Fix action nodes in branches that need onInsertBelow callbacks
+          if (node.type === 'action' && node.data.branchType && node.data.conditionNodeId) {
+            const hasProperCallback = node.data.onInsertBelow && typeof node.data.onInsertBelow === 'function';
+
+            if (!hasProperCallback) {
+              console.log('🔍 🎯 FIXING branch action node:', node.id, 'Branch:', node.data.branchType);
+
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  showBottomPlus: true,
+                  onInsertBelow: (nodeId: string) => {
+                    console.log('🔍 Insert below clicked in branch:', nodeId, 'Branch:', node.data.branchType);
+                    setConditionBranchInfo({
+                      conditionNodeId: node.data.conditionNodeId,
+                      branchType: node.data.branchType,
+                      placeholderNodeId: `after-${nodeId}`,
+                      branchPath: node.data.branchPath,
+                      level: node.data.level,
+                      parentConditions: node.data.parentConditions
+                    });
+                    setShowActionModal(true);
+                  }
+                }
+              };
+            }
+          }
+
           return node;
         });
       });
     } else {
-      console.log('🔍 🎯 All placeholder nodes are properly configured');
+      console.log('🔍 🎯 All nodes are properly configured');
     }
   }, [nodes.length]); // Run when nodes count changes
 
