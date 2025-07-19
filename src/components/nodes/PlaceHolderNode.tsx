@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { Handle, Position } from '@xyflow/react';
+import { ActionCategoryModal } from '../ActionCategoryModal';
+import { NodeData } from '@/data/types';
+import { useGraphStore } from '../../store/useGraphStore';
+import { createPortal } from 'react-dom';
 
 interface PlaceHolderNodeProps {
   id: string; // ✅ React Flow injects this
   data: {
     branchType: string;
     conditionNodeId: string;
-    handleAddNodeToBranch: (branchType: string, placeholderNodeId: string, conditionNodeId: string) => void;
+    handleAddNodeToBranch?: (branchType: string, placeholderNodeId: string, conditionNodeId: string) => void;
   };
   isSelected?: boolean;
   targetPosition?: typeof Position.Top | typeof Position.Left | typeof Position.Right | typeof Position.Bottom;
@@ -21,13 +25,38 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
   targetPosition = Position.Top,
   sourcePosition = Position.Bottom
 }) => {
+  const [showActionModal, setShowActionModal] = useState(false);
+  const addNodeToBranch = useGraphStore((state) => state.addNodeToBranch);
 
+  const handlePlaceholderClick = () => {
+    console.log('🔍 Placeholder clicked:', {
+      branchType: data.branchType,
+      placeholderNodeId: id,
+      conditionNodeId: data.conditionNodeId,
+    });
+    setShowActionModal(true);
+  };
+
+  const handleActionSelection = (action: NodeData) => {
+    console.log('🔍 Action selected for placeholder:', action.label);
+
+    // Use the new graph store function
+    addNodeToBranch({
+      conditionNodeId: data.conditionNodeId,
+      branchType: data.branchType as 'yes' | 'no',
+      placeholderNodeId: id,
+      actionData: action,
+    });
+
+    setShowActionModal(false);
+  };
 
   return (
-    <div className="relative">
-      {/* Input Handle */}
-      <Handle
-        type="target"
+    <>
+      <div className="relative">
+        {/* Input Handle */}
+        <Handle
+          type="target"
         position={targetPosition}
         id="in"
         style={{
@@ -52,19 +81,7 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
           hover:scale-110
           active:scale-95
         `}
-        onClick={() => {
-          console.log('🔍 Placeholder clicked:', { 
-            branchType: data.branchType, 
-            placeholderNodeId: id, 
-            conditionNodeId: data.conditionNodeId,
-            hasHandler: !!data.handleAddNodeToBranch 
-          });
-          if (data.handleAddNodeToBranch) {
-            data.handleAddNodeToBranch(data.branchType, id, data.conditionNodeId);
-          } else {
-            console.error('❌ No handleAddNodeToBranch function found on placeholder node');
-          }
-        }}
+        onClick={handlePlaceholderClick}
       >
         <div className="w-6 h-5 bg-gray-400 border border-gray-500 rounded-md flex items-center justify-center transition-colors shadow-sm">
           <LucideIcons.Plus className="w-4 h-4 text-white stroke-[2.5]" />
@@ -87,6 +104,17 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
         }}
       />
     </div>
+
+    {/* Action Category Modal */}
+    {showActionModal && createPortal(
+      <ActionCategoryModal
+        isOpen={showActionModal}
+        onClose={() => setShowActionModal(false)}
+        onSelectAction={handleActionSelection}
+      />,
+      document.body
+    )}
+  </>
   );
 };
 

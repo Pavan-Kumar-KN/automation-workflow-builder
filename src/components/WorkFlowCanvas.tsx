@@ -1,59 +1,58 @@
-import React, { useCallback, useMemo, useEffect } from 'react';
-import {
-  Background,
-  Node,
-  ReactFlow,
-  useEdgesState,
-  useNodesState,
-  Edge,
-  BackgroundVariant,
-  Controls,
-  ReactFlowProvider,
-  ControlButton,
-  useReactFlow
-} from '@xyflow/react';
-import { RotateCcw, ArrowDown, ArrowRight } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { applyNodeChanges, applyEdgeChanges, Background, Controls, ReactFlow, BackgroundVariant, ControlButton, ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import ConditionNode from './nodes/ConditionNode';
+import { ActionNode } from './nodes/ActionNode';
 import FlowEdge from './edges/FlowEdge';
 import { TriggerNode } from './nodes/TriggerNode';
-import { ActionNode } from './nodes/ActionNode';
-import { NodeData } from '@/data/types';
 import EndNode from './nodes/EndNode';
-import { GhostNode } from './nodes/GhostNode';
-import { getLayoutedElements } from '@/utils/dagreFunction';
+import ConditionNode from './nodes/ConditionNode';
+import { useGraphStore } from '../store/useGraphStore';
+import { graphToReactFlow } from '../lib/graphToReactFlow';
 import ConditionEdge from './edges/ConditionEdge';
-import PlaceHolderNode from './nodes/PlaceHolderNode';
-import { useWorkflowStore } from '@/hooks/useWorkflowState';
-import { generateNodesAndEdges } from '@/utils/helpers/generateActions';
+import PlaceholderNode from './nodes/PlaceHolderNode';
+import { GhostNode } from './nodes/GhostNode';
+import { getLayoutedElements } from '../utils/dagreFunction';
+import { ArrowDown, ArrowRight, RotateCcw } from 'lucide-react';
 
-interface SimpleWorkflowCanvasProps {
-  nodes: Node[];
-  edges?: Edge[]; // Add edges prop
-  selectedNodeId?: string;
-  onSelectNode: (nodeType: string, nodeData: NodeData) => void;
-  onNodeClick: (event: React.MouseEvent, node: Node) => void;
-  onOpenTriggerModal: () => void;
-  onOpenActionModal: (insertIndex?: number) => void;
-  onInsertNode?: (afterNodeIndex: number, nodeType: string, nodeData: NodeData) => void;
-  onDeleteNode?: (nodeId: string | number) => void;
-  onDuplicateNode?: (nodeId: string) => void;
-  onReplaceTrigger?: () => void;
-  onOpenTriggerConfig?: (node: Node) => void;
+export const initializeGraph = () => {
+  const triggerId = 'trigger-1';
+  const endId = 'end-1';
 
-  // Removed complex branch handlers - simplified approach
-  zoomLevel?: number;
-}
+  useGraphStore.getState().reset();
 
+  useGraphStore.getState().addNode({
+    id: triggerId,
+    type: 'trigger',
+    position: { x: 0, y: 0 },
+    data: {
+      label: 'Select Trigger',
+      isConfigured: false,
+    },
+    children: [endId],
+    parent: undefined,
+  });
 
-// Custom Edge that uses your FlowEdge component
+  useGraphStore.getState().addNode({
+    id: endId,
+    type: 'endNode',
+    position: { x: 0, y: 0 },
+    data: {
+      label: 'End',
+    },
+    children: [],
+    parent: triggerId,
+  });
+
+  console.log('Graph initialized with trigger and end nodes');
+};
+
 const nodeTypes = {
-  trigger: TriggerNode,
   action: ActionNode,
+  trigger: TriggerNode,
+  endNode: EndNode,
   condition: ConditionNode,
-  placeholder: PlaceHolderNode,
+  placeholder: PlaceholderNode,
   ghost: GhostNode,
-  end: EndNode
 };
 
 const edgeTypes = {
@@ -61,183 +60,283 @@ const edgeTypes = {
   condition: ConditionEdge,
 };
 
-// Internal component that uses ReactFlow hooks
-const WorkFlowCanvasInternal: React.FC<SimpleWorkflowCanvasProps> = ({
-  nodes: workflowNodes,
-  edges: workflowEdges,
-  selectedNodeId,
-  onNodeClick,
-  onOpenTriggerModal,
-  onDeleteNode,
-  onDuplicateNode,
-  onReplaceTrigger,
-  onOpenTriggerConfig,
+const WorkFlowCanvas = () => {
+  const nodeMap = useGraphStore((state) => state.nodes);
+  const addNode = useGraphStore((state) => state.addNode);
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [layoutDirection, setLayoutDirection] = useState('TB');
 
-}) => {
-  const { fitView, setCenter } = useReactFlow();
-  const { layoutDirection, setLayoutDirection } = useWorkflowStore(); // Get layout direction and setter from store
+  useEffect(() => {
+    initializeGraph();
+  }, []);
 
-  // Custom reset function - Reset view position and zoom only
-  const handleReset = useCallback(() => {
-    // Reset view to default position and zoom
-    setCenter(500, 100, { zoom: 1 });
-    // Also trigger fit view to properly position all nodes
-    setTimeout(() => {
-      fitView({ padding: 0.1, duration: 50 });
-    }, 50);
-  }, [setCenter, fitView]);
+  // Simple node addition function
+  const handleAddNode = useCallback((nodeData: any) => {
+    const newNodeId = `action-${Date.now()}`;
 
-  // Convert workflow nodes to React Flow format and apply layout
-  const { layoutedNodes, layoutedEdges } = useMemo(() => {
-    // Hide end node if there are any condition nodes in the workflow
-    const hasConditionNodes = workflowNodes.some(node => node.type === 'condition');
-    const shouldShowEndNode = !hasConditionNodes;
+    // Find the trigger node to connect after it
+    const triggerNode = Object.values(nodeMap).find(node => node.type === 'trigger');
+    const endNode = Object.values(nodeMap).find(node => node.type === 'endNode');
 
-    // Convert existing nodes
-    const nodes = workflowNodes.map((node) => {
-      // Hide end node if last node is condition
-      if (node.id === 'virtual-end' && !shouldShowEndNode) {
-        return {
-          ...node,
-          hidden: true,
-          style: { display: 'none' },
-          position: { x: 0, y: 0 }, // Temporary position for layout
-        };
-      }
-
-      return {
-        id: node.id,
-        type: node.type,
-        position: { x: 0, y: 0 }, // Temporary position, will be set by layout
+    if (triggerNode && endNode) {
+      // Add the new action node
+      addNode({
+        id: newNodeId,
+        type: 'action',
+        position: { x: 0, y: 0 }, // Between trigger and end
         data: {
-          ...node.data,
-          openTriggerModal: node.type === 'trigger' ? onOpenTriggerModal : undefined,
-          onReplaceTrigger: node.type === 'trigger' ? onReplaceTrigger : undefined,
-          onOpenConfig: node.type === 'trigger' ? onOpenTriggerConfig : undefined,
-          // Use the unified delete function for all nodes
-          onDelete: onDeleteNode ? () => onDeleteNode(node.id) : undefined,
-          onDuplicate: onDuplicateNode ? () => onDuplicateNode(node.id) : undefined,
+          label: nodeData.label || 'New Action',
+          isConfigured: false,
         },
-        selected: node.id === selectedNodeId,
+        children: [endNode.id],
+        parent: triggerNode.id,
+      });
+
+      // Update trigger to point to new node instead of end
+      const updatedTrigger = {
+        ...triggerNode,
+        children: [newNodeId]
       };
-    });
 
-    // Apply dagre layout to all nodes and edges with layout direction
-    const { nodes: finalNodes, edges: finalEdges } = getLayoutedElements(nodes, workflowEdges || [], layoutDirection);
-
-    return { layoutedNodes: finalNodes, layoutedEdges: finalEdges };
-  }, [workflowNodes, workflowEdges, selectedNodeId, onOpenTriggerModal, onReplaceTrigger, onOpenTriggerConfig, onDeleteNode, onDuplicateNode, layoutDirection]);
-
-  const [nodes, setNodes] = useNodesState(layoutedNodes);
-  const [edges, setEdges] = useEdgesState(layoutedEdges);
-
-
-  const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    const workflowNode = workflowNodes.find(n => n.id === node.id);
-    if (workflowNode && onNodeClick) {
-      onNodeClick(event, workflowNode);
+      // Update the trigger node
+      useGraphStore.getState().removeNode(triggerNode.id);
+      addNode(updatedTrigger);
     }
-  }, [workflowNodes, onNodeClick]);
 
-  // Update nodes when layout changes
+    setShowActionModal(false);
+  }, [nodeMap, addNode]);
+
+  // Update local state when store changes and apply Dagre layout
   useEffect(() => {
-    setNodes(layoutedNodes);
-  }, [layoutedNodes, setNodes]);
+    try {
+      const { stateNodes, stateEdges } = graphToReactFlow(nodeMap);
 
-  // Update edges when layout changes
-  useEffect(() => {
-    setEdges(layoutedEdges);
-  }, [layoutedEdges, setEdges]);
+      // Find the last node in the main flow (not in branches)
+      // Look for nodes that are not in any condition branch
+      const nodesInBranches = new Set();
+      Object.values(nodeMap).forEach(node => {
+        if (node.type === 'condition' && node.branches) {
+          node.branches.yes?.forEach(id => nodesInBranches.add(id));
+          node.branches.no?.forEach(id => nodesInBranches.add(id));
+        }
+      });
 
+      // Find the last node in main flow (has no children and not in branches)
+      const mainFlowNodes = stateNodes.filter(node =>
+        node.type !== 'endNode' &&
+        node.type !== 'placeholder' &&
+        !nodesInBranches.has(node.id)
+      );
+
+      const lastMainFlowNode = mainFlowNodes.find(node => {
+        const graphNode = nodeMap[node.id];
+        return graphNode && (!graphNode.children || graphNode.children.length === 0 ||
+          (graphNode.children.length === 1 && graphNode.children[0] === 'end-1'));
+      });
+
+      console.log('🔍 Last main flow node:', lastMainFlowNode?.type, lastMainFlowNode?.id);
+
+      const shouldHideEndNode = lastMainFlowNode?.type === 'condition';
+      console.log('🔍 Should hide end node:', shouldHideEndNode);
+
+      const filteredNodes = shouldHideEndNode
+        ? stateNodes.filter(node => node.id !== 'end-1')
+        : stateNodes;
+
+      const filteredEdges = shouldHideEndNode
+        ? stateEdges.filter(edge => edge.target !== 'end-1')
+        : stateEdges;
+
+      // Apply Dagre layout
+      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+        filteredNodes,
+        filteredEdges,
+        layoutDirection // Use state variable for layout direction
+      );
+
+      setNodes(layoutedNodes);
+      setEdges(layoutedEdges);
+    } catch (error) {
+      console.error('Error in graphToReactFlow:', error);
+    }
+  }, [nodeMap, layoutDirection]);
+
+  const onNodesChange = useCallback((changes: any[]) => {
+    console.log('Node changes:', changes);
+    setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot));
+  }, []);
+
+  const onEdgesChange = useCallback((changes: any[]) => {
+    console.log('Edge changes:', changes);
+    setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot));
+  }, []);
+
+  const handleReset = () => {
+    // Reset to top-aligned viewport with proper positioning
+    const reactFlowInstance = document.querySelector('.react-flow__renderer');
+    if (reactFlowInstance) {
+      // Set viewport to show nodes at the top
+      const event = new CustomEvent('reactflow-reset', {
+        detail: { x: 0, y: -200, zoom: 0.75 }
+      });
+      window.dispatchEvent(event);
+    }
+  };
 
   return (
-    <div className="flex-1 h-full overflow-auto">
-      <div style={{
-        backgroundColor: '#f8fafc',
-        height: '100%',
-      }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodeClick={handleNodeClick}
-          nodeTypes={nodeTypes as any}
-          edgeTypes={edgeTypes as any}
-          minZoom={0.25}
-          maxZoom={2}
-          attributionPosition="bottom-left"
-          proOptions={{ hideAttribution: true }}
-          panOnScroll={true}
-          selectionOnDrag={false}
-          panOnDrag={true}
-          zoomOnScroll={true}
-          zoomOnPinch={true}
-          zoomOnDoubleClick={true}
-          preventScrolling={false}
-          deleteKeyCode={['Backspace', 'Delete']}
-          multiSelectionKeyCode={['Meta', 'Ctrl']}
-          // style={{ backgroundColor: '#f8fafc', width: '100%', height: '100%' }}
-          defaultViewport={{ x: 500, y: 70, zoom: 1 }}
-
-        >
-          <Controls
-            position="bottom-left"
-            showZoom={true}
-            showFitView={true}
-            showInteractive={true}
-            fitViewOptions={{
-              padding: 0.1,
-              includeHiddenNodes: false,
-              minZoom: 0.5,
-              maxZoom: 2
-            }}
-          >
-            {/* Layout Direction Controls */}
-            <ControlButton
-              onClick={() => setLayoutDirection('TB')}
-              title="Vertical Layout"
-              style={{
-                backgroundColor: layoutDirection === 'TB' ? '#3b82f6' : 'white',
-                color: layoutDirection === 'TB' ? 'white' : '#374151'
+    <>
+      <ReactFlowProvider>
+        <div className='flex-1 h-full overflow-auto'>
+          <div className="h-full">
+            <ReactFlow
+              nodeTypes={nodeTypes as any}
+              edgeTypes={edgeTypes as any}
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              nodesDraggable={false}
+              fitView
+              fitViewOptions={{
+                padding: 0.1, // Reduced padding for top alignment
+                includeHiddenNodes: false,
+                minZoom: 0.5,
+                maxZoom: 1.2,
+                position: [0.5, 0.2] // Position nodes towards top center (x: center, y: top 20%)
               }}
+              minZoom={0.25}
+              maxZoom={2}
+              attributionPosition="bottom-left"
+              proOptions={{ hideAttribution: true }}
+              panOnScroll={true}
+              selectionOnDrag={false}
+              panOnDrag={true}
+              zoomOnScroll={true}
+              zoomOnPinch={true}
+              zoomOnDoubleClick={true}
+              preventScrolling={false}
+              deleteKeyCode={['Backspace', 'Delete']}
+              multiSelectionKeyCode={['Meta', 'Ctrl']}
+              defaultViewport={{ x: 100, y: -200, zoom: 0.75 }} // Shift viewport up to show nodes at top
             >
-              <ArrowDown size={16} />
-            </ControlButton>
-            <ControlButton
-              onClick={() => setLayoutDirection('LR')}
-              title="Horizontal Layout"
-              style={{
-                backgroundColor: layoutDirection === 'LR' ? '#3b82f6' : 'white',
-                color: layoutDirection === 'LR' ? 'white' : '#374151'
-              }}
-            >
-              <ArrowRight size={16} />
-            </ControlButton>
+              <Controls 
+                className="react-flow-controls-custom"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                  padding: '4px',
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                  backdropFilter: 'blur(4px)',
+                  border: '1px solid rgba(0, 0, 0, 0.05)'
+                }}
+              >
+                {/* Layout Direction Controls */}
+                <ControlButton
+                  onClick={() => setLayoutDirection('TB')}
+                  title="Vertical Layout"
+                  style={{
+                    backgroundColor: layoutDirection === 'TB' ? '#3B82F6' : 'rgba(255, 255, 255, 0.95)',
+                    color: layoutDirection === 'TB' ? 'white' : '#374151',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    borderRadius: '4px',
+                    padding: '6px',
+                    transition: 'all 0.2s ease',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}
+                >
+                  <ArrowDown size={14} />
+                </ControlButton>
+                
+                <ControlButton
+                  onClick={() => setLayoutDirection('LR')}
+                  title="Horizontal Layout"
+                  style={{
+                    backgroundColor: layoutDirection === 'LR' ? '#3B82F6' : 'rgba(255, 255, 255, 0.95)',
+                    color: layoutDirection === 'LR' ? 'white' : '#374151',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    borderRadius: '4px',
+                    padding: '6px',
+                    transition: 'all 0.2s ease',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}
+                >
+                  <ArrowRight size={14} />
+                </ControlButton>
 
-            {/* Reset Control */}
-            <ControlButton onClick={handleReset} title="Reset View Position & Zoom">
-              <RotateCcw size={16} />
-            </ControlButton>
-          </Controls>
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={16}
-            size={1}
-            color="#cbd5e1"
-          />
-        </ReactFlow>
-      </div>
-    </div>
+                {/* Reset Control */}
+                <ControlButton 
+                  onClick={handleReset} 
+                  title="Reset View Position & Zoom"
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    color: '#374151',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    borderRadius: '4px',
+                    padding: '6px',
+                    transition: 'all 0.2s ease',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}
+                >
+                  <RotateCcw size={14} />
+                </ControlButton>
+              </Controls>
 
+              <Background
+                variant={BackgroundVariant.Dots}
+                gap={20}
+                size={1}
+                color="#E2E8F0"
+                style={{ opacity: 0.5 }}
+              />
+            </ReactFlow>
+          </div>
+        </div>
+      </ReactFlowProvider>
 
+      <style jsx global>{`
+        .react-flow-controls-custom button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .react-flow-controls-custom button:active {
+          transform: translateY(0px);
+        }
+        
+        /* Custom scrollbar for the canvas */
+        .react-flow__renderer {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+        }
+        
+        .react-flow__renderer::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        
+        .react-flow__renderer::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        .react-flow__renderer::-webkit-scrollbar-thumb {
+          background-color: rgba(156, 163, 175, 0.5);
+          border-radius: 3px;
+        }
+        
+        .react-flow__renderer::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(156, 163, 175, 0.7);
+        }
+      `}</style>
+    </>
   );
 };
 
-// Main exported component with ReactFlowProvider
-export const WorkFlowCanvas: React.FC<SimpleWorkflowCanvasProps> = (props) => {
-  return (
-    <ReactFlowProvider>
-      <WorkFlowCanvasInternal {...props} />
-    </ReactFlowProvider>
-  );
-};
-
+export default WorkFlowCanvas;

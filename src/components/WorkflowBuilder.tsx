@@ -14,15 +14,21 @@ import { PublishPanel } from './panels/PublishPanel';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useWorkflowActions } from '@/hooks/useWorkflowActions';
 import { useWorkflowJSON } from '@/hooks/useWorkflowJSON';
-import { useCopyPaste } from '@/hooks/useCopyPaste';
-import { useGraphCutPaste } from '@/hooks/useGraphCutPaste';
-import { useWorkflowGraph } from '@/hooks/useWorkflowGraph';
+import { useGraphStore } from '@/store/useGraphStore';
 import { NodeData } from '@/data/types';
 import { toast } from 'sonner';
-import { WorkFlowCanvas } from './WorkFlowCanvas';
+import WorkFlowCanvas  from './WorkFlowCanvas';
 import { getLayoutedElements } from '@/utils/dagreFunction';
 
 export const WorkflowBuilder = () => {
+  // Graph-based state management
+  const nodeMap = useGraphStore((state) => state.nodes);
+  const addNode = useGraphStore((state) => state.addNode);
+  const removeNode = useGraphStore((state) => state.removeNode);
+  const insertNode = useGraphStore((state) => state.insertNode);
+  const reset = useGraphStore((state) => state.reset);
+
+  // Keep some UI state in useWorkflowStore for compatibility
   const {
     selectedNode,
     setSelectedNode,
@@ -32,10 +38,6 @@ export const WorkflowBuilder = () => {
     setIsActive,
     layoutDirection,
     setLayoutDirection,
-    nodes,
-    edges,
-    setNodes,
-    setEdges,
   } = useWorkflowStore();
 
   const { executeWorkflow, saveWorkflow } = useWorkflowActions();
@@ -77,7 +79,8 @@ export const WorkflowBuilder = () => {
       }
 
       // Find all nodes in this specific branch
-      const branchNodes = nodes.filter(node =>
+      const allNodes = Object.values(nodeMap);
+      const branchNodes = allNodes.filter(node =>
         node.data?.conditionNodeId === conditionNodeId &&
         node.data?.branchType === branchType &&
         node.type !== 'placeholder'
@@ -91,9 +94,10 @@ export const WorkflowBuilder = () => {
     }
 
     // For main flow - check if this would be the last position
-    const flowNodes = nodes.filter(node =>
+    const allNodes = Object.values(nodeMap);
+    const flowNodes = allNodes.filter(node =>
       node.type !== 'placeholder' &&
-      node.id !== 'virtual-end' &&
+      node.id !== 'end-1' &&
       !node.id.startsWith('placeholder-') &&
       !node.id.startsWith('trigger-') &&
       !node.data?.branchType // Exclude branch nodes
@@ -104,7 +108,7 @@ export const WorkflowBuilder = () => {
 
     // Remove Workflow can only be added at the end of main flow
     return insertIndex >= flowNodes.length;
-  }, [nodes]);
+  }, [nodeMap]);
 
   const parseBranchPath = useCallback((branchPath: string) => {
     const parts = branchPath.split('.');
@@ -171,11 +175,12 @@ export const WorkflowBuilder = () => {
 
   // Debug: Log JSON when nodes change (for development)
   useEffect(() => {
-    if (nodes.length > 0) {
+    const allNodes = Object.values(nodeMap);
+    if (allNodes.length > 0) {
       const json = generateJSON();
       // console.log('🔄 Current Workflow JSON:', json);
     }
-  }, [nodes.length, generateJSON]);
+  }, [Object.keys(nodeMap).length, generateJSON]);
 
 
   // Open action modal for insertion
@@ -209,27 +214,27 @@ export const WorkflowBuilder = () => {
     setShowBranchSelectionModal(true);
   }, []);
 
-  // Initialize copy-paste functionality with openActionModal and conditional paste callback
-  const { clearCopyState, isCopy, pasteConditionalFlow } = useCopyPaste(openActionModal, handleConditionalPasteRequest);
+  // Core graph operations using useGraphStore
+  const deleteSingleNode = useCallback((nodeId: string) => {
+    console.log('🔍 Graph-based deleteSingleNode:', nodeId);
+    removeNode(nodeId);
+  }, [removeNode]);
 
-  // Initialize graph-based cut-paste functionality
-  const { clearCutState, isCut } = useGraphCutPaste(openActionModal);
+  const deleteNodeSubtree = useCallback((nodeId: string) => {
+    console.log('🔍 Graph-based deleteNodeSubtree:', nodeId);
+    // For now, just delete the single node - TODO: implement subtree deletion
+    removeNode(nodeId);
+  }, [removeNode]);
 
-  // Graph-based operations
-  const {
-    deleteNodeSubtree,
-    deleteSingleNode,
-    deleteConditionalBranchNode,
-    addConditionalNodeAtEnd,
-    insertNodeAfter,
-    insertNodeByIndex,
-    getDownstreamNodes,
-    cutNode: graphCutNode,
-    cutFlowFromNode: graphCutFlowFromNode,
-    pasteNodes: graphPasteNodes
-  } = useWorkflowGraph();
+  // Temporary placeholders for removed functionality
+  const clearCopyState = () => {};
+  const isCopy = false;
+  const clearCutState = () => {};
+  const isCut = false;
+  const pasteConditionalFlow = () => {};
 
-  // Fix edges after copy-paste operations (like duplication does)
+  // TODO: Re-implement edge fixing with graph store
+  /*
   useEffect(() => {
     setEdges(currentEdges => {
       return currentEdges.map((edge, edgeIndex) => {
@@ -269,6 +274,7 @@ export const WorkflowBuilder = () => {
       });
     });
   }, [edges.length, nodes.length, openActionModal]); // Run when edges or nodes change
+  */
 
   // Handle branch selection for conditional paste
   const handleBranchSelection = useCallback((selectedBranch: 'yes' | 'no') => {
@@ -341,7 +347,7 @@ export const WorkflowBuilder = () => {
     console.log('✅ Condition node deleted successfully using graph operations');
   }, [deleteNodeSubtree, selectedNode, setSelectedNode]);
 
-  // Simple node addition handler
+  // Simple node addition handler using graph store
   const handleNodeSelection = (nodeType: string, nodeData: NodeData, shouldAutoOpenConfig: boolean = false) => {
     console.log('🔍 handleNodeSelection called:', {
       nodeType,
@@ -349,97 +355,73 @@ export const WorkflowBuilder = () => {
       shouldAutoOpenConfig
     });
 
-    const isConditionNode = nodeType === 'condition';
     const newNodeId = `${nodeType}-${Date.now()}`;
 
-    const newNode: Node = {
+    // Find the trigger and end nodes
+    const allNodes = Object.values(nodeMap);
+    const triggerNode = allNodes.find(node => node.type === 'trigger');
+    const endNode = allNodes.find(node => node.type === 'endNode');
+
+    if (!triggerNode || !endNode) {
+      console.error('Trigger or end node not found');
+      return;
+    }
+
+    // Create the new node
+    const newGraphNode = {
       id: newNodeId,
-      type: nodeType,
-      position: { x: 0, y: 0 },
+      type: nodeType as any,
+      position: { x: 100, y: 175 }, // Between trigger and end
       data: {
         ...nodeData,
         label: nodeData.label,
-        openTriggerModal: nodeType === 'trigger' ? () => setShowTriggerModal(true) : undefined,
         isConfigured: false,
-        onDelete: isConditionNode ? () => {
-          console.log('🔍 Deleting condition node from handleNodeSelection');
-          handleConditionNodeDeletion(newNodeId);
-        } : () => {
-          console.log('🔍 Deleting regular node from handleNodeSelection');
-          deleteSingleNode(newNodeId);
-        },
-        onDuplicate: () => handleNodeDuplication(newNodeId),
       },
+      children: [endNode.id],
+      parent: triggerNode.id,
     };
 
+    // Add the new node to the graph
+    addNode(newGraphNode);
 
-    console.log("new id of the action node is ", newNode.id);
+    // Update trigger to point to new node instead of end
+    const updatedTrigger = {
+      ...triggerNode,
+      children: [newNodeId]
+    };
 
-    console.log("new id of the action node is ", newNode.id);
+    // Remove and re-add trigger with updated children
+    removeNode(triggerNode.id);
+    addNode(updatedTrigger);
 
-    setNodes((prevNodes) => {
-      const updatedNodes = [...prevNodes, newNode];
-
-      if (isConditionNode) {
-        console.log('🔍 Adding conditional node using GRAPH-BASED approach');
-        
-        // Use graph-based conditional node addition
-        addConditionalNodeAtEnd(newNode, null);
-        
-        // Don't add the node manually to the array - let graph operations handle it
-        return prevNodes; // Return original nodes, graph operations will update them
-      } else {
-        // ✅ Special handling for Remove Workflow nodes
-        if (isRemoveWorkflowNode(nodeData.id)) {
-          console.log('🔍 Adding Remove Workflow node - special handling');
-
-          setEdges((prevEdges) => {
-            // Find the edge that currently connects to virtual-end
-            const edgeToEnd = prevEdges.find(edge => edge.target === 'virtual-end');
-
-            if (edgeToEnd) {
-              // Remove the old edge to virtual-end
-              const updatedEdges = prevEdges.filter(edge => edge.id !== edgeToEnd.id);
-
-              // Create edge from last node to Remove Workflow node
-              const edgeToRemoveWorkflow = {
-                id: `edge-${edgeToEnd.source}-${newNodeId}`,
-                source: edgeToEnd.source,
-                target: newNodeId,
-                type: 'flowEdge',
-                animated: false,
-              };
-
-              // Create edge from Remove Workflow node to virtual-end
-              const edgeFromRemoveWorkflow = {
-                id: `edge-${newNodeId}-virtual-end`,
-                source: newNodeId,
-                target: 'virtual-end',
-                type: 'flowEdge',
-                animated: false,
-              };
-
-              return [...updatedEdges, edgeToRemoveWorkflow, edgeFromRemoveWorkflow];
-            } else {
-              // If no edge to virtual-end exists, just connect Remove Workflow to virtual-end
-              const edgeFromRemoveWorkflow = {
-                id: `edge-${newNodeId}-virtual-end`,
-                source: newNodeId,
-                target: 'virtual-end',
-                type: 'flowEdge',
-                animated: false,
-              };
-
-              return [...prevEdges, edgeFromRemoveWorkflow];
-            }
-          });
-
-          return updatedNodes;
+    // Auto-open config if requested
+    if (shouldAutoOpenConfig) {
+      setTimeout(() => {
+        const newNodeFromStore = Object.values(useGraphStore.getState().nodes).find(n => n.id === newNodeId);
+        if (newNodeFromStore) {
+          setSelectedNode(newNodeFromStore as any);
         }
+      }, 100);
+    }
 
-        // ✅ Regular nodes - connect to virtual-end normally
-        // Find the node that currently connects to virtual-end (this should be the last node in the flow)
-        setEdges((prevEdges) => {
+    console.log('✅ Node added successfully:', newNodeId);
+  };
+
+  // TODO: Implement other node operations with graph store
+  const handleNodeInsertion = () => {
+    console.log('TODO: Implement handleNodeInsertion with graph store');
+  };
+
+  const handleNodeDuplication = () => {
+    console.log('TODO: Implement handleNodeDuplication with graph store');
+  };
+
+  const handleConditionNodeDeletion = () => {
+    console.log('TODO: Implement handleConditionNodeDeletion with graph store');
+  };
+
+  // Simplified initialization
+  useEffect(() => {
           // Find the edge that currently points to virtual-end
           const edgeToEnd = prevEdges.find(edge => edge.target === 'virtual-end');
 
@@ -2432,20 +2414,7 @@ export const WorkflowBuilder = () => {
 
       <div className="flex flex-1 overflow-hidden relative">
         <div className="flex-1">
-          <WorkFlowCanvas
-            nodes={nodes}
-            edges={edges}
-            selectedNodeId={selectedNode?.id}
-            onSelectNode={handleNodeSelection}
-            onNodeClick={onNodeClick}
-            onOpenTriggerModal={() => setShowTriggerModal(true)}
-            onOpenActionModal={openActionModal}
-            onInsertNode={handleNodeInsertion}
-            onDeleteNode={handleUnifiedNodeDeletion}
-            onDuplicateNode={handleNodeDuplication}
-            onReplaceTrigger={handleReplaceTrigger}
-            onOpenTriggerConfig={handleOpenTriggerConfig}
-          />
+          <WorkFlowCanvas />
         </div>
 
         {/* Old controls removed - now using React Flow controls with reset button */}
@@ -2490,7 +2459,7 @@ export const WorkflowBuilder = () => {
           </div>
         )}
       </div>
-
+  
       {/* Trigger Category Modal */}
       <TriggerCategoryModal
         isOpen={showTriggerModal}

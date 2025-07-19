@@ -10,6 +10,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
 import { useGraphCutPaste } from '@/hooks/useGraphCutPaste';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
+import { useGraphStore } from '@/store/useGraphStore';
+import { toast } from 'sonner';
 
 interface Branch {
   label: string;
@@ -55,6 +58,109 @@ const ConditionNode = ({
   const [isHovered, setIsHovered] = useState(false);
   const { copyNode, copyFlowFromNode } = useCopyPaste();
   const { cutNode, cutFlowFromNode } = useGraphCutPaste();
+  const { setCopiedNodes, setIsCopy } = useWorkflowStore();
+  const nodeMap = useGraphStore((state) => state.nodes);
+
+  // Copy condition node with all its branches
+  const handleCopyConditionNode = () => {
+    const conditionNode = nodeMap[id];
+    if (!conditionNode) return;
+
+    // Collect all nodes in the condition branches using deep BFS traversal
+    const collectBranchNodes = (nodeIds: string[]): any[] => {
+      const collected: any[] = [];
+      const visited = new Set<string>();
+      const queue = [...nodeIds];
+
+      while (queue.length > 0) {
+        const currentId = queue.shift()!;
+        if (visited.has(currentId)) continue;
+        visited.add(currentId);
+
+        const node = nodeMap[currentId];
+        if (!node) continue;
+
+        // Add node to collection
+        collected.push({
+          id: currentId,
+          type: node.type,
+          data: node.data,
+          position: node.position,
+          branches: node.branches,
+          children: node.children,
+          parent: node.parent
+        });
+
+        // Add children to queue (for action nodes)
+        if (node.children) {
+          queue.push(...node.children);
+        }
+
+        // Add branch nodes to queue for condition nodes (recursive)
+        if (node.type === 'condition' && node.branches) {
+          if (node.branches.yes) queue.push(...node.branches.yes);
+          if (node.branches.no) queue.push(...node.branches.no);
+        }
+      }
+
+      return collected;
+    };
+
+    // Deep traversal function to collect entire subtree
+    const collectEntireSubtree = (startNodeIds: string[]): any[] => {
+      const allNodes: any[] = [];
+      const visited = new Set<string>();
+
+      const traverse = (nodeId: string) => {
+        if (visited.has(nodeId)) return;
+        visited.add(nodeId);
+
+        const node = nodeMap[nodeId];
+        if (!node) return;
+
+        // Add current node
+        allNodes.push({
+          id: nodeId,
+          type: node.type,
+          data: node.data,
+          position: node.position,
+          branches: node.branches,
+          children: node.children,
+          parent: node.parent
+        });
+
+        // Traverse children (for action nodes)
+        if (node.children) {
+          node.children.forEach(childId => traverse(childId));
+        }
+
+        // Traverse branches (for condition nodes)
+        if (node.type === 'condition' && node.branches) {
+          if (node.branches.yes) {
+            node.branches.yes.forEach(branchNodeId => traverse(branchNodeId));
+          }
+          if (node.branches.no) {
+            node.branches.no.forEach(branchNodeId => traverse(branchNodeId));
+          }
+        }
+      };
+
+      // Start traversal from all provided node IDs
+      startNodeIds.forEach(nodeId => traverse(nodeId));
+
+      return allNodes;
+    };
+
+    // Use deep traversal to collect the entire subtree starting from this condition node
+    const allNodes = collectEntireSubtree([id]);
+
+    console.log('🔍 Collected nodes for copy:', allNodes.map(n => ({ id: n.id, type: n.type, label: n.data.label })));
+
+    setCopiedNodes(allNodes);
+    setIsCopy(true);
+    toast.success('Condition node with branches copied to clipboard');
+    console.log('🔍 Condition node with branches copied:', allNodes);
+  };
 
   const IconComponent = React.useMemo(() => {
     if (!data.icon) return LucideIcons.GitBranch;
@@ -137,7 +243,7 @@ const ConditionNode = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       try {
-                        copyNode(id);
+                        handleCopyConditionNode();
                       } catch (err) {
                         console.error('Copy error:', err);
                       }

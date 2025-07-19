@@ -1498,6 +1498,25 @@ export class WorkflowGraph {
       return this;
     }
 
+    // Special handling for condition nodes - remove their placeholder children
+    if (nodeToDelete.type === 'condition') {
+      console.log('🔍 Deleting condition node - cleaning up placeholders');
+
+      // Find all edges from this condition node
+      const conditionEdges = Array.from(newGraph.edges.values()).filter(
+        edge => edge.source === nodeId
+      );
+
+      // Remove placeholder nodes connected to this condition
+      conditionEdges.forEach(edge => {
+        const targetNode = newGraph.nodes.get(edge.target);
+        if (targetNode && targetNode.type === 'placeholder') {
+          console.log('🔍 Removing placeholder child:', edge.target);
+          newGraph.removeNode(edge.target);
+        }
+      });
+    }
+
     // Get all edges connected to this node
     const connectedEdges = Array.from(newGraph.edges.values()).filter(
       edge => edge.source === nodeId || edge.target === nodeId

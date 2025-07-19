@@ -10,6 +10,8 @@ import {
 import FlowEdge from '../edges/FlowEdge';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
 import { useGraphCutPaste } from '@/hooks/useGraphCutPaste';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
+import { toast } from 'sonner';
 
 // ActionNode Component
 export const ActionNode = ({
@@ -24,6 +26,23 @@ export const ActionNode = ({
   const deleteHandler = onDelete || data.onDelete;
   const { copyNode, copyFlowFromNode } = useCopyPaste();
   const { cutNode, cutFlowFromNode } = useGraphCutPaste();
+  const { setCopiedNodes, setIsCopy } = useWorkflowStore();
+
+  // Simple copy function that works with graph store
+  const handleCopyNode = () => {
+    // Create a simple node representation for copying
+    const nodeData = {
+      id: id,
+      type: 'action',
+      data: data,
+      position: { x: 0, y: 0 } // Will be repositioned when pasted
+    };
+
+    setCopiedNodes([nodeData]);
+    setIsCopy(true);
+    toast.success('Node copied to clipboard');
+    console.log('🔍 Node copied to workflow store:', nodeData);
+  };
 
   // Helper function to check if this is a Remove Workflow node
   const isRemoveWorkflowNode = data.id === 'remove-workflow-action' || data.id === 'exit-workflow-operation-action';
@@ -112,7 +131,7 @@ export const ActionNode = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           try {
-                            copyNode(id);
+                            handleCopyNode();
                           } catch (err) {
                             console.error('Copy error:', err);
                           }

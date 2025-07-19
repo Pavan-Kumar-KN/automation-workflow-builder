@@ -3,6 +3,7 @@ import { Node, Edge } from '@xyflow/react';
 import { WorkflowGraph } from '@/utils/WorkflowGraph';
 import { useWorkflowStore } from './useWorkflowState';
 import { NodeData } from '@/data/types';
+import { useGraphStore } from '@/store/useGraphStore';
 
 /**
  * Hook to manage workflow operations using the graph-based approach
@@ -76,6 +77,11 @@ export const useWorkflowGraph = () => {
     const newGraph = graph.deleteSubtree(nodeId);
     applyGraphChanges(newGraph);
 
+    // Ensure conditional placeholders are maintained after deletion
+    setTimeout(() => {
+      useGraphStore.getState().ensureConditionalPlaceholders();
+    }, 100);
+
     console.log('✅ Node subtree deleted successfully:', nodeId);
   }, [createGraph, applyGraphChanges]);
 
@@ -87,6 +93,11 @@ export const useWorkflowGraph = () => {
     const graph = createGraph();
     const newGraph = graph.deleteSingleNode(nodeId);
     applyGraphChanges(newGraph);
+
+    // Ensure conditional placeholders are maintained after deletion
+    setTimeout(() => {
+      useGraphStore.getState().ensureConditionalPlaceholders();
+    }, 100);
   }, [createGraph, applyGraphChanges]);
 
   /**
@@ -102,6 +113,11 @@ export const useWorkflowGraph = () => {
     const graph = createGraph();
     const newGraph = graph.deleteConditionalBranchNode(nodeId, conditionNodeId, branchType, handleAddNodeToBranch);
     applyGraphChanges(newGraph);
+
+    // Ensure conditional placeholders are maintained after deletion
+    setTimeout(() => {
+      useGraphStore.getState().ensureConditionalPlaceholders();
+    }, 100);
   }, [createGraph, applyGraphChanges]);
 
   /**

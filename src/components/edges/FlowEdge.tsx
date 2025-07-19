@@ -1,263 +1,436 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { EdgeLabelRenderer } from '@xyflow/react';
-import { Plus, Copy, Scissors, X } from 'lucide-react';
+import { Plus, ChevronDown } from 'lucide-react';
+import { useGraphStore } from '../../store/useGraphStore';
+import { createPortal } from 'react-dom';
+import { ActionCategoryModal } from '../ActionCategoryModal';
+import { NodeData } from '@/data/types';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
-import { useGraphCutPaste } from '@/hooks/useGraphCutPaste';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
-// Define the props type explicitly
 interface FlowEdgeProps {
   id: string;
-  source: string;
-  target: string;
   sourceX: number;
   sourceY: number;
   targetX: number;
   targetY: number;
+  data?: {
+    parentId?: string;
+    beforeNodeId?: string;
+  };
   sourcePosition?: string;
   targetPosition?: string;
   style?: React.CSSProperties;
-  data?: {
-    onOpenActionModal?: (index: number) => void;
-    onPasteFlow?: (index: number) => void;
-    index?: number;
-    isBranch?: boolean;
-  };
 }
 
+// Complex paste function for condition nodes with complete tree structure
+const handleComplexConditionPaste = (nodesToPaste: any[], parentId: string, beforeNodeId: string) => {
+  console.log('🔍 Starting complex condition paste:', {
+    nodeCount: nodesToPaste.length,
+    parentId,
+    beforeNodeId,
+    nodes: nodesToPaste.map(n => ({ id: n.id, type: n.type, label: n.data.label }))
+  });
+
+  // Find the root condition node (the one being pasted at the insertion point)
+  const rootConditionNode = nodesToPaste.find(node =>
+    node.type === 'condition' &&
+    (!node.parent || !nodesToPaste.find(n => n.id === node.parent))
+  );
+
+  if (!rootConditionNode) {
+    toast.error('No root condition node found in copied data');
+    return;
+  }
+
+  console.log('🔍 Root condition node:', rootConditionNode.id);
+
+  // Create ID mapping for all nodes (old ID -> new ID)
+  const idMapping: Record<string, string> = {};
+  const timestamp = Date.now();
+
+  // Generate new IDs for all nodes
+  nodesToPaste.forEach((node, index) => {
+    const newId = `${node.type}-${timestamp}-${index}`;
+    idMapping[node.id] = newId;
+  });
+
+  console.log('🔍 ID mapping created:', Object.keys(idMapping).length, 'nodes');
+
+  // Step 1: Insert the root condition node
+  const conditionNodeData = {
+    ...rootConditionNode.data,
+    // Remove any function properties
+    ...(Object.fromEntries(
+      Object.entries(rootConditionNode.data).filter(([, value]) => typeof value !== 'function')
+    ))
+  };
+
+  useGraphStore.getState().insertNode({
+    type: 'condition',
+    parentId,
+    beforeNodeId,
+    actionData: conditionNodeData
+  });
+
+  console.log('🔍 Root condition node inserted');
+
+  // Step 2: Build the complete tree structure
+  setTimeout(() => {
+    const updatedNodes = useGraphStore.getState().nodes;
+
+    // Find the newly created condition node
+    const newConditionNode = Object.values(updatedNodes).find(node =>
+      node.type === 'condition' &&
+      node.parent === parentId &&
+      node.data.label === conditionNodeData.label
+    );
+
+    if (!newConditionNode) {
+      toast.error('Failed to find newly created condition node');
+      return;
+    }
+
+    // Update the ID mapping for the root condition node
+    idMapping[rootConditionNode.id] = newConditionNode.id;
+
+    console.log('🔍 Found new condition node:', newConditionNode.id);
+
+    // Step 3: Recursively build the tree structure
+    const buildTreeStructure = async () => {
+      // Process nodes level by level to maintain proper parent-child relationships
+      const processedNodes = new Set<string>();
+      processedNodes.add(rootConditionNode.id); // Root is already processed
+
+      let hasMoreNodes = true;
+      let attempts = 0;
+      const maxAttempts = 10;
+
+      while (hasMoreNodes && attempts < maxAttempts) {
+        hasMoreNodes = false;
+        attempts++;
+
+        console.log(`🔍 Processing level ${attempts}`);
+
+        for (const originalNode of nodesToPaste) {
+          if (processedNodes.has(originalNode.id)) continue;
+
+          // Check if this node's parent has been processed
+          const parentProcessed = !originalNode.parent ||
+                                processedNodes.has(originalNode.parent) ||
+                                !nodesToPaste.find(n => n.id === originalNode.parent);
+
+          if (!parentProcessed) continue;
+
+          // Process this node
+          await processNode(originalNode, idMapping, processedNodes);
+          processedNodes.add(originalNode.id);
+          hasMoreNodes = true;
+        }
+      }
+
+      toast.success(`Condition tree pasted successfully (${processedNodes.size} nodes)`);
+    };
+
+    buildTreeStructure();
+
+  }, 300);
+};
+
+// Helper function to process individual nodes in the tree
+const processNode = async (originalNode: any, idMapping: Record<string, string>, processedNodes: Set<string>) => {
+  return new Promise<void>((resolve) => {
+    setTimeout(() => {
+      const currentNodes = useGraphStore.getState().nodes;
+
+      if (originalNode.type === 'condition') {
+        // For condition nodes, we need to add them to their parent's branch
+        const parentNode = Object.values(currentNodes).find(n => n.id === idMapping[originalNode.parent]);
+
+        if (parentNode && parentNode.type === 'condition') {
+          // Find which branch this condition belongs to
+          const parentOriginal = Object.values(currentNodes).find(n => n.id === originalNode.parent);
+          let branchType: 'yes' | 'no' = 'yes';
+
+          if (parentOriginal?.branches?.no?.includes(originalNode.id)) {
+            branchType = 'no';
+          }
+
+          // Find the placeholder for this branch
+          const placeholderNode = Object.values(currentNodes).find(node =>
+            node.type === 'placeholder' &&
+            node.parent === parentNode.id &&
+            node.data.branchType === branchType
+          );
+
+          if (placeholderNode) {
+            const cleanNodeData = {
+              ...originalNode.data,
+              ...(Object.fromEntries(
+                Object.entries(originalNode.data).filter(([, value]) => typeof value !== 'function')
+              ))
+            };
+
+            useGraphStore.getState().addNodeToBranch({
+              conditionNodeId: parentNode.id,
+              branchType,
+              placeholderNodeId: placeholderNode.id,
+              actionData: {
+                type: originalNode.type,
+                ...cleanNodeData
+              }
+            });
+          }
+        }
+      } else {
+        // For action nodes, add them to their parent's branch
+        const parentNode = Object.values(currentNodes).find(n => n.id === idMapping[originalNode.parent]);
+
+        if (parentNode && parentNode.type === 'condition') {
+          // Similar logic for action nodes...
+          // This is a simplified version - you may need to expand this
+          console.log('🔍 Processing action node in condition branch:', originalNode.id);
+        }
+      }
+
+      resolve();
+    }, 100);
+  });
+};
+
 const FlowEdge: React.FC<FlowEdgeProps> = ({
-  source,
-  target,
+  id,
   sourceX,
   sourceY,
   targetX,
   targetY,
-  sourcePosition,
-  targetPosition,
   style = {},
   data,
-  id,
 }) => {
-  const { layoutDirection, isCopy, isCut, nodes } = useWorkflowStore();
-  const { handleDropdownSelection: handleCopyDropdown } = useCopyPaste();
-  const { handleDropdownSelection: handleCutDropdown } = useGraphCutPaste();
+  const isHorizontal = false;
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Helper function to check if a node is a "Remove Workflow" node
-  const isRemoveWorkflowNode = (nodeId: string): boolean => {
-    const node = nodes.find(n => n.id === nodeId);
-    return node?.data?.id === 'remove-workflow-action' || node?.data?.id === 'exit-workflow-operation-action';
-  };
+  // Copy-paste state
+  const { isCopy, isCut } = useWorkflowStore();
+  const { pasteFlow, pasteCutFlow } = useCopyPaste();
 
-  // Check if the source node is a Remove Workflow node - if so, don't show plus button
-  const shouldHidePlusButton = isRemoveWorkflowNode(source);
-  const isHorizontal = layoutDirection === 'LR';
-  const [showStickyPanel, setShowStickyPanel] = useState(false);
+  // Debug logging (can be removed in production)
+  // console.log('🔍 FlowEdge copy state:', { isCopy, isCut, hasCopiedContent: isCopy || isCut });
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
 
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showDropdown]);
 
-  // Calculate edge path and center point based on layout direction
   let edgePath: string;
+  let arrowPath: string;
   let centerX: number;
   let centerY: number;
-  let arrowPath: string;
+
+  const parentId = data?.parentId;
+  const beforeNodeId = data?.beforeNodeId;
+  const hasCopiedContent = isCopy || isCut;
+
+  const insertNode = useGraphStore((state) => state.insertNode);
+
+  // Debug logs (can be removed in production)
+  // console.log('FlowEdge rendered with:', { parentId, beforeNodeId, showActionModal, hasCopiedContent });
 
   if (isHorizontal) {
-    // Horizontal layout (LR)
-    // Create a straight line from source to target
     edgePath = `M ${sourceX},${sourceY} L ${targetX},${targetY}`;
-
-    // Center point for the plus button
     centerX = (sourceX + targetX) / 2;
     centerY = (sourceY + targetY) / 2;
-
-    // Horizontal arrow pointing right
     const arrowSize = 6;
     arrowPath = `M ${targetX - arrowSize},${targetY - arrowSize} L ${targetX},${targetY} L ${targetX - arrowSize},${targetY + arrowSize}`;
   } else {
-    // Vertical layout (TB) - original implementation
     edgePath = `M ${sourceX},${sourceY} L ${sourceX},${targetY}`;
     centerX = sourceX;
     centerY = (sourceY + targetY) / 2;
-
-    // Vertical arrow pointing down
     const arrowSize = 6;
     arrowPath = `M ${sourceX - arrowSize},${targetY - arrowSize} L ${sourceX},${targetY} L ${sourceX + arrowSize},${targetY - arrowSize}`;
   }
 
+  const handlePlusClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (hasCopiedContent) {
+      // Show dropdown with paste option
+      setShowDropdown(true);
+    } else {
+      // Normal behavior - show action modal
+      setShowActionModal(true);
+    }
+  };
+
+  const handleAddNode = () => {
+    setShowDropdown(false);
+    setShowActionModal(true);
+  };
+
+  const handlePasteFlow = () => {
+    if (!parentId || !beforeNodeId) {
+      console.error('Missing parentId or beforeNodeId for paste operation');
+      return;
+    }
+
+    console.log('🔍 Pasting flow at edge:', { parentId, beforeNodeId });
+
+    // For now, let's use the graph store's insertNode function
+    // TODO: Implement proper paste functionality with graph store
+    if (isCopy || isCut) {
+      // Get copied data from workflow store
+      const { copiedNodes, cutNodes } = useWorkflowStore.getState();
+      const nodesToPaste = isCut ? cutNodes : copiedNodes;
+
+      if (nodesToPaste && nodesToPaste.length > 0) {
+        const firstNode = nodesToPaste[0];
+
+        if (firstNode.type === 'condition' && nodesToPaste.length > 1) {
+          // Handle condition node with complete tree structure
+          useGraphStore.getState().pasteConditionTree({
+            nodesToPaste,
+            parentId,
+            beforeNodeId
+          });
+          toast.success('Condition tree pasted successfully');
+        } else {
+          // Handle single node paste
+          insertNode({
+            type: firstNode.type || 'action',
+            parentId,
+            beforeNodeId,
+            actionData: firstNode.data
+          });
+        }
+
+        // Clear copy/cut state
+        if (isCut) {
+          useWorkflowStore.getState().forceResetCutState();
+        } else {
+          useWorkflowStore.getState().forceResetCopyState();
+        }
+      }
+    }
+
+    setShowDropdown(false);
+  };
+
+  const handleActionSelection = (action: NodeData) => {
+    if (!parentId || !beforeNodeId) {
+      console.error('Missing parentId or beforeNodeId:', { parentId, beforeNodeId });
+      return;
+    }
+
+    console.log('Adding action:', action.label, 'before:', beforeNodeId, 'with parent:', parentId);
+
+    // Determine node type from action
+    const nodeType = action.type === 'condition' ? 'condition' : 'action';
+
+    insertNode({
+      type: nodeType,
+      parentId,
+      beforeNodeId,
+      actionData: action
+    });
+
+    setShowActionModal(false); // Close modal after inserting node
+  };
+
   return (
     <>
-      {/* Main vertical edge */}
+      {/* Line */}
       <path
         id={id}
         d={edgePath}
-        stroke="#9CA3AF" // lighter gray
+        stroke="#9CA3AF"
         strokeWidth={1.5}
         fill="none"
         style={style}
       />
 
-      {/* Arrowhead */}
+      {/* Arrow */}
       <path
         d={arrowPath}
-        stroke="#9CA3AF" // lighter gray
+        stroke="#9CA3AF"
         strokeWidth={1.5}
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
 
-      {/* Center Plus Button - Hide if source is Remove Workflow node */}
-      {data?.onOpenActionModal && !shouldHidePlusButton && (
-        <EdgeLabelRenderer>
-          <div
-            className="pointer-events-auto absolute"
-            style={{
-              transform: `translate(-50%, -50%) translate(${centerX}px, ${centerY}px)`,
-            }}
-          >
-            {(isCopy || isCut) ? (
-              // Show dropdown when in copy or cut mode
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className={`w-6 h-5 border border-gray-500 rounded-md flex items-center justify-center transition-colors shadow-sm ${
-                    isCut ? 'bg-orange-400' : 'bg-gray-400'
-                  }`}>
-                    <Plus className="w-4 h-4 text-white stroke-[2.5]" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  side="right"
-                  sideOffset={15}
-                  className="w-56 bg-white border border-gray-200 rounded-lg shadow-lg p-1 z-[9999]"
-                >
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-
-                      // Calculate insertion index dynamically
-                      const { nodes } = useWorkflowStore.getState();
-                      const flowNodes = nodes.filter(node =>
-                        node.type !== 'placeholder' &&
-                        node.id !== 'virtual-end' &&
-                        !node.id.startsWith('placeholder-')
-                      );
-                      const sourceNodeIndex = flowNodes.findIndex(node => node.id === source);
-                      const insertionIndex = sourceNodeIndex >= 0 ? sourceNodeIndex : 0;
-
-                      // Create a dynamic action modal handler
-                      const dynamicActionModal = (index: number) => {
-                        console.log('🔍 Dynamic action modal called with index:', insertionIndex);
-                        data.onOpenActionModal?.(insertionIndex);
-                      };
-
-                      if (isCopy) {
-                        handleCopyDropdown('addNode', id, dynamicActionModal);
-                      } else {
-                        handleCutDropdown('addNode', id, dynamicActionModal);
-                      }
-                    }}
-                    className="flex items-center px-3 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md cursor-pointer transition-colors"
-                  >
-                    <Plus className="w-4 h-4 mr-3" />
-                    <span className="font-medium">Add Node Here</span>
-                  </DropdownMenuItem>
-                  {isCopy && (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-
-                        // Calculate insertion index dynamically
-                        const { nodes } = useWorkflowStore.getState();
-                        const flowNodes = nodes.filter(node =>
-                          node.type !== 'placeholder' &&
-                          node.id !== 'virtual-end' &&
-                          !node.id.startsWith('placeholder-')
-                        );
-                        const sourceNodeIndex = flowNodes.findIndex(node => node.id === source);
-                        const insertionIndex = sourceNodeIndex >= 0 ? sourceNodeIndex : 0;
-
-                        // Create a dynamic action modal handler
-                        const dynamicActionModal = (index: number) => {
-                          console.log('🔍 Dynamic paste flow called with index:', insertionIndex);
-                          data.onOpenActionModal?.(insertionIndex);
-                        };
-
-                        handleCopyDropdown('pasteFlow', id, dynamicActionModal);
-                      }}
-                      className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
-                    >
-                      <Plus className="w-4 h-4 mr-3" />
-                      <span className="font-medium">Paste Flow Here</span>
-                    </DropdownMenuItem>
-                  )}
-                  {isCut && (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-
-                        // Calculate insertion index dynamically
-                        const { nodes } = useWorkflowStore.getState();
-                        const flowNodes = nodes.filter(node =>
-                          node.type !== 'placeholder' &&
-                          node.id !== 'virtual-end' &&
-                          !node.id.startsWith('placeholder-')
-                        );
-                        const sourceNodeIndex = flowNodes.findIndex(node => node.id === source);
-                        const insertionIndex = sourceNodeIndex >= 0 ? sourceNodeIndex : 0;
-
-                        // Create a dynamic action modal handler
-                        const dynamicActionModal = (index: number) => {
-                          console.log('🔍 Dynamic move flow called with index:', insertionIndex);
-                          data.onOpenActionModal?.(insertionIndex);
-                        };
-
-                        handleCutDropdown('pasteCutFlow', id, dynamicActionModal);
-                      }}
-                      className="flex items-center px-3 py-2 text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-md cursor-pointer transition-colors"
-                    >
-                      <Plus className="w-4 h-4 mr-3" />
-                      <span className="font-medium">Move Flow Here</span>
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              // Normal mode - direct button click
+      {/* Plus Button */}
+      <EdgeLabelRenderer>
+        <div
+          className="pointer-events-auto absolute z-10"
+          style={{
+            transform: `translate(-50%, -50%) translate(${centerX}px, ${centerY}px)`,
+          }}
+        >
+          {hasCopiedContent ? (
+            // Dropdown button when there's copied content
+            <div className="relative" ref={dropdownRef}>
               <button
-                onClick={() => {
-                  // Calculate insertion index dynamically based on current flow state
-                  const { nodes } = useWorkflowStore.getState();
-                  const flowNodes = nodes.filter(node =>
-                    node.type !== 'placeholder' &&
-                    node.id !== 'virtual-end' &&
-                    !node.id.startsWith('placeholder-')
-                  );
-                  const sourceNodeIndex = flowNodes.findIndex(node => node.id === source);
-                  const insertionIndex = sourceNodeIndex >= 0 ? sourceNodeIndex : 0;
-
-                  console.log('🔍 Plus button clicked - dynamic calculation:', {
-                    source,
-                    sourceNodeIndex,
-                    insertionIndex,
-                    flowNodes: flowNodes.map(n => n.id)
-                  });
-
-                  data.onOpenActionModal?.(insertionIndex);
-                }}
-                className="w-6 h-5 bg-gray-400 border border-gray-500 rounded-md flex items-center justify-center transition-colors shadow-sm"
+                className="w-8 h-5 bg-blue-500 border border-blue-600 rounded-md flex items-center justify-center hover:bg-blue-600 transition-colors shadow-sm cursor-pointer"
+                onClick={handlePlusClick}
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
               >
-                <Plus className="w-4 h-4 text-white stroke-[2.5]" />
+                <ChevronDown className="w-4 h-4 text-white stroke-[2.5]" />
               </button>
-            )}
-          </div>
-        </EdgeLabelRenderer>
+
+              {/* Dropdown Menu */}
+              {showDropdown && (
+                <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-md shadow-lg z-50 min-w-[120px]">
+                  <button
+                    onClick={handleAddNode}
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 border-b border-gray-100"
+                  >
+                    Add Node
+                  </button>
+                  <button
+                    onClick={handlePasteFlow}
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 text-blue-600"
+                  >
+                    {isCut ? 'Move Here' : 'Paste Flow'}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            // Normal plus button
+            <button
+              className="w-6 h-5 bg-gray-400 border border-gray-500 rounded-md flex items-center justify-center hover:bg-gray-500 transition-colors shadow-sm cursor-pointer"
+              onClick={handlePlusClick}
+              onMouseDown={(e) => e.stopPropagation()}
+              onMouseUp={(e) => e.stopPropagation()}
+            >
+              <Plus className="w-4 h-4 text-white stroke-[2.5]" />
+            </button>
+          )}
+        </div>
+      </EdgeLabelRenderer>
+
+      {/* Action Category Modal */}
+      {showActionModal && createPortal(
+        <ActionCategoryModal
+          isOpen={showActionModal}
+          onClose={() => setShowActionModal(false)}
+          onSelectAction={handleActionSelection}
+        />,
+        document.body
       )}
     </>
   );
