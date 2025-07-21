@@ -2,10 +2,11 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { Node, Edge } from '@xyflow/react';
+import { GraphNode } from '@/store/useGraphStore';
 
 interface WorkflowState {
   // Core workflow state
-  selectedNode: Node | null;
+  selectedNode: GraphNode | null;
   workflowName: string;
   isActive: boolean;
   layoutDirection: 'TB' | 'LR'; // Added layout direction
@@ -25,19 +26,10 @@ interface WorkflowState {
   edges: Edge[];
 
   // Actions for core state
-  setSelectedNode: (node: Node | null) => void;
+  setSelectedNode: (node: GraphNode | null) => void;
   setWorkflowName: (name: string) => void;
   setIsActive: (active: boolean) => void;
   setLayoutDirection: (direction: 'TB' | 'LR') => void; // Added setter
-
-  // Actions for nodes and edges
-  setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
-  setEdges: (edges: Edge[] | ((edges: Edge[]) => Edge[])) => void;
-  addNode: (node: Node) => void;
-  updateNode: (nodeId: string, data: Record<string, unknown>) => void;
-  removeNode: (nodeId: string) => void;
-  addEdge: (edge: Edge) => void;
-  removeEdge: (edgeId: string) => void;
 
   // Actions for the copy and paste functionality
   setCopiedNodes: (nodes: Node[]) => void;
@@ -52,8 +44,6 @@ interface WorkflowState {
   // Force reset copy/cut state
   forceResetCopyState: () => void;
   forceResetCutState: () => void;
-
-
 
   // Utility actions
   clearWorkflow: () => void;
@@ -87,43 +77,6 @@ export const useWorkflowStore = create<WorkflowState>()(
         setWorkflowName: (name) => set({ workflowName: name }, false, 'setWorkflowName'),
         setIsActive: (active) => set({ isActive: active }, false, 'setIsActive'),
         setLayoutDirection: (direction) => set({ layoutDirection: direction }, false, 'setLayoutDirection'),
-
-        // Nodes and edges actions
-        setNodes: (nodes) => set((state) => ({
-          nodes: typeof nodes === 'function' ? nodes(state.nodes) : nodes
-        }), false, 'setNodes'),
-
-        setEdges: (edges) => set((state) => ({
-          edges: typeof edges === 'function' ? edges(state.edges) : edges
-        }), false, 'setEdges'),
-
-        addNode: (node) => set((state) => ({
-          nodes: [...state.nodes, node]
-        }), false, 'addNode'),
-
-        updateNode: (nodeId, data) => set((state) => ({
-          nodes: state.nodes.map(node =>
-            node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
-          ),
-          // Update selected node if it's the one being updated
-          selectedNode: state.selectedNode?.id === nodeId
-            ? { ...state.selectedNode, data: { ...state.selectedNode.data, ...data } }
-            : state.selectedNode
-        }), false, 'updateNode'),
-
-        removeNode: (nodeId) => set((state) => ({
-          nodes: state.nodes.filter(node => node.id !== nodeId),
-          edges: state.edges.filter(edge => edge.source !== nodeId && edge.target !== nodeId),
-          selectedNode: state.selectedNode?.id === nodeId ? null : state.selectedNode
-        }), false, 'removeNode'),
-
-        addEdge: (edge) => set((state) => ({
-          edges: [...state.edges, edge]
-        }), false, 'addEdge'),
-
-        removeEdge: (edgeId) => set((state) => ({
-          edges: state.edges.filter(edge => edge.id !== edgeId)
-        }), false, 'removeEdge'),
 
 
         // Copy and paste actions

@@ -9,9 +9,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import FlowEdge from '../edges/FlowEdge';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
-import { useGraphCutPaste } from '@/hooks/useGraphCutPaste';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { toast } from 'sonner';
+import { useGraphStore } from '@/store/useGraphStore';
 
 // ActionNode Component
 export const ActionNode = ({
@@ -25,8 +25,9 @@ export const ActionNode = ({
   const [isHovered, setIsHovered] = useState(false);
   const deleteHandler = onDelete || data.onDelete;
   const { copyNode, copyFlowFromNode } = useCopyPaste();
-  const { cutNode, cutFlowFromNode } = useGraphCutPaste();
   const { setCopiedNodes, setIsCopy } = useWorkflowStore();
+
+  const graph = useGraphStore((state) => state.nodes);
 
   // Simple copy function that works with graph store
   const handleCopyNode = () => {
@@ -41,8 +42,65 @@ export const ActionNode = ({
     setCopiedNodes([nodeData]);
     setIsCopy(true);
     toast.success('Node copied to clipboard');
-    console.log('🔍 Node copied to workflow store:', nodeData);
   };
+
+  const handleCopyFlowFromHere = (id) =>{
+     const actionNode = graph[id];
+    if (!actionNode) return;
+
+     // Deep traversal function to collect entire subtree
+    const collectEntireSubtree = (startNodeIds: string[]): any[] => {
+      const allNodes: any[] = [];
+      const visited = new Set<string>();
+
+      const traverse = (nodeId: string) => {
+        if (visited.has(nodeId)) return;
+        visited.add(nodeId);
+
+        const node = graph[nodeId];
+        if (!node) return;
+
+        // Add current node
+        allNodes.push({
+          id: nodeId,
+          type: node.type,
+          data: node.data,
+          position: node.position,
+          branches: node.branches,
+          children: node.children,
+          parent: node.parent
+        });
+
+        // Traverse children (for action nodes)
+        if (node.children) {
+          node.children.forEach(childId => traverse(childId));
+        }
+
+        // Traverse branches (for condition nodes)
+        if (node.type === 'condition' && node.branches) {
+          if (node.branches.yes) {
+            node.branches.yes.forEach(branchNodeId => traverse(branchNodeId));
+          }
+          if (node.branches.no) {
+            node.branches.no.forEach(branchNodeId => traverse(branchNodeId));
+          }
+        }
+      };
+
+      // Start traversal from all provided node IDs
+      startNodeIds.forEach(nodeId => traverse(nodeId));
+
+      return allNodes;
+    };  
+
+
+    // Use deep traversal to collect the entire subtree starting from this condition node
+    const allNodes = collectEntireSubtree([id]);
+
+
+    setCopiedNodes(allNodes);
+    setIsCopy(true);
+  }
 
   // Helper function to check if this is a Remove Workflow node
   const isRemoveWorkflowNode = data.id === 'remove-workflow-action' || data.id === 'exit-workflow-operation-action';
@@ -58,8 +116,6 @@ export const ActionNode = ({
 
   return (
     <div className="relative flex flex-col items-center w-full mt-1">
-
-
       {/* Input Handle */}
       <Handle
         type="target"
@@ -146,7 +202,7 @@ export const ActionNode = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           try {
-                            copyFlowFromNode(id);
+                            handleCopyFlowFromHere(id);
                           } catch (err) {
                             console.error('Copy error:', err);
                           }
@@ -161,7 +217,7 @@ export const ActionNode = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           try {
-                            cutNode(id);
+
                           } catch (err) {
                             console.error('Cut error:', err);
                           }
@@ -176,7 +232,7 @@ export const ActionNode = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           try {
-                            cutFlowFromNode(id);
+
                           } catch (err) {
                             console.error('Cut error:', err);
                           }

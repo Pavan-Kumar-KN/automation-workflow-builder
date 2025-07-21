@@ -20,7 +20,7 @@ type GraphNode = {
     customLabel?: string;
     config?: Record<string, any>;
     isConfigured?: boolean;
-    branchType?: 'yes' | 'no';
+    branchType?: "yes" | "no";
     conditionNodeId?: string;
     yesPlaceholderId?: string;
     noPlaceholderId?: string;
@@ -37,28 +37,36 @@ type GraphNode = {
 
 interface GraphState {
   nodes: Record<string, GraphNode>;
+  // ? this function is adding initial nodes
   addNode: (node: GraphNode) => void;
+
   removeNode: (id: string) => void;
+
   insertNode: (params: {
     type: NodeType;
     parentId: string;
     beforeNodeId: string;
     actionData?: Record<string, unknown>;
   }) => void;
+
   addNodeToBranch: (params: {
     conditionNodeId: string;
-    branchType: 'yes' | 'no';
+    branchType: "yes" | "no";
     placeholderNodeId: string;
     actionData: Record<string, unknown>;
   }) => void;
+
   reset: () => void;
+
   ensureConditionalPlaceholders: () => void;
+
   pasteConditionTree: (params: {
     nodesToPaste: any[];
     parentId: string;
     beforeNodeId: string;
   }) => void;
 }
+
 
 export const useGraphStore = create<GraphState>((set, get) => ({
   nodes: {},
@@ -72,6 +80,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
     // Create a deep copy without functions to avoid structuredClone issues
     const updatedGraph: Record<string, GraphNode> = {};
+
     Object.entries(graph).forEach(([nodeId, node]) => {
       updatedGraph[nodeId] = {
         ...node,
@@ -169,8 +178,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         if (beforeNode) {
           beforeNode.parent = id;
         }
-
-        console.log('🔍 Condition node: Moving entire downstream flow', beforeNodeId, 'to Yes branch');
 
         // Fix termination of moved flow: if last node is action connected to end, create ghost
         const fixFlowTermination = (nodeId: string) => {
@@ -327,16 +334,16 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
     // Reposition all children starting from the new node
     repositionChildren(id);
-
+    
     set({ nodes: updatedGraph });
   },
 
   removeNode: (id) => {
     const graph = structuredClone(get().nodes);
-    const nodeToRemove = graph[id];
-    if (!nodeToRemove) return;
 
-    console.log('🔍 Removing node:', id, 'Type:', nodeToRemove.type);
+    const nodeToRemove = graph[id];
+
+    if (!nodeToRemove) return;
 
     // Helper function to recursively delete all descendants of a node
     const recursivelyDeleteNode = (nodeId: string, visited = new Set<string>()) => {
@@ -345,8 +352,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
       const node = graph[nodeId];
       if (!node) return;
-
-      console.log('🔍 Recursively deleting node:', nodeId, 'Type:', node.type);
 
       // If it's a condition node, delete all its branch nodes first
       if (node.type === 'condition' && node.branches) {
@@ -375,16 +380,13 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
     // PRIORITY 1: Handle condition nodes first (regardless of where they are)
     if (nodeToRemove.type === 'condition') {
-      console.log('🔍 Removing condition node and all its branches');
 
       if (nodeToRemove.branches) {
-        // Collect all branch node IDs to delete
+        // Collect all branch node IDs to delete with destructure method
         const allBranchNodes = [
           ...(nodeToRemove.branches.yes || []),
           ...(nodeToRemove.branches.no || [])
         ];
-
-        console.log('🔍 Branch nodes to delete:', allBranchNodes);
 
         // Recursively delete all branch nodes and their descendants
         allBranchNodes.forEach(branchNodeId => {
@@ -520,13 +522,11 @@ export const useGraphStore = create<GraphState>((set, get) => ({
             }
           });
 
-          console.log(`🔍 Updated ${branchType} branch array:`, branchArray);
-          console.log(`🔍 Branch array length after deletion:`, branchArray.length);
-
           // If branch becomes empty, recreate placeholder
           if (branchArray.length === 0) {
-            console.log(`🔍 Branch is empty, recreating placeholder for ${branchType} branch`);
+
             const placeholderId = `placeholder-${branchType}-${conditionNodeId}`;
+
             const placeholder: GraphNode = {
               id: placeholderId,
               type: 'placeholder',
@@ -542,7 +542,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
             graph[placeholderId] = placeholder;
             branchArray.push(placeholderId);
-            console.log(`🔍 Recreated placeholder for empty ${branchType} branch, new array:`, branchArray);
+
           } else {
             console.log(`🔍 Branch not empty, length: ${branchArray.length}, contents:`, branchArray);
           }
@@ -557,8 +557,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       set({ nodes: graph });
       return;
     }
-
-
 
     const parent = nodeToRemove.parent;
     const children = nodeToRemove.children || [];
@@ -653,6 +651,466 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     get().ensureConditionalPlaceholders();
   },
 
+  // ? Version 2 code 
+  // insertNode: ({ type, parentId, beforeNodeId, actionData }) => {
+  //   const id = `${type}-${Date.now()}`;
+  //   const graph = get().nodes;
+
+  //   // Create a deep copy without functions to avoid structuredClone issues
+  //   const updatedGraph = {};
+
+  //   Object.entries(graph).forEach(([nodeId, node]) => {
+  //     updatedGraph[nodeId] = {
+  //       ...node,
+  //       data: {
+  //         ...node.data,
+  //         // Filter out function properties that can't be cloned
+  //         ...Object.fromEntries(
+  //           Object.entries(node.data).filter(
+  //             ([key, value]) => typeof value !== "function"
+  //           )
+  //         ),
+  //       },
+  //     };
+  //   });
+
+  //   const parentNode = updatedGraph[parentId];
+  //   const beforeNode = updatedGraph[beforeNodeId];
+
+  //   if (!parentNode || !beforeNode) {
+  //     console.error("Parent or before node not found:", {
+  //       parentId,
+  //       beforeNodeId,
+  //     });
+  //     return;
+  //   }
+
+  //   // Check if this node is being added inside a branch
+  //   let branchType = "";
+  //   let conditionNodeId = "";
+
+  //   // Search all condition nodes to see if the parent is in any branch
+  //   for (const [nodeId, node] of Object.entries(updatedGraph)) {
+  //     if (node.type === "condition" && node.branches) {
+  //       if (node.branches.yes && node.branches.yes.includes(parentId)) {
+  //         branchType = "yes";
+  //         conditionNodeId = nodeId;
+  //         break;
+  //       } else if (node.branches.no && node.branches.no.includes(parentId)) {
+  //         branchType = "no";
+  //         conditionNodeId = nodeId;
+  //         break;
+  //       }
+  //     }
+  //   }
+
+  //   // Clean actionData to remove functions
+  //   const cleanActionData = actionData
+  //     ? Object.fromEntries(
+  //         Object.entries(actionData).filter(
+  //           ([key, value]) => typeof value !== "function"
+  //         )
+  //       )
+  //     : {};
+
+  //   // Create the new node with action data
+  //   const newNode = {
+  //     id,
+  //     type,
+  //     data: {
+  //       ...cleanActionData,
+  //       label:
+  //         actionData?.label ||
+  //         (type === "action" ? "New Action" : "New Condition"),
+  //       isConfigured: false,
+  //       // Add branch metadata if this node is in a branch
+  //       ...(branchType && conditionNodeId
+  //         ? { branchType, conditionNodeId }
+  //         : {}),
+  //     },
+  //     position: { x: parentNode.position.x, y: parentNode.position.y + 150 },
+  //     children: [beforeNodeId], // New node points to the original target
+  //     parent: parentId,
+  //   };
+
+  //   // Handle conditional nodes differently
+  //   if (type === "condition") {
+  //     // Create Yes and No placeholder nodes
+  //     const timestamp = Date.now();
+  //     const yesPlaceholderId = `placeholder-yes-${timestamp}`;
+  //     const noPlaceholderId = `placeholder-no-${timestamp}`;
+
+  //     let yesChildren = [];
+  //     const noChildren = [noPlaceholderId];
+
+  //     // FIXED: Properly handle end node and downstream flow
+  //     if (
+  //       beforeNodeId &&
+  //       (beforeNodeId === "end-1" || beforeNode?.type === "endNode")
+  //     ) {
+  //       // If inserting before end node, remove the end node completely
+  //       console.log("🔍 Removing end node because condition is now last");
+  //       delete updatedGraph[beforeNodeId];
+
+  //       // Both branches get placeholders (no downstream flow)
+  //       yesChildren = [yesPlaceholderId];
+  //     } else if (beforeNode?.type === "ghost") {
+  //       // If inserting before ghost node, remove the ghost node
+  //       console.log(
+  //         "🔍 Removing ghost node because condition is now last in branch"
+  //       );
+  //       delete updatedGraph[beforeNodeId];
+
+  //       // Both branches get placeholders
+  //       yesChildren = [yesPlaceholderId];
+  //     } else if (beforeNodeId) {
+  //       // Move the entire downstream flow to Yes branch
+  //       yesChildren = [beforeNodeId];
+
+  //       // Update the downstream node's parent to be the condition node
+  //       if (beforeNode) {
+  //         beforeNode.parent = id;
+  //       }
+  //     } else {
+  //       // No beforeNode, just use placeholder
+  //       yesChildren = [yesPlaceholderId];
+  //     }
+
+  //     const yesPlaceholder = {
+  //       id: yesPlaceholderId,
+  //       type: "placeholder",
+  //       position: { x: 0, y: 0 }, // Let Dagre handle positioning
+  //       data: {
+  //         label: "Add Action",
+  //         branchType: "yes",
+  //         conditionNodeId: id,
+  //       },
+  //       parent: id,
+  //       children: [],
+  //     };
+
+  //     const noPlaceholder = {
+  //       id: noPlaceholderId,
+  //       type: "placeholder",
+  //       position: { x: 0, y: 0 }, // Let Dagre handle positioning
+  //       data: {
+  //         label: "Add Action",
+  //         branchType: "no",
+  //         conditionNodeId: id,
+  //       },
+  //       parent: id,
+  //       children: [],
+  //     };
+
+  //     // Update the condition node to have branches
+  //     newNode.branches = {
+  //       yes: yesChildren,
+  //       no: noChildren,
+  //     };
+  //     delete newNode.children; // Remove children for condition nodes
+
+  //     console.log("✅ Created condition node with branches:", {
+  //       id,
+  //       yesChildren,
+  //       noChildren,
+  //     });
+
+  //     // Add placeholders to graph only if they're used
+  //     if (yesChildren.includes(yesPlaceholderId)) {
+  //       updatedGraph[yesPlaceholderId] = yesPlaceholder;
+  //     }
+  //     if (noChildren.includes(noPlaceholderId)) {
+  //       updatedGraph[noPlaceholderId] = noPlaceholder;
+  //     }
+
+  //     // Store placeholder IDs in condition node data for edge creation
+  //     newNode.data.yesPlaceholderId = yesPlaceholderId;
+  //     newNode.data.noPlaceholderId = noPlaceholderId;
+  //   } else {
+  //     // Regular node handling
+  //     newNode.children = [beforeNodeId];
+
+  //     // Update beforeNode's parent
+  //     if (beforeNode) {
+  //       beforeNode.parent = id;
+  //     }
+  //   }
+
+  //   // Add new node to graph
+  //   updatedGraph[id] = newNode;
+
+  //   // Update parent's children: replace beforeNodeId with new node id
+  //   const siblings = parentNode.children || [];
+  //   const insertIndex = siblings.findIndex((cid) => cid === beforeNodeId);
+
+  //   if (insertIndex === -1) {
+  //     console.error("beforeNodeId not found in parent children:", {
+  //       beforeNodeId,
+  //       siblings,
+  //     });
+  //     return;
+  //   }
+
+  //   parentNode.children = [
+  //     ...siblings.slice(0, insertIndex),
+  //     id,
+  //     ...siblings.slice(insertIndex + 1),
+  //   ];
+
+  //   setSelectedNode();
+  //   set({ nodes: updatedGraph });
+  // },
+
+  // removeNode: (id) => {
+  //   const graph = structuredClone(get().nodes);
+  //   const nodeToRemove = graph[id];
+
+  //   if (!nodeToRemove) return;
+
+  //   console.log("🔍 Removing node:", id, "type:", nodeToRemove.type);
+
+  //   // Helper function to recursively delete all descendants
+  //   const recursivelyDeleteNode = (nodeId, visited = new Set()) => {
+  //     if (visited.has(nodeId)) return;
+  //     visited.add(nodeId);
+
+  //     const node = graph[nodeId];
+  //     if (!node) return;
+
+  //     // If it's a condition node, delete all its branch nodes first
+  //     if (node.type === "condition" && node.branches) {
+  //       const allBranchNodes = [
+  //         ...(node.branches.yes || []),
+  //         ...(node.branches.no || []),
+  //       ];
+  //       allBranchNodes.forEach((branchNodeId) => {
+  //         recursivelyDeleteNode(branchNodeId, visited);
+  //       });
+  //     }
+
+  //     // Delete all children recursively
+  //     if (node.children) {
+  //       node.children.forEach((childId) => {
+  //         if (graph[childId] && graph[childId].type !== "endNode") {
+  //           recursivelyDeleteNode(childId, visited);
+  //         }
+  //       });
+  //     }
+
+  //     delete graph[nodeId];
+  //   };
+
+  //   // PRIORITY 1: Handle condition nodes
+  //   if (nodeToRemove.type === "condition") {
+  //     console.log("🔍 Handling condition node removal");
+
+  //     // Delete all branch nodes recursively
+  //     if (nodeToRemove.branches) {
+  //       const allBranchNodes = [
+  //         ...(nodeToRemove.branches.yes || []),
+  //         ...(nodeToRemove.branches.no || []),
+  //       ];
+  //       allBranchNodes.forEach((branchNodeId) => {
+  //         recursivelyDeleteNode(branchNodeId);
+  //       });
+  //     }
+
+  //     // Handle parent reconnection
+  //     const parent = nodeToRemove.parent;
+  //     if (parent) {
+  //       const parentNode = graph[parent];
+  //       if (parentNode) {
+  //         // Check if we're in a branch or main flow
+  //         const isInBranch = nodeToRemove.data?.branchType;
+
+  //         if (isInBranch) {
+  //           // Create ghost node for branch termination
+  //           const timestamp = Date.now();
+  //           const ghostNodeId = `ghost-${timestamp}`;
+  //           const newGhostNode = {
+  //             id: ghostNodeId,
+  //             type: "ghost",
+  //             position: { x: 0, y: 0 },
+  //             data: {
+  //               label: "Ghost",
+  //               branchType: nodeToRemove.data.branchType,
+  //               conditionNodeId: nodeToRemove.data.conditionNodeId,
+  //             },
+  //             children: [],
+  //             parent: parent,
+  //           };
+
+  //           graph[ghostNodeId] = newGhostNode;
+  //           parentNode.children = [ghostNodeId];
+  //         } else {
+  //           // Main flow - connect to end node or create one
+  //           const endNode = Object.values(graph).find(
+  //             (node) => node.type === "endNode"
+  //           );
+
+  //           if (!endNode) {
+  //             const endNodeId = "end-1";
+  //             const newEndNode = {
+  //               id: endNodeId,
+  //               type: "endNode",
+  //               position: { x: 100, y: 250 },
+  //               data: { label: "End" },
+  //               children: [],
+  //               parent: parent,
+  //             };
+  //             graph[endNodeId] = newEndNode;
+  //             parentNode.children = [endNodeId];
+  //           } else {
+  //             parentNode.children = [endNode.id];
+  //             endNode.parent = parent;
+  //           }
+  //         }
+  //       }
+  //     }
+
+  //     delete graph[id];
+  //     set({ nodes: graph });
+  //     return;
+  //   }
+
+  //   // PRIORITY 2: Handle nodes in condition branches
+  //   const isInBranch =
+  //     nodeToRemove.data?.branchType && nodeToRemove.data?.conditionNodeId;
+
+  //   if (isInBranch) {
+  //     console.log("🔍 Node is in a condition branch");
+
+  //     const conditionNodeId = nodeToRemove.data.conditionNodeId;
+  //     const branchType = nodeToRemove.data.branchType;
+  //     const conditionNode = graph[conditionNodeId];
+
+  //     if (conditionNode && conditionNode.branches) {
+  //       const branchArray = conditionNode.branches[branchType];
+  //       const nodeIndex = branchArray.findIndex((nodeId) => nodeId === id);
+
+  //       if (nodeIndex !== -1) {
+  //         // Get children that should be reconnected
+  //         const nodeChildren = nodeToRemove.children || [];
+
+  //         // Filter out ghost and end nodes - they shouldn't be reconnected
+  //         const reconnectableChildren = nodeChildren.filter((childId) => {
+  //           const childNode = graph[childId];
+  //           return (
+  //             childNode &&
+  //             childNode.type !== "ghost" &&
+  //             childNode.type !== "endNode"
+  //           );
+  //         });
+
+  //         // Delete ghost and end nodes
+  //         nodeChildren.forEach((childId) => {
+  //           const childNode = graph[childId];
+  //           if (
+  //             childNode &&
+  //             (childNode.type === "ghost" || childNode.type === "endNode")
+  //           ) {
+  //             console.log("🔍 Deleting", childNode.type, "node:", childId);
+  //             delete graph[childId];
+  //           }
+  //         });
+
+  //         // FIXED: Proper reconnection logic
+  //         if (reconnectableChildren.length > 0) {
+  //           // Replace the removed node with its children in the branch
+  //           branchArray.splice(nodeIndex, 1, ...reconnectableChildren);
+
+  //           // Update parent relationships
+  //           reconnectableChildren.forEach((childId) => {
+  //             const childNode = graph[childId];
+  //             if (childNode) {
+  //               if (nodeIndex > 0) {
+  //                 // Connect to previous node in branch
+  //                 const prevNodeId = branchArray[nodeIndex - 1];
+  //                 childNode.parent = prevNodeId;
+  //                 const prevNode = graph[prevNodeId];
+  //                 if (prevNode) {
+  //                   prevNode.children = [childId];
+  //                 }
+  //               } else {
+  //                 // First node in branch - parent is condition node
+  //                 childNode.parent = conditionNodeId;
+  //               }
+  //             }
+  //           });
+  //         } else {
+  //           // No reconnectable children - just remove the node from branch
+  //           branchArray.splice(nodeIndex, 1);
+  //         }
+
+  //         // Create placeholder if branch is empty
+  //         if (branchArray.length === 0) {
+  //           console.log("🔍 Branch is empty, creating placeholder");
+
+  //           const timestamp = Date.now();
+  //           const placeholderId = `placeholder-${branchType}-${timestamp}`;
+
+  //           const placeholder = {
+  //             id: placeholderId,
+  //             type: "placeholder",
+  //             position: { x: 0, y: 0 },
+  //             data: {
+  //               label: "Add Action",
+  //               branchType: branchType,
+  //               conditionNodeId: conditionNodeId,
+  //             },
+  //             parent: conditionNodeId,
+  //             children: [],
+  //           };
+
+  //           graph[placeholderId] = placeholder;
+  //           branchArray.push(placeholderId);
+  //         }
+
+  //         conditionNode.branches[branchType] = branchArray;
+  //       }
+  //     }
+
+  //     delete graph[id];
+  //     set({ nodes: graph });
+  //     return;
+  //   }
+
+  //   // PRIORITY 3: Handle regular nodes in main flow
+  //   console.log("🔍 Handling regular node removal");
+
+  //   const parent = nodeToRemove.parent;
+  //   const children = nodeToRemove.children || [];
+
+  //   // Update parent's children array
+  //   if (parent) {
+  //     const parentNode = graph[parent];
+  //     if (parentNode && parentNode.children) {
+  //       const updatedChildren = [];
+  //       for (const childId of parentNode.children) {
+  //         if (childId === id) {
+  //           // Replace removed node with its children
+  //           updatedChildren.push(...children);
+  //         } else {
+  //           updatedChildren.push(childId);
+  //         }
+  //       }
+  //       parentNode.children = updatedChildren;
+  //     }
+  //   }
+
+  //   // Update children's parent
+  //   children.forEach((childId) => {
+  //     const childNode = graph[childId];
+  //     if (childNode) {
+  //       childNode.parent = parent;
+  //     }
+  //   });
+
+  //   delete graph[id];
+  //   set({ nodes: graph });
+
+  //   console.log("✅ Node removal complete");
+  // },
   /**
    * Adds a new node to a condition branch, replacing a placeholder
    *
@@ -666,8 +1124,13 @@ export const useGraphStore = create<GraphState>((set, get) => ({
    * When all nodes in a branch are deleted → recreate placeholder
    * When user adds node to placeholder → delete placeholder, add real node
    */
-  addNodeToBranch: ({ conditionNodeId, branchType, placeholderNodeId, actionData }) => {
-    const id = `${actionData.type || 'action'}-${Date.now()}`;
+  addNodeToBranch: ({
+    conditionNodeId,
+    branchType,
+    placeholderNodeId,
+    actionData,
+  }) => {
+    const id = `${actionData.type || "action"}-${Date.now()}`;
     const graph = get().nodes;
 
     // Create a deep copy without functions to avoid structuredClone issues
@@ -678,10 +1141,12 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         data: {
           ...node.data,
           // Filter out function properties that can't be cloned
-          ...(Object.fromEntries(
-            Object.entries(node.data).filter(([, value]) => typeof value !== 'function')
-          ))
-        }
+          ...Object.fromEntries(
+            Object.entries(node.data).filter(
+              ([, value]) => typeof value !== "function"
+            )
+          ),
+        },
       };
     });
 
@@ -696,25 +1161,29 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       return;
     }
 
-    console.log('🔍 Adding node to branch:', {
+    console.log("🔍 Adding node to branch:", {
       conditionNodeId,
       branchType,
       placeholderNodeId,
-      actionType: actionData.type
+      actionType: actionData.type,
     });
 
-    const isConditionNode = actionData.type === 'condition';
+    const isConditionNode = actionData.type === "condition";
     const timestamp = Date.now();
 
     // Clean actionData to remove functions
-    const cleanActionData = actionData ? Object.fromEntries(
-      Object.entries(actionData).filter(([, value]) => typeof value !== 'function')
-    ) : {};
+    const cleanActionData = actionData
+      ? Object.fromEntries(
+          Object.entries(actionData).filter(
+            ([, value]) => typeof value !== "function"
+          )
+        )
+      : {};
 
     // Step 1: Create the new node that will replace the placeholder
     const newNode: GraphNode = {
       id,
-      type: isConditionNode ? 'condition' : 'action',
+      type: isConditionNode ? "condition" : "action",
       data: {
         ...cleanActionData,
         label: (actionData?.label as string) || "New Action",
@@ -734,11 +1203,11 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
       const yesPlaceholder: GraphNode = {
         id: yesPlaceholderId,
-        type: 'placeholder',
+        type: "placeholder",
         position: { x: 0, y: 0 },
         data: {
-          label: 'Add Action',
-          branchType: 'yes',
+          label: "Add Action",
+          branchType: "yes",
           conditionNodeId: id,
         },
         parent: id,
@@ -747,11 +1216,11 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
       const noPlaceholder: GraphNode = {
         id: noPlaceholderId,
-        type: 'placeholder',
+        type: "placeholder",
         position: { x: 0, y: 0 },
         data: {
-          label: 'Add Action',
-          branchType: 'no',
+          label: "Add Action",
+          branchType: "no",
           conditionNodeId: id,
         },
         parent: id,
@@ -770,17 +1239,17 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       updatedGraph[yesPlaceholderId] = yesPlaceholder;
       updatedGraph[noPlaceholderId] = noPlaceholder;
 
-      console.log('✅ Created condition node with Yes/No placeholders');
+      console.log("✅ Created condition node with Yes/No placeholders");
     } else {
       // For action nodes: Create a ghost node for flow continuation
       // Ghost nodes are invisible but maintain flow structure
       const ghostNodeId = `ghost-${timestamp}`;
       const ghostNode: GraphNode = {
         id: ghostNodeId,
-        type: 'ghost', // Use the dedicated GhostNode component
+        type: "ghost", // Use the dedicated GhostNode component
         position: { x: 0, y: 0 },
         data: {
-          label: 'Ghost', // Not visible anyway
+          label: "Ghost", // Not visible anyway
         },
         parent: id,
         children: [],
@@ -790,7 +1259,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       newNode.children = [ghostNodeId];
       updatedGraph[ghostNodeId] = ghostNode;
 
-      console.log('✅ Created action node with invisible ghost node for flow continuation');
+      console.log(
+        "✅ Created action node with invisible ghost node for flow continuation"
+      );
     }
 
     // Step 3: Add the new node to the graph
@@ -803,17 +1274,22 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       const placeholderIndex = branchArray.indexOf(placeholderNodeId);
       if (placeholderIndex !== -1) {
         branchArray[placeholderIndex] = id;
-        console.log(`✅ Updated ${branchType} branch: replaced placeholder with new node`);
+        console.log(
+          `✅ Updated ${branchType} branch: replaced placeholder with new node`
+        );
       }
     }
 
     // Step 5: Delete the original placeholder node (same approach as end node deletion)
     delete updatedGraph[placeholderNodeId];
-    console.log('✅ Deleted original placeholder node');
+    console.log("✅ Deleted original placeholder node");
 
     // Debug: Check what's in the branch array after update
-    console.log('🔍 Branch array after update:', conditionNode.branches[branchType]);
-    console.log('🔍 Nodes in graph:', Object.keys(updatedGraph));
+    console.log(
+      "🔍 Branch array after update:",
+      conditionNode.branches[branchType]
+    );
+    console.log("🔍 Nodes in graph:", Object.keys(updatedGraph));
 
     set({ nodes: updatedGraph });
   },
@@ -824,31 +1300,31 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     const updatedGraph = { ...nodes };
 
     // Check if end node already exists
-    if (updatedGraph['end-1']) {
+    if (updatedGraph["end-1"]) {
       return;
     }
 
-    console.log('🔍 Recreating end node, connecting to:', connectToNodeId);
+    console.log("🔍 Recreating end node, connecting to:", connectToNodeId);
 
     // Create new end node
     const endNode: GraphNode = {
-      id: 'end-1',
-      type: 'endNode',
+      id: "end-1",
+      type: "endNode",
       position: { x: 100, y: 250 },
       data: {
-        label: 'End',
+        label: "End",
       },
       children: [],
       parent: connectToNodeId,
     };
 
     // Add end node to graph
-    updatedGraph['end-1'] = endNode;
+    updatedGraph["end-1"] = endNode;
 
     // Connect the specified node to end node
     const connectNode = updatedGraph[connectToNodeId];
     if (connectNode) {
-      connectNode.children = ['end-1'];
+      connectNode.children = ["end-1"];
     }
 
     set({ nodes: updatedGraph });
@@ -867,23 +1343,23 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     let hasChanges = false;
 
     // Find all condition nodes
-    Object.values(graph).forEach(node => {
-      if (node.type === 'condition' && node.branches) {
-        (['yes', 'no'] as const).forEach(branchType => {
+    Object.values(graph).forEach((node) => {
+      if (node.type === "condition" && node.branches) {
+        (["yes", "no"] as const).forEach((branchType) => {
           const branchNodes = node.branches![branchType] || [];
 
           // Check if branch is empty or only contains deleted nodes
-          const validNodes = branchNodes.filter(nodeId => graph[nodeId]);
+          const validNodes = branchNodes.filter((nodeId) => graph[nodeId]);
 
           if (validNodes.length === 0) {
             // Branch is empty, create a placeholder
             const placeholderId = `placeholder-${branchType}-${Date.now()}`;
             const placeholder: GraphNode = {
               id: placeholderId,
-              type: 'placeholder',
+              type: "placeholder",
               position: { x: 0, y: 0 },
               data: {
-                label: 'Add Action',
+                label: "Add Action",
                 branchType: branchType,
                 conditionNodeId: node.id,
               },
@@ -899,7 +1375,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
             node.branches[branchType] = [placeholderId];
 
             hasChanges = true;
-            console.log(`✅ Created placeholder for empty ${branchType} branch of condition ${node.id}`);
+            console.log(
+              `✅ Created placeholder for empty ${branchType} branch of condition ${node.id}`
+            );
           }
         });
       }
@@ -915,7 +1393,11 @@ export const useGraphStore = create<GraphState>((set, get) => ({
    * This handles complex nested conditions and actions
    */
   pasteConditionTree: ({ nodesToPaste, parentId, beforeNodeId }) => {
-    console.log('🔍 Pasting condition tree:', { nodeCount: nodesToPaste.length, parentId, beforeNodeId });
+    console.log("🔍 Pasting condition tree:", {
+      nodeCount: nodesToPaste.length,
+      parentId,
+      beforeNodeId,
+    });
 
     const graph = get().nodes;
     const updatedGraph = { ...graph };
@@ -930,13 +1412,14 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     });
 
     // Find root condition node (the one without a parent in the copied set)
-    const rootNode = nodesToPaste.find((node: any) =>
-      node.type === 'condition' &&
-      (!node.parent || !nodesToPaste.find((n: any) => n.id === node.parent))
+    const rootNode = nodesToPaste.find(
+      (node: any) =>
+        node.type === "condition" &&
+        (!node.parent || !nodesToPaste.find((n: any) => n.id === node.parent))
     );
 
     if (!rootNode) {
-      console.error('No root condition node found');
+      console.error("No root condition node found");
       return;
     }
 
@@ -945,7 +1428,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     const beforeNode = updatedGraph[beforeNodeId];
 
     if (!parentNode || !beforeNode) {
-      console.error('Parent or before node not found');
+      console.error("Parent or before node not found");
       return;
     }
 
@@ -955,10 +1438,12 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
       // Clean node data and ensure required fields
       const cleanData = {
-        label: originalNode.data.label || 'Copied Node',
+        label: originalNode.data.label || "Copied Node",
         ...Object.fromEntries(
-          Object.entries(originalNode.data).filter(([, value]) => typeof value !== 'function')
-        )
+          Object.entries(originalNode.data).filter(
+            ([, value]) => typeof value !== "function"
+          )
+        ),
       };
 
       const newNode: GraphNode = {
@@ -966,14 +1451,27 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         type: originalNode.type,
         position: originalNode.position,
         data: cleanData,
-        children: originalNode.children?.map((childId: string) => idMapping[childId] || childId).filter(Boolean) || [],
-        parent: originalNode.parent ? idMapping[originalNode.parent] : (originalNode.id === rootNode.id ? parentId : undefined),
+        children:
+          originalNode.children
+            ?.map((childId: string) => idMapping[childId] || childId)
+            .filter(Boolean) || [],
+        parent: originalNode.parent
+          ? idMapping[originalNode.parent]
+          : originalNode.id === rootNode.id
+          ? parentId
+          : undefined,
         ...(originalNode.branches && {
           branches: {
-            yes: originalNode.branches.yes?.map((nodeId: string) => idMapping[nodeId] || nodeId).filter(Boolean) || [],
-            no: originalNode.branches.no?.map((nodeId: string) => idMapping[nodeId] || nodeId).filter(Boolean) || []
-          }
-        })
+            yes:
+              originalNode.branches.yes
+                ?.map((nodeId: string) => idMapping[nodeId] || nodeId)
+                .filter(Boolean) || [],
+            no:
+              originalNode.branches.no
+                ?.map((nodeId: string) => idMapping[nodeId] || nodeId)
+                .filter(Boolean) || [],
+          },
+        }),
       };
 
       // Special handling for root node
@@ -983,12 +1481,14 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
         // Update parent's children array
         const parentChildren = parentNode.children || [];
-        const insertIndex = parentChildren.findIndex(id => id === beforeNodeId);
+        const insertIndex = parentChildren.findIndex(
+          (id) => id === beforeNodeId
+        );
         if (insertIndex !== -1) {
           parentNode.children = [
             ...parentChildren.slice(0, insertIndex),
             newId,
-            ...parentChildren.slice(insertIndex + 1)
+            ...parentChildren.slice(insertIndex + 1),
           ];
         }
 
@@ -1001,7 +1501,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       updatedGraph[newId] = newNode;
     });
 
-    console.log('✅ Condition tree pasted successfully');
     set({ nodes: updatedGraph });
   },
 }));

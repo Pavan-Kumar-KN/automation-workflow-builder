@@ -6,7 +6,6 @@ import { createPortal } from 'react-dom';
 import { ActionCategoryModal } from '../ActionCategoryModal';
 import { NodeData } from '@/data/types';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
-import { useCopyPaste } from '@/hooks/useCopyPaste';
 import { toast } from 'sonner';
 
 interface FlowEdgeProps {
@@ -215,10 +214,7 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
 
   // Copy-paste state
   const { isCopy, isCut } = useWorkflowStore();
-  const { pasteFlow, pasteCutFlow } = useCopyPaste();
 
-  // Debug logging (can be removed in production)
-  // console.log('🔍 FlowEdge copy state:', { isCopy, isCut, hasCopiedContent: isCopy || isCut });
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -243,10 +239,8 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
   const beforeNodeId = data?.beforeNodeId;
   const hasCopiedContent = isCopy || isCut;
 
+  // ? Getting insertion node from the graph store 
   const insertNode = useGraphStore((state) => state.insertNode);
-
-  // Debug logs (can be removed in production)
-  // console.log('FlowEdge rendered with:', { parentId, beforeNodeId, showActionModal, hasCopiedContent });
 
   if (isHorizontal) {
     edgePath = `M ${sourceX},${sourceY} L ${targetX},${targetY}`;
@@ -345,6 +339,7 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
       beforeNodeId,
       actionData: action
     });
+
 
     setShowActionModal(false); // Close modal after inserting node
   };

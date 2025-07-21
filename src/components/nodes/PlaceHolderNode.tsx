@@ -7,7 +7,7 @@ import { useGraphStore } from '../../store/useGraphStore';
 import { createPortal } from 'react-dom';
 
 interface PlaceHolderNodeProps {
-  id: string; // ✅ React Flow injects this
+  id: string; 
   data: {
     branchType: string;
     conditionNodeId: string;
@@ -38,8 +38,7 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
   };
 
   const handleActionSelection = (action: NodeData) => {
-    console.log('🔍 Action selected for placeholder:', action.label);
-
+    
     // Use the new graph store function
     addNodeToBranch({
       conditionNodeId: data.conditionNodeId,
