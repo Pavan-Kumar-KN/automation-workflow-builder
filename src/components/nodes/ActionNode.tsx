@@ -9,9 +9,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import FlowEdge from '../edges/FlowEdge';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
+import { useCutPaste } from '@/hooks/useCutPaste';
+import { useDuplicateMove } from '@/hooks/useDuplicateMove';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { toast } from 'sonner';
 import { useGraphStore } from '@/store/useGraphStore';
+import NotesPopover from '../notes/NotesPopover';
 
 // ActionNode Component
 export const ActionNode = ({
@@ -25,9 +28,20 @@ export const ActionNode = ({
   const [isHovered, setIsHovered] = useState(false);
   const deleteHandler = onDelete || data.onDelete;
   const { copyNode, copyFlowFromNode } = useCopyPaste();
+  const {
+    duplicateNode,
+    duplicateFlow,
+    moveNode,
+    moveFlow,
+    cutNode,
+    cutFlow,
+    canDuplicateNode,
+    canMoveNode
+  } = useDuplicateMove();
   const { setCopiedNodes, setIsCopy } = useWorkflowStore();
 
   const graph = useGraphStore((state) => state.nodes);
+  const [showNotes, setShowNotes] = useState(false);
 
   // Simple copy function that works with graph store
   const handleCopyNode = () => {
@@ -44,11 +58,11 @@ export const ActionNode = ({
     toast.success('Node copied to clipboard');
   };
 
-  const handleCopyFlowFromHere = (id) =>{
-     const actionNode = graph[id];
+  const handleCopyFlowFromHere = (id) => {
+    const actionNode = graph[id];
     if (!actionNode) return;
 
-     // Deep traversal function to collect entire subtree
+    // Deep traversal function to collect entire subtree
     const collectEntireSubtree = (startNodeIds: string[]): any[] => {
       const allNodes: any[] = [];
       const visited = new Set<string>();
@@ -91,7 +105,7 @@ export const ActionNode = ({
       startNodeIds.forEach(nodeId => traverse(nodeId));
 
       return allNodes;
-    };  
+    };
 
 
     // Use deep traversal to collect the entire subtree starting from this condition node
@@ -139,12 +153,43 @@ export const ActionNode = ({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* Message/Notes Icon - Always show if has notes, show on hover if empty */}
+        {data.notes ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowNotes(true);
+            }}
+            className="absolute top-1 left-2 p-1 hover:bg-gray-100 rounded-md transition-colors group z-20"
+            title="View/Edit notes"
+          >
+            <LucideIcons.MessageSquare className="w-3.5 h-3.5" style={{
+              background: 'linear-gradient(to bottom right, rgb(59 130 246), rgb(147 51 234))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }} />
+          </button>
+        ) : isHovered ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowNotes(true);
+            }}
+            className="absolute top-1 left-2 p-1 hover:bg-gray-100 rounded-md transition-colors group z-20"
+            title="Add notes"
+          >
+            <LucideIcons.MessageSquare className="w-3.5 h-3.5 text-blue-500 group-hover:text-blue-600" />
+          </button>
+        ) : null}
 
         <div className="flex items-center gap-3">
           {/* Icon with background */}
           <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ color: data.color }}>
             <IconComponent className={`w-8 h-8 ${data.color || 'text-blue-600'}`} />
           </div>
+
+
 
           {/* Content */}
           <div className="flex-1 min-w-0 flex items-center justify-between">
@@ -217,12 +262,13 @@ export const ActionNode = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           try {
-
+                            cutNode(id);
                           } catch (err) {
                             console.error('Cut error:', err);
                           }
                         }}
                         className="flex items-center px-3 py-2 text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-md cursor-pointer transition-colors"
+                        disabled={!canMoveNode(id)}
                       >
                         <LucideIcons.Scissors className="w-4 h-4 mr-3" />
                         <span className="font-medium">Move Action</span>
@@ -232,12 +278,13 @@ export const ActionNode = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           try {
-
+                            cutFlow(id);
                           } catch (err) {
                             console.error('Cut error:', err);
                           }
                         }}
                         className="flex items-center px-3 py-2 text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-md cursor-pointer transition-colors"
+                        disabled={!canMoveNode(id)}
                       >
                         <LucideIcons.Move className="w-4 h-4 mr-3" />
                         <span className="font-medium">Move From here</span>
@@ -245,20 +292,20 @@ export const ActionNode = ({
                     </>
                   )}
 
-                  {/* For Remove Workflow nodes, only show Clone Flow and Duplicate if not Remove Workflow */}
-                  {!isRemoveWorkflowNode && (
+                  {/* Duplication options hidden as requested */}
+                  {/* {!isRemoveWorkflowNode && (
                     <>
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           try {
-                            // TODO: Implement clone flow functionality
-                            console.log('Clone flow from node:', id);
+                            duplicateFlow(id);
                           } catch (err) {
                             console.error('Clone error:', err);
                           }
                         }}
                         className="flex items-center px-3 py-2 text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-md cursor-pointer transition-colors"
+                        disabled={!canDuplicateNode(id)}
                       >
                         <LucideIcons.GitBranch className="w-4 h-4 mr-3" />
                         <span className="font-medium">Clone Flow</span>
@@ -268,22 +315,19 @@ export const ActionNode = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           try {
-                            // TODO: Implement duplicate node functionality
-                            console.log('Duplicate node:', id);
-                            if (data.onDuplicate) {
-                              data.onDuplicate(id);
-                            }
+                            duplicateNode(id);
                           } catch (err) {
                             console.error('Duplicate error:', err);
                           }
                         }}
                         className="flex items-center px-3 py-2 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md cursor-pointer transition-colors"
+                        disabled={!canDuplicateNode(id)}
                       >
                         <LucideIcons.Copy className="w-4 h-4 mr-3" />
                         <span className="font-medium">Duplicate Node</span>
                       </DropdownMenuItem>
                     </>
-                  )}
+                  )} */}
 
 
 
@@ -312,6 +356,11 @@ export const ActionNode = ({
         </div>
       </div>
 
+      {showNotes && (
+        <div className="absolute left-[calc(100%+8px)] top-0 z-50">
+          <NotesPopover nodeId={id} onClose={() => setShowNotes(false)} />
+        </div>
+      )}
 
       {/* Output Handle */}
       <Handle

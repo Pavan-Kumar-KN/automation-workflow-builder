@@ -5,18 +5,46 @@ import { useGraphStore } from '../store/useGraphStore';
 export const graphToReactFlow = (nodeMap: Record<string, GraphNode>) => {
   console.log('🔍 graphToReactFlow input nodes:', Object.keys(nodeMap));
 
-  const stateNodes = Object.values(nodeMap).map((node) => ({
-    id: node.id,
-    type: node.type,
-    position: node.position,
-    data: {
-      ...node.data,
-      // Add delete functionality to all nodes
-      onDelete: () => {
-        useGraphStore.getState().removeNode(node.id);
+  const stateNodes = Object.values(nodeMap).map((node) => {
+    const isDraggable = node.type === 'stickyNote';
+    console.log('🔍 Node:', node.id, 'Type:', node.type, 'Draggable:', isDraggable);
+
+    const baseNode = {
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: {
+        ...node.data,
+        // Add delete functionality to all nodes
+        onDelete: () => {
+          useGraphStore.getState().removeNode(node.id);
+        },
       },
-    },
-  }));
+      // Set draggable based on node type
+      draggable: isDraggable,
+      selectable: true,
+      connectable: false,
+    };
+
+    // Add sticky note specific properties
+    if (node.type === 'stickyNote') {
+      return {
+        ...baseNode,
+        data: {
+          ...baseNode.data, // This preserves the onDelete function
+          onChange: (id: string, text: string) => {
+            useGraphStore.getState().updateStickyNoteText(id, text);
+          },
+          onToggleVisibility: (id: string) => {
+            // Toggle visibility logic here if needed
+            console.log('Toggle visibility for:', id);
+          },
+        },
+      };
+    }
+
+    return baseNode;
+  });
 
   console.log('🔍 graphToReactFlow output nodes:', stateNodes.map(n => `${n.id} (${n.type})`));
 

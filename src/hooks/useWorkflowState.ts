@@ -21,6 +21,11 @@ interface WorkflowState {
   cutEdges: Edge[];
   isCut: boolean;
 
+  // Move state (graph-based)
+  isMoveMode: boolean;
+  nodeToMove: string | null;
+  flowToMove: string | null;
+
   // Nodes and edges
   nodes: Node[];
   edges: Edge[];
@@ -40,6 +45,11 @@ interface WorkflowState {
   setCutNodes: (nodes: Node[]) => void;
   setCutEdges: (edges: Edge[]) => void;
   setIsCut: (isCut: boolean) => void;
+
+  // Move state setters
+  setIsMoveMode: (isMoveMode: boolean) => void;
+  setNodeToMove: (nodeId: string | null) => void;
+  setFlowToMove: (nodeId: string | null) => void;
 
   // Force reset copy/cut state
   forceResetCopyState: () => void;
@@ -72,6 +82,11 @@ export const useWorkflowStore = create<WorkflowState>()(
         cutEdges: [],
         isCut: false,
 
+        // Move states
+        isMoveMode: false,
+        nodeToMove: null,
+        flowToMove: null,
+
         // Core state actions
         setSelectedNode: (node) => set({ selectedNode: node }, false, 'setSelectedNode'),
         setWorkflowName: (name) => set({ workflowName: name }, false, 'setWorkflowName'),
@@ -88,6 +103,11 @@ export const useWorkflowStore = create<WorkflowState>()(
         setCutNodes: (nodes) => set({ cutNodes: nodes }, false, 'setCutNodes'),
         setCutEdges: (edges) => set({ cutEdges: edges }, false, 'setCutEdges'),
         setIsCut: (isCut) => set({ isCut: isCut }, false, 'setIsCut'),
+
+        // Move actions
+        setIsMoveMode: (isMoveMode) => set({ isMoveMode: isMoveMode }, false, 'setIsMoveMode'),
+        setNodeToMove: (nodeId) => set({ nodeToMove: nodeId }, false, 'setNodeToMove'),
+        setFlowToMove: (nodeId) => set({ flowToMove: nodeId }, false, 'setFlowToMove'),
 
         // Utility actions
         clearWorkflow: () => set({
@@ -114,6 +134,12 @@ export const useWorkflowStore = create<WorkflowState>()(
           cutNodes: [],
           cutEdges: []
         }, false, 'forceResetCutState'),
+
+        forceResetMoveState: () => set({
+          isMoveMode: false,
+          nodeToMove: null,
+          flowToMove: null
+        }, false, 'forceResetMoveState'),
       }),
       {
         name: 'workflow-storage',

@@ -23,6 +23,7 @@ import {
   ArrowDown,
   ArrowRight,
   Copy,
+  Move,
   X
 } from 'lucide-react';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
@@ -63,8 +64,8 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
   const [isEditingName, setIsEditingName] = useState(false);
   const [lastSaved, setLastSaved] = useState(new Date());
 
-  // Copy state management
-  const { isCopy, copiedNodes } = useWorkflowStore();
+  // Copy and Move state management
+  const { isCopy, copiedNodes, isMoveMode, nodeToMove, flowToMove, forceResetMoveState } = useWorkflowStore();
   const { clearCopyState } = useCopyPaste();
 
   const handleSave = () => {
@@ -153,13 +154,33 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
           <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
             <Copy className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-medium text-blue-700">
-              {copiedNodes.length} node{copiedNodes.length !== 1 ? 's' : ''} copied
+              {copiedNodes.length > 1 ? 'Flow' : 'Node'} ready to paste
             </span>
             <Button
               variant="ghost"
               size="sm"
               onClick={clearCopyState}
               className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+              title="Cancel copy"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
+
+        {/* Move State Indicator */}
+        {isMoveMode && (
+          <div className="flex items-center space-x-2 px-3 py-2 bg-purple-50 border border-purple-200 rounded-lg">
+            <Move className="w-4 h-4 text-purple-600" />
+            <span className="text-sm font-medium text-purple-700">
+              {flowToMove ? 'Flow' : 'Node'} ready to move
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={forceResetMoveState}
+              className="h-6 w-6 p-0 text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+              title="Cancel move"
             >
               <X className="w-3 h-3" />
             </Button>

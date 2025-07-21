@@ -14,6 +14,7 @@ import { PublishPanel } from './panels/PublishPanel';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useWorkflowActions } from '@/hooks/useWorkflowActions';
 import { useWorkflowJSON } from '@/hooks/useWorkflowJSON';
+import { useDuplicateMove } from '@/hooks/useDuplicateMove';
 import { useGraphStore } from '@/store/useGraphStore';
 import { NodeData } from '@/data/types';
 import { toast } from 'sonner';
@@ -39,6 +40,9 @@ export const WorkflowBuilder = () => {
     layoutDirection,
     setLayoutDirection,
   } = useWorkflowStore();
+
+  // Duplicate and move operations
+  const { duplicateNode, duplicateFlow, moveNode, moveFlow, canDuplicateNode, canMoveNode } = useDuplicateMove();
 
   const { executeWorkflow, saveWorkflow } = useWorkflowActions();
 
@@ -407,14 +411,21 @@ export const WorkflowBuilder = () => {
     console.log('✅ Node added successfully:', newNodeId);
   };
 
-  // TODO: Implement other node operations with graph store
-  const handleNodeInsertion = () => {
-    console.log('TODO: Implement handleNodeInsertion with graph store');
+  // Graph-based node operations
+  const handleNodeInsertion = (nodeId: string, targetParentId: string, targetBeforeNodeId: string) => {
+    console.log('🔍 Graph-based node insertion:', { nodeId, targetParentId, targetBeforeNodeId });
+    moveNode(nodeId, targetParentId, targetBeforeNodeId);
   };
 
-  const handleNodeDuplication = () => {
-    console.log('TODO: Implement handleNodeDuplication with graph store');
-  };
+  const handleNodeDuplication = useCallback((nodeId: string) => {
+    console.log('🔍 Graph-based node duplication:', nodeId);
+    return duplicateNode(nodeId);
+  }, [duplicateNode]);
+
+  const handleFlowDuplication = useCallback((nodeId: string) => {
+    console.log('🔍 Graph-based flow duplication from:', nodeId);
+    return duplicateFlow(nodeId);
+  }, [duplicateFlow]);
 
   const handleConditionNodeDeletion = () => {
     console.log('TODO: Implement handleConditionNodeDeletion with graph store');
@@ -600,39 +611,7 @@ export const WorkflowBuilder = () => {
         openTriggerModal: actualNodeType === 'trigger' ? () => setShowTriggerModal(true) : undefined,
         isConfigured: false,
         onDelete: isConditionNode ? () => handleConditionNodeDeletion(nodeId) : () => handleNodeDeletion(nodeId),
-        onDuplicate: () => {
-          // Inline duplicate logic to avoid dependency issues
-          console.log('🔍 Duplicating node:', nodeId);
-          setTimeout(() => {
-            const currentNodes = useWorkflowStore.getState().nodes;
-            const originalNode = currentNodes.find(n => n.id === nodeId);
-            if (originalNode) {
-              const duplicateId = `${originalNode.type}-${Date.now()}`;
-              const duplicateNode: Node = {
-                id: duplicateId,
-                type: originalNode.type,
-                position: { x: 0, y: 0 },
-                data: {
-                  ...originalNode.data,
-                  isConfigured: false,
-                  onDelete: originalNode.type === 'condition'
-                    ? () => handleConditionNodeDeletion(duplicateId)
-                    : () => handleNodeDeletion(duplicateId),
-                },
-              };
-              
-              useWorkflowStore.getState().setNodes((nds) => {
-                const originalIndex = nds.findIndex(n => n.id === nodeId);
-                if (originalIndex !== -1) {
-                  const newNodes = [...nds];
-                  newNodes.splice(originalIndex + 1, 0, duplicateNode);
-                  return newNodes;
-                }
-                return nds;
-              });
-            }
-          }, 50);
-        },
+        onDuplicate: () => handleNodeDuplication(nodeId),
         ...(isConditionNode && {
           yesPlaceholderId: yesId,
           noPlaceholderId: noId,
@@ -2414,7 +2393,10 @@ export const WorkflowBuilder = () => {
 
       <div className="flex flex-1 overflow-hidden relative">
         <div className="flex-1">
-          <WorkFlowCanvas />
+          <WorkFlowCanvas
+            onNodeClick={onNodeClick}
+            openTriggerModal={() => setShowTriggerModal(true)}
+          />
         </div>
 
         {/* Old controls removed - now using React Flow controls with reset button */}

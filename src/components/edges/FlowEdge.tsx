@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { ActionCategoryModal } from '../ActionCategoryModal';
 import { NodeData } from '@/data/types';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
+import { useDuplicateMove } from '@/hooks/useDuplicateMove';
 import { toast } from 'sonner';
 
 interface FlowEdgeProps {
@@ -212,8 +213,11 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Copy-paste state
-  const { isCopy, isCut } = useWorkflowStore();
+  // Copy-paste and move state
+  const { isCopy, isCut, isMoveMode } = useWorkflowStore();
+
+  // Move operations
+  const { pasteCut } = useDuplicateMove();
 
 
   // Close dropdown when clicking outside
@@ -237,10 +241,21 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
 
   const parentId = data?.parentId;
   const beforeNodeId = data?.beforeNodeId;
-  const hasCopiedContent = isCopy || isCut;
+  const hasCopiedContent = isCopy || isCut || isMoveMode;
 
-  // ? Getting insertion node from the graph store 
+  // ? Getting insertion node from the graph store
   const insertNode = useGraphStore((state) => state.insertNode);
+  const nodes = useGraphStore((state) => state.nodes);
+
+  // Check if source node is a Remove Workflow node
+  const sourceNode = parentId ? nodes[parentId] : null;
+  const isSourceRemoveWorkflow = (sourceNode?.data as any)?.id === 'remove-workflow-action' ||
+                                 (sourceNode?.data as any)?.id === 'exit-workflow-operation-action';
+
+  // Don't show + button after Remove Workflow nodes
+  if (isSourceRemoveWorkflow) {
+    console.log('🔍 FlowEdge - Hiding + button after Remove Workflow node:', parentId);
+  }
 
   if (isHorizontal) {
     edgePath = `M ${sourceX},${sourceY} L ${targetX},${targetY}`;
@@ -261,8 +276,8 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
     e.preventDefault();
 
     if (hasCopiedContent) {
-      // Show dropdown with paste option
-      setShowDropdown(true);
+      // Toggle dropdown with paste option
+      setShowDropdown(prev => !prev);
     } else {
       // Normal behavior - show action modal
       setShowActionModal(true);
@@ -282,8 +297,14 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
 
     console.log('🔍 Pasting flow at edge:', { parentId, beforeNodeId });
 
-    // For now, let's use the graph store's insertNode function
-    // TODO: Implement proper paste functionality with graph store
+    // Handle move operation
+    if (isMoveMode) {
+      pasteCut(parentId, beforeNodeId);
+      setShowDropdown(false);
+      return;
+    }
+
+    // Handle copy/cut operations
     if (isCopy || isCut) {
       // Get copied data from workflow store
       const { copiedNodes, cutNodes } = useWorkflowStore.getState();
@@ -340,6 +361,8 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
       actionData: action
     });
 
+    // Trigger event for auto-opening config panel
+    window.dispatchEvent(new CustomEvent('nodeInserted'));
 
     setShowActionModal(false); // Close modal after inserting node
   };
@@ -366,15 +389,16 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
         strokeLinejoin="round"
       />
 
-      {/* Plus Button */}
-      <EdgeLabelRenderer>
-        <div
-          className="pointer-events-auto absolute z-10"
-          style={{
-            transform: `translate(-50%, -50%) translate(${centerX}px, ${centerY}px)`,
-          }}
-        >
-          {hasCopiedContent ? (
+      {/* Plus Button - Hide after Remove Workflow nodes */}
+      {!isSourceRemoveWorkflow && (
+        <EdgeLabelRenderer>
+          <div
+            className="pointer-events-auto absolute z-10"
+            style={{
+              transform: `translate(-50%, -50%) translate(${centerX}px, ${centerY}px)`,
+            }}
+          >
+            {hasCopiedContent ? (
             // Dropdown button when there's copied content
             <div className="relative" ref={dropdownRef}>
               <button
@@ -399,7 +423,7 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
                     onClick={handlePasteFlow}
                     className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 text-blue-600"
                   >
-                    {isCut ? 'Move Here' : 'Paste Flow'}
+                    {isMoveMode ? 'Move Here' : isCut ? 'Move Here' : 'Paste Flow'}
                   </button>
                 </div>
               )}
@@ -417,6 +441,7 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
           )}
         </div>
       </EdgeLabelRenderer>
+      )}
 
       {/* Action Category Modal */}
       {showActionModal && createPortal(

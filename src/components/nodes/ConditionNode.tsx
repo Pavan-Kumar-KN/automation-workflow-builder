@@ -9,9 +9,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
+import { useCutPaste } from '@/hooks/useCutPaste';
+import { useDuplicateMove } from '@/hooks/useDuplicateMove';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useGraphStore } from '@/store/useGraphStore';
 import { toast } from 'sonner';
+import NotesPopover from '../notes/NotesPopover';
 
 interface Branch {
   label: string;
@@ -55,9 +58,20 @@ const ConditionNode = ({
   sourcePosition = Position.Bottom
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   const { copyNode, copyFlowFromNode } = useCopyPaste();
+  const {
+    duplicateNode,
+    duplicateFlow,
+    moveNode,
+    moveFlow,
+    cutNode,
+    cutFlow,
+    canDuplicateNode,
+    canMoveNode
+  } = useDuplicateMove();
   const { setCopiedNodes, setIsCopy } = useWorkflowStore();
-  
+
   const nodeMap = useGraphStore((state) => state.nodes);
 
   // Copy condition node with all its branches
@@ -157,6 +171,36 @@ const ConditionNode = ({
         {/* Top colored border */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-purple-500 rounded-t-xl"></div>
 
+        {/* Message/Notes Icon - Always show if has notes, show on hover if empty */}
+        {data.notes ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowNotes(true);
+            }}
+            className="absolute top-1 left-2 p-1 hover:bg-gray-100 rounded-md transition-colors group z-20"
+            title="View/Edit notes"
+          >
+            <LucideIcons.MessageSquare className="w-3.5 h-3.5" style={{
+              background: 'linear-gradient(to bottom right, rgb(59 130 246), rgb(147 51 234))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }} />
+          </button>
+        ) : isHovered ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowNotes(true);
+            }}
+            className="absolute top-1 left-2 p-1 hover:bg-gray-100 rounded-md transition-colors group z-20"
+            title="Add notes"
+          >
+            <LucideIcons.MessageSquare className="w-3.5 h-3.5 text-blue-500 group-hover:text-blue-600" />
+          </button>
+        ) : null}
+
         <div className="flex items-center gap-3">
           {/* Icon with background */}
           <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -232,12 +276,13 @@ const ConditionNode = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       try {
-                        // cutNode(id);
+                        cutNode(id);
                       } catch (err) {
                         console.error('Cut error:', err);
                       }
                     }}
                     className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                    disabled={!canMoveNode(id)}
                   >
                     <LucideIcons.Scissors className="w-4 h-4 mr-2" />
                     Move Condition
@@ -247,33 +292,34 @@ const ConditionNode = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       try {
-                        // cutFlowFromNode(id);
+                        cutFlow(id);
                       } catch (err) {
                         console.error('Cut error:', err);
                       }
                     }}
                     className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                    disabled={!canMoveNode(id)}
                   >
                     <LucideIcons.Move className="w-4 h-4 mr-2" />
                     Move From Here
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem
+                  {/* Duplication option hidden as requested */}
+                  {/* <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
                       try {
-                        if (data.onDuplicate) {
-                          data.onDuplicate(id);
-                        }
+                        duplicateNode(id);
                       } catch (err) {
                         console.error('Duplicate error:', err);
                       }
                     }}
                     className="flex items-center px-3 py-2 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md cursor-pointer transition-colors"
+                    disabled={!canDuplicateNode(id)}
                   >
                     <LucideIcons.Copy className="w-4 h-4 mr-3" />
                     <span className="font-medium">Duplicate</span>
-                  </DropdownMenuItem>
+                  </DropdownMenuItem> */}
 
                   {/* Divider */}
                   <div className="h-px bg-gray-200 my-1 mx-2"></div>
@@ -342,6 +388,13 @@ const ConditionNode = ({
           right: sourcePosition === Position.Right ? '-6px' : undefined
         }}
       />
+
+      {/* Notes Popover */}
+      {showNotes && (
+        <div className="absolute left-[calc(100%+8px)] top-0 z-50">
+          <NotesPopover nodeId={id} onClose={() => setShowNotes(false)} />
+        </div>
+      )}
     </div>
   );
 };

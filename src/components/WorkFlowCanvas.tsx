@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { applyNodeChanges, applyEdgeChanges, Background, Controls, ReactFlow, BackgroundVariant, ControlButton, ReactFlowProvider } from '@xyflow/react';
+
+import { useCallback, useEffect, useState, useRef } from 'react';
+import { applyNodeChanges, applyEdgeChanges, Background, ReactFlow, BackgroundVariant, ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ActionNode } from './nodes/ActionNode';
 import FlowEdge from './edges/FlowEdge';
@@ -12,7 +13,9 @@ import ConditionEdge from './edges/ConditionEdge';
 import PlaceholderNode from './nodes/PlaceHolderNode';
 import { GhostNode } from './nodes/GhostNode';
 import { getLayoutedElements } from '../utils/dagreFunction';
-import { ArrowDown, ArrowRight, RotateCcw } from 'lucide-react';
+import { ArrowDown, ArrowRight, RotateCcw, Plus, Minus, Lock, Unlock } from 'lucide-react';
+import StickyNoteNode from './nodes/StickyNoteNode';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
 
 export const initializeGraph = () => {
   const triggerId = 'trigger-1';
@@ -53,6 +56,7 @@ const nodeTypes = {
   condition: ConditionNode,
   placeholder: PlaceholderNode,
   ghost: GhostNode,
+  stickyNote: StickyNoteNode
 };
 
 const edgeTypes = {
@@ -60,32 +64,158 @@ const edgeTypes = {
   condition: ConditionEdge,
 };
 
-const WorkFlowCanvas = () => {
+// Custom Controls Component
+const CustomControls = ({ 
+  onZoomIn, 
+  onZoomOut, 
+  onReset, 
+  onToggleLock, 
+  isLocked, 
+  layoutDirection, 
+  onLayoutChange 
+}: {
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onReset: () => void;
+  onToggleLock: () => void;
+  isLocked: boolean;
+  layoutDirection: string;
+  onLayoutChange: (direction: string) => void;
+}) => {
+  return (
+    <div className="absolute bottom-4 left-4 z-10 flex flex-col gap-1 p-2 bg-white rounded-lg shadow-lg border border-gray-200">
+      {/* Layout Direction Controls */}
+      <button
+        onClick={() => onLayoutChange('TB')}
+        title="Vertical Layout"
+        className={`p-2 rounded transition-all duration-200 ${
+          layoutDirection === 'TB' 
+            ? 'bg-blue-500 text-white shadow-md' 
+            : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+        }`}
+      >
+        <ArrowDown size={16} />
+      </button>
+
+      {/* <button
+        onClick={() => onLayoutChange('LR')}
+        title="Horizontal Layout"
+        className={`p-2 rounded transition-all duration-200 ${
+          layoutDirection === 'LR' 
+            ? 'bg-blue-500 text-white shadow-md' 
+            : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+        }`}
+      >
+        <ArrowRight size={16} />
+      </button> */}
+
+      {/* Divider */}
+      <div className="h-px bg-gray-200 my-1" />
+
+      {/* Zoom Controls */}
+      <button
+        onClick={onZoomIn}
+        disabled={isLocked}
+        title="Zoom In"
+        className={`p-2 rounded transition-all duration-200 ${
+          isLocked 
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+            : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+        }`}
+      >
+        <Plus size={16} />
+      </button>
+
+      <button
+        onClick={onZoomOut}
+        disabled={isLocked}
+        title="Zoom Out"
+        className={`p-2 rounded transition-all duration-200 ${
+          isLocked 
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+            : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+        }`}
+      >
+        <Minus size={16} />
+      </button>
+
+      {/* Divider */}
+      <div className="h-px bg-gray-200 my-1" />
+
+      {/* Lock/Unlock Control */}
+      <button
+        onClick={onToggleLock}
+        title={isLocked ? "Unlock Controls" : "Lock Controls"}
+        className={`p-2 rounded transition-all duration-200 ${
+          isLocked 
+            ? 'bg-red-500 text-white shadow-md' 
+            : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+        }`}
+      >
+        {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
+      </button>
+
+      {/* Reset Control */}
+      <button
+        onClick={onReset}
+        title="Reset View Position & Zoom"
+        className="p-2 rounded transition-all duration-200 bg-gray-50 text-gray-700 hover:bg-gray-100"
+      >
+        <RotateCcw size={16} />
+      </button>
+    </div>
+  );
+};
+
+// Sticky Note Panel Component
+const StickyNotePanel = ({ onAddStickyNote }: { onAddStickyNote: (color: string) => void }) => {
+  return (
+    <div className="absolute top-4 left-4 z-10 p-3 bg-white rounded-lg shadow-lg border border-gray-200">
+      <label className="block mb-2 text-sm font-semibold text-gray-700">Add Sticky Note</label>
+      <div className="flex gap-2">
+        {[
+          { color: '#fef08a', label: 'Yellow' },
+          { color: '#a7f3d0', label: 'Green' },
+          { color: '#bae6fd', label: 'Blue' },
+          { color: '#fca5a5', label: 'Red' }
+        ].map((item) => (
+          <button
+            key={item.color}
+            className="w-8 h-8 rounded-md border-2 border-white shadow-md hover:scale-110 transition-transform duration-200"
+            style={{ backgroundColor: item.color }}
+            onClick={() => onAddStickyNote(item.color)}
+            title={`Add ${item.label} sticky note`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Main Component Wrapper
+const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal }: any) => {
+  const reactFlowInstance = useReactFlow();
   const nodeMap = useGraphStore((state) => state.nodes);
   const addNode = useGraphStore((state) => state.addNode);
+  const { setSelectedNode } = useWorkflowStore();
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [showActionModal, setShowActionModal] = useState(false);
   const [layoutDirection, setLayoutDirection] = useState('TB');
-
-  useEffect(() => {
-    initializeGraph();
-  }, []);
+  const [isLocked, setIsLocked] = useState(false);
+  const [draggedNodePositions, setDraggedNodePositions] = useState<Record<string, {x: number, y: number}>>({});
 
   // Simple node addition function
   const handleAddNode = useCallback((nodeData: any) => {
     const newNodeId = `action-${Date.now()}`;
-
-    // Find the trigger node to connect after it
     const triggerNode = Object.values(nodeMap).find(node => node.type === 'trigger');
     const endNode = Object.values(nodeMap).find(node => node.type === 'endNode');
 
     if (triggerNode && endNode) {
-      // Add the new action node
       addNode({
         id: newNodeId,
         type: 'action',
-        position: { x: 0, y: 0 }, // Between trigger and end
+        position: { x: 0, y: 0 },
         data: {
           label: nodeData.label || 'New Action',
           isConfigured: false,
@@ -94,27 +224,36 @@ const WorkFlowCanvas = () => {
         parent: triggerNode.id,
       });
 
-      // Update trigger to point to new node instead of end
       const updatedTrigger = {
         ...triggerNode,
         children: [newNodeId]
       };
 
-      // Update the trigger node
       useGraphStore.getState().removeNode(triggerNode.id);
       addNode(updatedTrigger);
+
+      setTimeout(() => {
+        const newNode = {
+          id: newNodeId,
+          type: 'action',
+          data: {
+            label: nodeData.label || 'New Action',
+            isConfigured: false,
+          }
+        };
+        setSelectedNode(newNode);
+        console.log('✅ Auto-opened config panel for new node:', newNodeId);
+      }, 100);
     }
 
     setShowActionModal(false);
-  }, [nodeMap, addNode]);
+  }, [nodeMap, addNode, setSelectedNode]);
 
   // Update local state when store changes and apply Dagre layout
   useEffect(() => {
     try {
       const { stateNodes, stateEdges } = graphToReactFlow(nodeMap);
 
-      // Find the last node in the main flow (not in branches)
-      // Look for nodes that are not in any condition branch
       const nodesInBranches = new Set();
       Object.values(nodeMap).forEach(node => {
         if (node.type === 'condition' && node.branches) {
@@ -123,7 +262,6 @@ const WorkFlowCanvas = () => {
         }
       });
 
-      // Find the last node in main flow (has no children and not in branches)
       const mainFlowNodes = stateNodes.filter(node =>
         node.type !== 'endNode' &&
         node.type !== 'placeholder' &&
@@ -136,11 +274,7 @@ const WorkFlowCanvas = () => {
           (graphNode.children.length === 1 && graphNode.children[0] === 'end-1'));
       });
 
-      console.log('🔍 Last main flow node:', lastMainFlowNode?.type, lastMainFlowNode?.id);
-
       const shouldHideEndNode = lastMainFlowNode?.type === 'condition';
-      console.log('🔍 Should hide end node:', shouldHideEndNode);
-
       const filteredNodes = shouldHideEndNode
         ? stateNodes.filter(node => node.id !== 'end-1')
         : stateNodes;
@@ -149,23 +283,90 @@ const WorkFlowCanvas = () => {
         ? stateEdges.filter(edge => edge.target !== 'end-1')
         : stateEdges;
 
-      // Apply Dagre layout
-      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-        filteredNodes,
+      // Separate sticky notes from workflow nodes for layout
+      const workflowNodes = filteredNodes.filter(node => node.type !== 'stickyNote');
+      const stickyNoteNodes = filteredNodes.filter(node => node.type === 'stickyNote');
+
+      console.log('🔍 Workflow nodes for layout:', workflowNodes.length);
+      console.log('🔍 Sticky notes (excluded from layout):', stickyNoteNodes.length);
+
+      // Only layout workflow nodes, not sticky notes
+      const { nodes: layoutedWorkflowNodes, edges: layoutedEdges } = getLayoutedElements(
+        workflowNodes,
         filteredEdges,
-        layoutDirection // Use state variable for layout direction
+        layoutDirection
       );
 
-      setNodes(layoutedNodes);
+      // Combine layouted workflow nodes with unchanged sticky notes
+      const layoutedNodes = [...layoutedWorkflowNodes, ...stickyNoteNodes];
+
+      // Preserve positions of dragged sticky notes
+      const finalNodes = layoutedNodes.map(node => {
+        if (node.id.startsWith('sticky-') && draggedNodePositions[node.id]) {
+          console.log('🔍 Preserving dragged position for:', node.id, draggedNodePositions[node.id]);
+          return {
+            ...node,
+            position: draggedNodePositions[node.id]
+          };
+        }
+        return node;
+      });
+
+      setNodes(finalNodes);
       setEdges(layoutedEdges);
     } catch (error) {
       console.error('Error in graphToReactFlow:', error);
     }
-  }, [nodeMap, layoutDirection]);
+  }, [nodeMap, layoutDirection, draggedNodePositions]);
 
   const onNodesChange = useCallback((changes: any[]) => {
     console.log('Node changes:', changes);
-    setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot));
+
+    // Filter out position changes for non-draggable nodes
+    const filteredChanges = changes.filter(change => {
+      if (change.type === 'position') {
+        // Allow position changes only for sticky notes
+        if (change.id.startsWith('sticky-')) {
+          console.log('✅ Allowing position change for sticky note:', change.id);
+          return true;
+        } else {
+          console.log('❌ Blocking position change for workflow node:', change.id);
+          return false;
+        }
+      }
+      return true; // Allow all other changes
+    });
+
+    // Apply changes to local state immediately (for smooth dragging)
+    setNodes((nodesSnapshot) => applyNodeChanges(filteredChanges, nodesSnapshot));
+  }, []);
+
+  // Handle drag end to update graph store
+  const onNodeDragStop = useCallback((event: any, node: any) => {
+    console.log('🔍 Node drag stopped:', node.id, 'Position:', node.position);
+
+    if (node.id.startsWith('sticky-')) {
+      // Store the dragged position to preserve it during re-renders
+      setDraggedNodePositions(prev => ({
+        ...prev,
+        [node.id]: node.position
+      }));
+
+      // Update the graph store with new position
+      const { nodes, addNode } = useGraphStore.getState();
+      const existingNode = nodes[node.id];
+      if (existingNode) {
+        console.log('🔍 Updating graph store with final position:', node.position);
+        console.log('🔍 Previous position was:', existingNode.position);
+
+        addNode({
+          ...existingNode,
+          position: node.position
+        });
+
+        console.log('🔍 Graph store updated successfully');
+      }
+    }
   }, []);
 
   const onEdgesChange = useCallback((changes: any[]) => {
@@ -173,169 +374,116 @@ const WorkFlowCanvas = () => {
     setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot));
   }, []);
 
-  const handleReset = () => {
-    // Reset to top-aligned viewport with proper positioning
-    const reactFlowInstance = document.querySelector('.react-flow__renderer');
-    if (reactFlowInstance) {
-      // Set viewport to show nodes at the top
-      const event = new CustomEvent('reactflow-reset', {
-        detail: { x: 0, y: -200, zoom: 0.75 }
-      });
-      window.dispatchEvent(event);
+  // Custom control handlers
+  const handleZoomIn = () => {
+    if (!isLocked) {
+      reactFlowInstance.zoomIn();
     }
   };
 
+  const handleZoomOut = () => {
+    if (!isLocked) {
+      reactFlowInstance.zoomOut();
+    }
+  };
+
+  const handleReset = () => {
+    // Reset to center position with appropriate zoom
+    reactFlowInstance.fitView({
+      padding: 0.1,
+      includeHiddenNodes: false,
+      minZoom: 0.5,
+      maxZoom: 1.2,
+    });
+  };
+
+  const handleToggleLock = () => {
+    setIsLocked(!isLocked);
+  };
+
+  // Sticky note handling is now done externally
+
   return (
-    <>
-      <ReactFlowProvider>
-        <div className='flex-1 h-full overflow-auto'>
-          <div className="h-full">
-            <ReactFlow
-              nodeTypes={nodeTypes as any}
-              edgeTypes={edgeTypes as any}
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              nodesDraggable={false}
-              fitView
-              fitViewOptions={{
-                padding: 0.1, // Reduced padding for top alignment
-                includeHiddenNodes: false,
-                minZoom: 0.5,
-                maxZoom: 1.2,
-                position: [0.5, 0.2] // Position nodes towards top center (x: center, y: top 20%)
-              }}
-              minZoom={0.25}
-              maxZoom={2}
-              attributionPosition="bottom-left"
-              proOptions={{ hideAttribution: true }}
-              panOnScroll={true}
-              selectionOnDrag={false}
-              panOnDrag={true}
-              zoomOnScroll={true}
-              zoomOnPinch={true}
-              zoomOnDoubleClick={true}
-              preventScrolling={false}
-              deleteKeyCode={['Backspace', 'Delete']}
-              multiSelectionKeyCode={['Meta', 'Ctrl']}
-              defaultViewport={{ x: 100, y: -200, zoom: 0.75 }} // Shift viewport up to show nodes at top
-            >
-              <Controls 
-                className="react-flow-controls-custom"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
-                  padding: '4px',
-                  background: 'rgba(255, 255, 255, 0.9)',
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
-                  backdropFilter: 'blur(4px)',
-                  border: '1px solid rgba(0, 0, 0, 0.05)'
-                }}
-              >
-                {/* Layout Direction Controls */}
-                <ControlButton
-                  onClick={() => setLayoutDirection('TB')}
-                  title="Vertical Layout"
-                  style={{
-                    backgroundColor: layoutDirection === 'TB' ? '#3B82F6' : 'rgba(255, 255, 255, 0.95)',
-                    color: layoutDirection === 'TB' ? 'white' : '#374151',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    borderRadius: '4px',
-                    padding: '6px',
-                    transition: 'all 0.2s ease',
-                    fontSize: '12px',
-                    fontWeight: '500'
-                  }}
-                >
-                  <ArrowDown size={14} />
-                </ControlButton>
-                
-                <ControlButton
-                  onClick={() => setLayoutDirection('LR')}
-                  title="Horizontal Layout"
-                  style={{
-                    backgroundColor: layoutDirection === 'LR' ? '#3B82F6' : 'rgba(255, 255, 255, 0.95)',
-                    color: layoutDirection === 'LR' ? 'white' : '#374151',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    borderRadius: '4px',
-                    padding: '6px',
-                    transition: 'all 0.2s ease',
-                    fontSize: '12px',
-                    fontWeight: '500'
-                  }}
-                >
-                  <ArrowRight size={14} />
-                </ControlButton>
+    <div className='flex-1 h-full overflow-auto'>
+      <div className="h-full relative">
+        <ReactFlow
+          nodeTypes={nodeTypes as any}
+          edgeTypes={edgeTypes as any}
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeClick={onNodeClick}
+          onNodeDragStop={onNodeDragStop}
+          nodesDraggable={true}
+          nodesConnectable={false}
+          noDragClassName="nodrag"
+          onlyRenderVisibleElements={false}
+          fitView
+          fitViewOptions={{
+            padding: 0.1,
+            includeHiddenNodes: false,
+            minZoom: 0.5,
+            maxZoom: 1.2,
+          }}
+          minZoom={0.25}
+          maxZoom={2}
+          attributionPosition="bottom-left"
+          proOptions={{ hideAttribution: true }}
+          panOnScroll={!isLocked}
+          selectionOnDrag={false}
+          panOnDrag={!isLocked}
+          zoomOnPinch={!isLocked}
+          zoomOnScroll={!isLocked}
+          zoomOnDoubleClick={!isLocked}
+          preventScrolling={false}
+          deleteKeyCode={['Backspace', 'Delete']}
+          multiSelectionKeyCode={['Meta', 'Ctrl']}
+          defaultViewport={{ x: 0, y: 0, zoom: 1 }} // Center position by default
+        >
+          {/* Sticky Note Panel is now handled externally */}
 
-                {/* Reset Control */}
-                <ControlButton 
-                  onClick={handleReset} 
-                  title="Reset View Position & Zoom"
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    color: '#374151',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    borderRadius: '4px',
-                    padding: '6px',
-                    transition: 'all 0.2s ease',
-                    fontSize: '12px',
-                    fontWeight: '500'
-                  }}
-                >
-                  <RotateCcw size={14} />
-                </ControlButton>
-              </Controls>
+          {/* Custom Controls */}
+          <CustomControls
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onReset={handleReset}
+            onToggleLock={handleToggleLock}
+            isLocked={isLocked}
+            layoutDirection={layoutDirection}
+            onLayoutChange={setLayoutDirection}
+          />
 
-              <Background
-                variant={BackgroundVariant.Dots}
-                gap={20}
-                size={1}
-                color="#E2E8F0"
-                style={{ opacity: 0.5 }}
-              />
-            </ReactFlow>
-          </div>
-        </div>
-      </ReactFlowProvider>
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={20}
+            size={1}
+            color="#E2E8F0"
+            style={{ opacity: 0.5 }}
+          />
+        </ReactFlow>
+      </div>
+    </div>
+  );
+};
 
-      <style jsx global>{`
-        .react-flow-controls-custom button:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .react-flow-controls-custom button:active {
-          transform: translateY(0px);
-        }
-        
-        /* Custom scrollbar for the canvas */
-        .react-flow__renderer {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-        }
-        
-        .react-flow__renderer::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
-        }
-        
-        .react-flow__renderer::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        
-        .react-flow__renderer::-webkit-scrollbar-thumb {
-          background-color: rgba(156, 163, 175, 0.5);
-          border-radius: 3px;
-        }
-        
-        .react-flow__renderer::-webkit-scrollbar-thumb:hover {
-          background-color: rgba(156, 163, 175, 0.7);
-        }
-      `}</style>
-    </>
+interface WorkFlowCanvasProps {
+  onNodeClick?: (event: React.MouseEvent, node: any) => void;
+  openTriggerModal?: () => void;
+}
+
+const WorkFlowCanvas = ({ onNodeClick, openTriggerModal }: WorkFlowCanvasProps) => {
+  useEffect(() => {
+    initializeGraph();
+  }, []);
+
+  return (
+    <ReactFlowProvider>
+      <WorkFlowCanvasInner
+        onNodeClick={onNodeClick}
+        openTriggerModal={openTriggerModal}
+      />
+    </ReactFlowProvider>
   );
 };
 
