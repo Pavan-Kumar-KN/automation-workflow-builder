@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { toast } from 'sonner';
 
 const ContactTaggedConfig = ({ config, setConfig }) => {
     const [tags, setTags] = useState([]);
@@ -60,7 +61,7 @@ const ContactTaggedConfig = ({ config, setConfig }) => {
     // Handle form submission
     const handleSubmit = async () => {
         if (selectedTags.length === 0) {
-            alert('Please select at least one tag');
+            toast.error('Please select at least one tag');
             return;
         }
 
@@ -77,9 +78,9 @@ const ContactTaggedConfig = ({ config, setConfig }) => {
                 submittedAt: new Date().toISOString()
             });
 
-            alert('Configuration saved successfully!');
+            toast.success('Configuration saved successfully!');
         } catch (error) {
-            alert('Failed to save configuration');
+            toast.error('Failed to save configuration');
         } finally {
             setIsSubmitting(false);
         }

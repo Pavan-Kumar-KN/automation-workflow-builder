@@ -1,29 +1,36 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
+import TextareaAutosize from 'react-textarea-autosize';
+import { NodeResizeControl } from '@xyflow/react';
 
 interface StickyNoteData {
   text: string;
   color: string;
   isVisible: boolean;
+  width?: number;
+  height?: number;
   onChange: (id: string, text: string) => void;
   onDelete: (id: string) => void;
   onToggleVisibility: (id: string) => void;
+  onResize?: (id: string, dimensions: { width: number; height: number }) => void;
 }
 
 interface StickyNoteNodeProps {
   data: StickyNoteData;
   id: string;
+  selected?: boolean;
 }
 
-const StickyNoteNode = memo<StickyNoteNodeProps>(({ data, id }) => {
+const StickyNoteNode = memo<StickyNoteNodeProps>(({ data, id, selected = false, ...props }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [localText, setLocalText] = useState(data?.text || '');
-  const [dimensions, setDimensions] = useState({ width: 200, height: 120 });
-  const [isResizing, setIsResizing] = useState(false);
+  const [dimensions, setDimensions] = useState({
+    width: data?.width || 250,
+    height: data?.height || 150
+  });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const resizeStartRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
 
   // Update local text when data changes (from external updates)
   useEffect(() => {
@@ -32,15 +39,23 @@ const StickyNoteNode = memo<StickyNoteNodeProps>(({ data, id }) => {
     }
   }, [data?.text, localText, isEditing]);
 
-  // Auto-adjust height when text changes or component mounts
+  // Update dimensions when data changes
   useEffect(() => {
-    adjustTextareaHeight();
-  }, [localText]);
+    if (data?.width && data?.height) {
+      setDimensions({
+        width: data.width,
+        height: data.height
+      });
+    }
+  }, [data?.width, data?.height]);
 
-  // Initial height adjustment when component mounts
-  useEffect(() => {
-    setTimeout(() => adjustTextareaHeight(), 100);
-  }, []);
+  // Calculate minimum height based on content
+  const calculateMinHeight = () => {
+    if (!localText) return 120;
+    const lines = localText.split('\n').length;
+    const estimatedHeight = Math.max(120, lines * 20 + 50); // 50px for padding and margins
+    return estimatedHeight;
+  };
 
   // Debug logging (only on mount)
   useEffect(() => {
@@ -64,33 +79,11 @@ const StickyNoteNode = memo<StickyNoteNodeProps>(({ data, id }) => {
     }
   }, [isEditing]);
 
-  // Auto-resize textarea and note based on content
-  const adjustTextareaHeight = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      const scrollHeight = textareaRef.current.scrollHeight;
-      const minTextHeight = 60;
-      const padding = 32; // 16px top + 16px bottom padding
-      const deleteButtonSpace = 20; // Space for delete button
-
-      const textHeight = Math.max(minTextHeight, scrollHeight);
-      const totalHeight = Math.max(120, textHeight + padding + deleteButtonSpace);
-
-      // Update both textarea and note dimensions
-      textareaRef.current.style.height = `${textHeight}px`;
-      setDimensions(prev => ({
-        ...prev,
-        height: totalHeight
-      }));
-    }
-  };
-
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
 
     // Update local state immediately for responsive typing
     setLocalText(newText);
-    adjustTextareaHeight();
 
     // Clear existing timeout
     if (debounceTimeoutRef.current) {
@@ -124,32 +117,50 @@ const StickyNoteNode = memo<StickyNoteNodeProps>(({ data, id }) => {
   };
 
   const handleBlur = () => {
-    console.log('🔍 Blur on note:', id, 'Setting editing to false, updating store');
     setIsEditing(false);
     updateGraphStore(localText);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      console.log('🔍 Escape pressed on note:', id, 'Setting editing to false, updating store');
       setIsEditing(false);
       updateGraphStore(localText);
     }
     if (e.key === 'Enter' && e.ctrlKey) {
-      console.log('🔍 Ctrl+Enter pressed on note:', id, 'Updating store');
       updateGraphStore(localText);
     }
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    // Single click should also enable editing
-    console.log('🔍 Click on note:', id, 'Setting editing to true');
+    // If clicking directly on the textarea, let it handle naturally
+    if (e.target === textareaRef.current) {
+      setIsEditing(true);
+      e.stopPropagation();
+      return;
+    }
+
+    // If clicking on the note body, start editing and focus at end
     setIsEditing(true);
-    e.stopPropagation(); // Prevent event bubbling
+    e.stopPropagation();
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        // Place cursor at end of text instead of selecting all
+        const length = textareaRef.current.value.length;
+        textareaRef.current.setSelectionRange(length, length);
+      }
+    }, 10);
   };
 
   const handleFocus = () => {
     setIsEditing(true);
+    // Prevent auto-selection of all text on focus
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const length = textareaRef.current.value.length;
+        textareaRef.current.setSelectionRange(length, length);
+      }
+    }, 0);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -160,135 +171,159 @@ const StickyNoteNode = memo<StickyNoteNodeProps>(({ data, id }) => {
     }
   };
 
-  // Resize handlers
-  const handleResizeStart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setIsResizing(true);
-
-    resizeStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      width: dimensions.width,
-      height: dimensions.height
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!resizeStartRef.current) return;
-
-      const deltaX = e.clientX - resizeStartRef.current.x;
-      const deltaY = e.clientY - resizeStartRef.current.y;
-
-      const newWidth = Math.max(150, resizeStartRef.current.width + deltaX);
-      const newHeight = Math.max(100, resizeStartRef.current.height + deltaY);
-
-      setDimensions({ width: newWidth, height: newHeight });
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      resizeStartRef.current = null;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
   if (data?.isVisible === false) {
     return null;
   }
 
   return (
-    <div
-      className="sticky-note-node"
-      style={{
-        backgroundColor: data?.color || '#FEF3C7',
-        border: `1px solid rgba(0,0,0,0.1)`,
-        borderRadius: '8px',
-        width: `${dimensions.width}px`,
-        minHeight: `${dimensions.height}px`,
-        position: 'relative',
-        boxShadow: isHovered ? '0 4px 16px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.1)',
-        cursor: isEditing ? 'text' : isResizing ? 'nw-resize' : 'grab',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        transition: isResizing ? 'none' : 'box-shadow 0.2s ease',
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onDoubleClick={handleDoubleClick}
-      onClick={handleClick}
-      onMouseDown={handleMouseDown}
-    >
-      {/* Delete button - only show on hover, positioned at top center */}
-      {isHovered && data?.onDelete && (
-        <button
-          onClick={() => data.onDelete(id)}
-          className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-red-500 text-white rounded-full shadow-md flex items-center justify-center hover:bg-red-600 transition-colors z-10"
-          title="Delete note"
-        >
-          <Trash2 size={12} />
-        </button>
-      )}
-
-      {/* Note Content */}
-      <div className="p-4 flex-1">
-        <textarea
-          ref={textareaRef}
-          value={localText}
-          onChange={handleTextChange}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          className="w-full bg-transparent border-none resize-none focus:outline-none text-sm text-gray-800 placeholder-gray-500 leading-relaxed nodrag"
-          placeholder="Click to add note..."
+      <div
+          className="sticky-note-node"
           style={{
+            backgroundColor: data?.color || '#FEF3C7',
+            border: `1px solid rgba(0,0,0,0.1)`,
+            borderRadius: '8px',
+            width: dimensions.width,
+            height: Math.max(dimensions.height, calculateMinHeight()),
+            position: 'relative',
+            boxShadow: isHovered ? '0 4px 16px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.1)',
+            cursor: isEditing ? 'text' : 'grab',
             fontFamily: 'system-ui, -apple-system, sans-serif',
-            lineHeight: '1.5',
-            cursor: 'text',
-            minHeight: '60px',
-            overflow: 'hidden',
+            transition: 'box-shadow 0.2s ease',
+            padding: '16px',
+            overflow: 'visible',
+            display: 'flex',
+            flexDirection: 'column',
           }}
-        />
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onDoubleClick={handleDoubleClick}
+          onClick={handleClick}
+          onMouseDown={handleMouseDown}
+      >
+        {/* Delete button - only show on hover, positioned at top center */}
+        {isHovered && data?.onDelete && (
+            <button
+                onClick={() => data.onDelete(id)}
+                className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-red-500 text-white rounded-full shadow-md flex items-center justify-center hover:bg-red-600 transition-colors z-10"
+                title="Delete note"
+            >
+              <Trash2 size={12} />
+            </button>
+        )}
+
+        {/* Note Content */}
+        <div className="flex-1" style={{ position: 'relative', minHeight: 0 }}>
+          <TextareaAutosize
+              ref={textareaRef}
+              value={localText}
+              onChange={handleTextChange}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              onKeyDown={handleKeyDown}
+              onMouseDown={(e) => {
+                // Prevent text selection when clicking to edit
+                e.stopPropagation();
+              }}
+              className="w-full h-full bg-transparent border-none resize-none focus:outline-none text-sm text-gray-800 placeholder-gray-500 leading-relaxed nodrag"
+              placeholder="Click to add note..."
+              minRows={3}
+              style={{
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                lineHeight: '1.5',
+                cursor: 'text',
+                overflow: 'auto',
+                padding: '0',
+                margin: '0',
+                width: '100%',
+                height: '100%',
+              }}
+          />
+        </div>
+
+        {/* Resize instruction text */}
+        {isHovered && !isEditing && (
+            <div className="absolute bottom-2 left-2 text-xs text-gray-500 opacity-70 font-medium">
+              Drag corner to resize
+            </div>
+        )}
+
+        {/* NodeResizeControl with custom resize handle */}
+        <NodeResizeControl
+            style={{
+              background: 'transparent',
+              border: 'none',
+            }}
+            minWidth={200}
+            minHeight={calculateMinHeight()}
+            maxWidth={800}
+            maxHeight={600}
+            position="bottom-right"
+            onResize={(event, params) => {
+              console.log('🔍 Resizing:', params);
+              if (params) {
+                const newDimensions = {
+                  width: params.width,
+                  height: Math.max(params.height, calculateMinHeight())
+                };
+                setDimensions(newDimensions);
+
+                // Persist dimensions when user resizes
+                if (data?.onResize) {
+                  data.onResize(id, newDimensions);
+                }
+              }
+            }}
+        >
+          {/* Custom resize handle that's always visible on hover */}
+          {isHovered && (
+              <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    bottom: 0,
+                    width: '20px',
+                    height: '20px',
+                    cursor: 'se-resize',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                  }}
+              >
+                <div
+                    style={{
+                      width: '12px',
+                      height: '12px',
+                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      borderRadius: '2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: 0.8,
+                    }}
+                >
+                  <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="8"
+                      height="8"
+                      viewBox="0 0 24 24"
+                      strokeWidth="2.5"
+                      stroke="currentColor"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                  >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <polyline points="16 20 20 20 20 16" />
+                    <line x1="14" y1="14" x2="20" y2="20" />
+                    <polyline points="8 4 4 4 4 8" />
+                    <line x1="4" y1="4" x2="10" y2="10" />
+                  </svg>
+                </div>
+              </div>
+          )}
+        </NodeResizeControl>
       </div>
-
-      {/* Drag handle indicator */}
-      {isHovered && !isEditing && (
-        <div className="absolute bottom-2 right-2 text-gray-400 opacity-60">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <circle cx="4" cy="4" r="1.5"/>
-            <circle cx="8" cy="4" r="1.5"/>
-            <circle cx="12" cy="4" r="1.5"/>
-            <circle cx="4" cy="8" r="1.5"/>
-            <circle cx="8" cy="8" r="1.5"/>
-            <circle cx="12" cy="8" r="1.5"/>
-            <circle cx="4" cy="12" r="1.5"/>
-            <circle cx="8" cy="12" r="1.5"/>
-            <circle cx="12" cy="12" r="1.5"/>
-          </svg>
-        </div>
-      )}
-
-      {/* Drag instruction text */}
-      {isHovered && !isEditing && !data?.text && (
-        <div className="absolute bottom-2 left-2 text-xs text-gray-400 opacity-60">
-          Drag to move
-        </div>
-      )}
-
-      {/* Resize handle */}
-      {isHovered && !isEditing && (
-        <div
-          className="absolute bottom-0 right-0 w-4 h-4 cursor-nw-resize opacity-60 hover:opacity-100 transition-opacity"
-          onMouseDown={handleResizeStart}
-          style={{
-            background: 'linear-gradient(-45deg, transparent 30%, #666 30%, #666 40%, transparent 40%, transparent 60%, #666 60%, #666 70%, transparent 70%)',
-          }}
-          title="Drag to resize"
-        />
-      )}
-    </div>
   );
 });
 

@@ -208,6 +208,10 @@ export const ActionNode = ({
               </p>
             </div>
 
+            {(!data.isConfigured || data.showWarning) && (
+              <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+            )}
+            
             {/* Menu Button */}
             <div className="flex-shrink ml-2">
               <DropdownMenu>

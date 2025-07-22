@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { ConfigComponentProps } from '../../types';
+import { toast } from 'sonner';
 
 const StageChangedConfig: React.FC<ConfigComponentProps> = ({ config, setConfig }) => {
     const [pipelines, setPipelines] = useState([]);
@@ -33,7 +34,7 @@ const StageChangedConfig: React.FC<ConfigComponentProps> = ({ config, setConfig 
     // Handle form submission
     const handleSubmit = async () => {
         if (!config.formType || !selectedForm) {
-            alert('Please select both form type and product form');
+            toast.error('Please select both form type and product form');
             return;
         }
 
@@ -50,9 +51,9 @@ const StageChangedConfig: React.FC<ConfigComponentProps> = ({ config, setConfig 
                 submittedAt: new Date().toISOString()
             });
 
-            alert('Configuration saved successfully!');
+            toast.success('Configuration saved successfully!');
         } catch (error) {
-            alert('Failed to save configuration');
+            toast.error('Failed to save configuration');
         } finally {
             setIsSubmitting(false);
         }

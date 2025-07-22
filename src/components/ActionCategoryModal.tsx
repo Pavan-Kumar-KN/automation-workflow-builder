@@ -117,159 +117,140 @@ export const ActionCategoryModal: React.FC<ActionCategoryModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-[600px] max-h-[80vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100">
-              <LucideIcons.Zap />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {selectedSubcategory ? 'Select Action' : selectedCategory ? 'Select Subcategory' : '2. Select Action'}
-              </h2>
-              {!selectedCategory && (
-                <p className="text-sm text-gray-500">Choose a category</p>
-              )}
-              {selectedCategory && !selectedSubcategory && selectedCategoryData?.subcategories && (
-                <p className="text-sm text-gray-500">Choose a subcategory</p>
-              )}
-              {selectedSubcategory && (
-                <p className="text-sm text-gray-500">Choose an action</p>
-              )}
-            </div>
+            {(selectedCategory || selectedSubcategory) && (
+              <button
+                onClick={selectedSubcategory ? handleBackToSubcategories : handleBackToCategories}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <LucideIcons.ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
+            <h2 className="text-lg font-semibold">
+              {selectedSubcategory ? selectedSubcategoryData?.name : selectedCategory ? selectedCategoryData?.name : 'Select Action'}
+            </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100 rounded"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Back Button */}
-        {(selectedCategory || selectedSubcategory) && (
-          <div className="px-4 py-2 border-b border-gray-100">
-            <button
-              onClick={selectedSubcategory ? handleBackToSubcategories : handleBackToCategories}
-              className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ChevronRight className="w-4 h-4 rotate-180" />
-              {selectedSubcategory ? 'Back to subcategories' : 'Back to categories'}
-            </button>
-          </div>
-        )}
 
-        {/* Search Bar */}
-        {(selectedCategory || selectedSubcategory) && (
-          <div className="p-4 border-b border-gray-200">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+
+        {/* Search Bar - Always visible */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
-        )}
+        </div>
 
         {/* Content */}
-<div className="p-4 max-h-[400px] overflow-y-auto">
-  {!selectedCategory ? (
-    // Categories View
-    <div className="space-y-2">
-      {filteredCategories.map((category) => {
-        const IconComponent = category.icon;
-        return (
-          <button
-            key={category.id}
-            onClick={() => handleCategorySelect(category.id)}
-            className="w-full p-4 text-left hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 group"
-          >
-            <div className={`w-10 h-10 rounded-lg ${category.color} flex items-center justify-center`}>
-              <IconComponent className="w-5 h-5 text-gray-600" />
+        <div className="p-4 max-h-96 overflow-y-auto">
+          {!selectedCategory ? (
+            // Categories View
+            <div className="space-y-2">
+              {filteredCategories.map((category) => {
+                const IconComponent = category.icon;
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => handleCategorySelect(category.id)}
+                    className="w-full p-3 text-left hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 group"
+                  >
+                    <div className={`w-8 h-8 rounded-lg ${category.color} flex items-center justify-center`}>
+                      <IconComponent className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900">
+                        {category.name}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {category.description}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                  </button>
+                );
+              })}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-900">
-                {category.name}
-              </div>
-              <div className="text-xs text-gray-500">
-                {category.description}
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-          </button>
-        );
-      })}
-    </div>
-  ) : selectedCategory && !selectedSubcategory && selectedCategoryData?.subcategories ? (
-    // Subcategories View - Fixed to use parent category color
-    <div className="space-y-2">
-      {selectedCategoryData.subcategories.map((subcategory) => {
-        // Use an icon from the first action in the subcategory, or a default icon
-        const SubIconComponent = subcategory.icon || 
-          (subcategory.actions && subcategory.actions[0]?.icon) || 
-          selectedCategoryData.icon;
+          ) : selectedCategory && !selectedSubcategory && selectedCategoryData?.subcategories ? (
+            // Subcategories View
+            <div className="space-y-2">
+              {selectedCategoryData.subcategories.map((subcategory) => {
+                // Use an icon from the first action in the subcategory, or a default icon
+                const SubIconComponent = subcategory.icon ||
+                  (subcategory.actions && subcategory.actions[0]?.icon) ||
+                  selectedCategoryData.icon;
 
-        return (
-          <button
-            key={subcategory.id}
-            onClick={() => handleSubcategorySelect(subcategory.id)}
-            className="w-full p-4 text-left hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 group"
-          >
-            <div className={`w-10 h-10 rounded-lg ${selectedCategoryData.color} flex items-center justify-center`}>
-              <SubIconComponent className="w-5 h-5 text-gray-600" />
+                return (
+                  <button
+                    key={subcategory.id}
+                    onClick={() => handleSubcategorySelect(subcategory.id)}
+                    className="w-full p-3 text-left hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 group"
+                  >
+                    <div className={`w-8 h-8 rounded-lg ${selectedCategoryData.color} flex items-center justify-center`}>
+                      <SubIconComponent className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900">
+                        {subcategory.name}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {subcategory.description}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                  </button>
+                );
+              })}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-900">
-                {subcategory.name}
-              </div>
-              <div className="text-xs text-gray-500">
-                {subcategory.description}
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-          </button>
-        );
-      })}
-    </div>
-  ) : (
-    // Actions View
-    <div className="space-y-2">
-      {filteredActions.map((action) => {
-        const IconComponent = action.icon;
+          ) : (
+            // Actions View
+            <div className="space-y-2">
+              {filteredActions.map((action) => {
+                const IconComponent = action.icon;
 
-        return (
-          <button
-            key={action.id}
-            onClick={() => handleActionSelect(action)}
-            className="w-full p-4 text-left hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3"
-          >
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-              <IconComponent className="w-5 h-5" style={{ color: action.color }} />
+                return (
+                  <button
+                    key={action.id}
+                    onClick={() => handleActionSelect(action)}
+                    className="w-full p-3 text-left hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                      <IconComponent className="w-4 h-4 text-red-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900">
+                        {action.label}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {action.description}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+              {filteredActions.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  {searchTerm ? 'No actions found matching your search' : 'No actions available in this category'}
+                </div>
+              )}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-900">
-                {action.label}
-              </div>
-              <div className="text-xs text-gray-500">
-                {action.description}
-              </div>
-            </div>
-          </button>
-        );
-      })}
-      {filteredActions.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          {searchTerm ? 'No actions found matching your search' : 'No actions available in this category'}
+          )}
         </div>
-      )}
-    </div>
-  )}
-</div>
       </div>
     </div>
   );

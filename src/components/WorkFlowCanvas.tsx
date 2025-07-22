@@ -97,7 +97,7 @@ const CustomControls = ({
         <ArrowDown size={16} />
       </button>
 
-      {/* <button
+      <button
         onClick={() => onLayoutChange('LR')}
         title="Horizontal Layout"
         className={`p-2 rounded transition-all duration-200 ${
@@ -107,7 +107,7 @@ const CustomControls = ({
         }`}
       >
         <ArrowRight size={16} />
-      </button> */}
+      </button>
 
       {/* Divider */}
       <div className="h-px bg-gray-200 my-1" />
@@ -205,54 +205,11 @@ const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal }: any) => {
   const [isLocked, setIsLocked] = useState(false);
   const [draggedNodePositions, setDraggedNodePositions] = useState<Record<string, {x: number, y: number}>>({});
 
-  // Simple node addition function
-  const handleAddNode = useCallback((nodeData: any) => {
-    const newNodeId = `action-${Date.now()}`;
-    const triggerNode = Object.values(nodeMap).find(node => node.type === 'trigger');
-    const endNode = Object.values(nodeMap).find(node => node.type === 'endNode');
-
-    if (triggerNode && endNode) {
-      addNode({
-        id: newNodeId,
-        type: 'action',
-        position: { x: 0, y: 0 },
-        data: {
-          label: nodeData.label || 'New Action',
-          isConfigured: false,
-        },
-        children: [endNode.id],
-        parent: triggerNode.id,
-      });
-
-      const updatedTrigger = {
-        ...triggerNode,
-        children: [newNodeId]
-      };
-
-      useGraphStore.getState().removeNode(triggerNode.id);
-      addNode(updatedTrigger);
-
-      setTimeout(() => {
-        const newNode = {
-          id: newNodeId,
-          type: 'action',
-          data: {
-            label: nodeData.label || 'New Action',
-            isConfigured: false,
-          }
-        };
-        setSelectedNode(newNode);
-        console.log('✅ Auto-opened config panel for new node:', newNodeId);
-      }, 100);
-    }
-
-    setShowActionModal(false);
-  }, [nodeMap, addNode, setSelectedNode]);
 
   // Update local state when store changes and apply Dagre layout
   useEffect(() => {
     try {
-      const { stateNodes, stateEdges } = graphToReactFlow(nodeMap);
+      const { stateNodes, stateEdges } = graphToReactFlow(nodeMap, openTriggerModal);
 
       const nodesInBranches = new Set();
       Object.values(nodeMap).forEach(node => {
@@ -334,7 +291,13 @@ const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal }: any) => {
           return false;
         }
       }
-      return true; // Allow all other changes
+
+      // Log selection changes for debugging
+      if (change.type === 'select') {
+        console.log('🔍 Selection change:', change.id, 'selected:', change.selected);
+      }
+
+      return true; // Allow all other changes (including selection)
     });
 
     // Apply changes to local state immediately (for smooth dragging)

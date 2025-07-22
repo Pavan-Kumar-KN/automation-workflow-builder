@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { useGraphStore } from '@/store/useGraphStore';
 
-const NotesPopover = ({ nodeId, onClose }) => {
+interface NotesPopoverProps {
+    nodeId: string;
+    onClose: () => void;
+}
+
+const NotesPopover = ({ nodeId, onClose }: NotesPopoverProps) => {
     const graph = useGraphStore(state => state.nodes);
     const updateNode = useGraphStore(state => state.updateNodeData);
     const node = graph[nodeId];
@@ -13,8 +18,31 @@ const NotesPopover = ({ nodeId, onClose }) => {
         onClose();
     };
 
+    const inlineClose = () => {
+        handleSave();
+        onClose();
+    }
+
+    // Prevent event bubbling to avoid triggering node click events
+    const handlePopoverClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+    };
+
+    const handlePopoverDoubleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+    };
+
+    const handleTextareaDoubleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        // Allow normal text selection behavior
+    };
+
     return (
-        <div className="notes-popover w-[280px] sm:w-[320px] p-4 rounded-xl border border-gray-200 shadow-xl bg-white text-sm transition-all">
+        <div
+            className="notes-popover w-[280px] sm:w-[320px] p-4 rounded-xl border border-gray-200 shadow-xl bg-white text-sm transition-all"
+            onClick={handlePopoverClick}
+            onDoubleClick={handlePopoverDoubleClick}
+        >
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
                 <div className="font-semibold text-gray-800 flex items-center gap-2">
@@ -22,7 +50,10 @@ const NotesPopover = ({ nodeId, onClose }) => {
                     Notes
                 </div>
                 <button
-                    onClick={onClose}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        inlineClose();
+                    }}
                     className="p-1 hover:bg-gray-100 rounded-md transition-colors"
                     title="Close"
                 >
@@ -37,6 +68,8 @@ const NotesPopover = ({ nodeId, onClose }) => {
                 className="w-full h-32 sm:h-36 p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 text-gray-700 leading-relaxed"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                onClick={handlePopoverClick}
+                onDoubleClick={handleTextareaDoubleClick}
                 placeholder="Add your notes here..."
                 autoFocus
             />
@@ -53,17 +86,20 @@ const NotesPopover = ({ nodeId, onClose }) => {
                 </p>
                 <div className="flex gap-2 w-full sm:w-auto">
                     <button
-                        onClick={onClose}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            inlineClose();
+                        }}
                         className="flex-1 sm:flex-none px-3 py-1 text-xs rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors font-medium text-gray-600"
                     >
                         Cancel
                     </button>
-                    <button
+                    {/* <button
                         onClick={handleSave}
                         className="flex-1 sm:flex-none px-3 py-1 text-xs bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all font-medium shadow-sm whitespace-nowrap"
                     >
                         Save Notes
-                    </button>
+                    </button> */}
                 </div>
             </div>
         </div>

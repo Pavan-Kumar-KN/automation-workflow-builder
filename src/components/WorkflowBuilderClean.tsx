@@ -160,24 +160,50 @@ export const WorkflowBuilderClean = () => {
     const existingTrigger = allNodes.find(node => node.type === 'trigger');
 
     if (existingTrigger) {
-      // Update the existing trigger
+      // Clean trigger data by removing functions (they can't be cloned)
+      const cleanTriggerData = Object.fromEntries(
+        Object.entries(trigger).filter(([key, value]) => typeof value !== 'function')
+      );
+
+      // Create updated trigger with new trigger data (without functions)
       const updatedTrigger = {
         ...existingTrigger,
         data: {
-          ...existingTrigger.data,
-          ...trigger,
+          ...cleanTriggerData, // Use cleaned trigger data
           label: trigger.label,
-          isConfigured: true,
+          icon: trigger.icon,
+          id: trigger.id,
+          isConfigured: false, // Set to false so config panel opens
+          // Don't store functions in graph store - they'll be added in graphToReactFlow
         }
       };
 
+      // Replace the existing trigger
       removeNode(existingTrigger.id);
       addNode(updatedTrigger);
+
+      // Auto-open config panel for the new trigger
+      setTimeout(() => {
+        // Get the updated trigger from the store
+        const allNodes = Object.values(useGraphStore.getState().nodes);
+        const triggerNode = allNodes.find(n => n.type === 'trigger');
+
+        if (triggerNode) {
+          const nodeForConfig = {
+            id: triggerNode.id,
+            type: 'trigger',
+            data: triggerNode.data,
+            position: triggerNode.position,
+          };
+          setSelectedNode(nodeForConfig);
+          console.log('✅ Auto-opened config for new trigger:', triggerNode.id);
+        }
+      }, 100);
     }
 
     setShowTriggerModal(false);
-    toast.success('Trigger updated successfully!');
-  }, [nodeMap, addNode, removeNode]);
+    toast.success(`${trigger.label} trigger selected! Configure it now.`);
+  }, [nodeMap, addNode, removeNode, setSelectedNode]);
 
   // Open action modal
   const openActionModal = useCallback((insertIndex?: number) => {
@@ -206,24 +232,34 @@ export const WorkflowBuilderClean = () => {
 
     // Check if the click was on an interactive element (dropdown, button, etc.)
     const target = event.target as HTMLElement;
-    const isInteractiveElement = target.closest('button, select, input, [role="button"], [role="menuitem"], .dropdown, .menu');
+    const isInteractiveElement = target.closest('button, select, input, [role="button"], [role="menuitem"], [data-radix-collection-item]');
 
     if (isInteractiveElement) {
       console.log('🔍 Click was on interactive element, not opening config panel');
       return;
     }
 
-    // For default trigger, open trigger modal
-    const isDefaultTrigger = node.data?.id === 'trigger-default' || node.data?.label === 'Select Trigger';
-    if (isDefaultTrigger) {
-      setShowTriggerModal(true);
-      return;
+    // Special handling for trigger nodes
+    if (node.type === 'trigger') {
+      const isDefaultTrigger = node.data?.id === 'trigger-default' || node.data?.label === 'Select Trigger';
+
+      if (isDefaultTrigger) {
+        // For default trigger, open trigger selection modal
+        console.log('🔍 Opening trigger selection modal for default trigger');
+        setShowTriggerModal(true);
+        return;
+      } else {
+        // For configured trigger, open config panel
+        console.log('🔍 Opening config panel for configured trigger');
+        setSelectedNode(node);
+        return;
+      }
     }
 
-    // For other nodes, open config panel
+    // For all other nodes, open config panel
     setSelectedNode(node);
     console.log('✅ Config panel opened for node:', node.id);
-  }, [setSelectedNode]);
+  }, [setSelectedNode, setShowTriggerModal]);
 
   // Handle trigger modal opening
   const openTriggerModal = useCallback(() => {
@@ -361,7 +397,7 @@ export const WorkflowBuilderClean = () => {
         <div className="flex-1">
           <WorkFlowCanvas
             onNodeClick={onNodeClick}
-            openTriggerModal={openTriggerModal}
+            openTriggerModal={() => setShowTriggerModal(true)}
           />
         </div>
 

@@ -127,10 +127,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                     <Clock className="w-3 h-3" />
                     <span>Saved {formatLastSaved(lastSaved)}</span>
                   </span>
-                  <span className="flex items-center space-x-1">
-                    <Users className="w-3 h-3" />
-                    <span>Private</span>
-                  </span>
+                  
                 </div>
               </div>
             </div>

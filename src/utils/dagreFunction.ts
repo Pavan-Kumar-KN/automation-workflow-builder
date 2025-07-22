@@ -69,8 +69,13 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
     branchNodes.set(conditionNode.id, branches);
   });
 
-  // Set ALL nodes in dagre (including placeholders)
+  // Set workflow nodes in dagre (exclude sticky notes)
   nodes.forEach((node) => {
+    // Skip sticky notes - they should not be affected by Dagre layout
+    if (node.type === 'stickyNote') {
+      return;
+    }
+
     let width = node.width || nodeWidth;
     let height = node.height || nodeHeight;
 
@@ -106,13 +111,19 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
 
   // Apply layout
   dagre.layout(dagreGraph);
-  // Position ALL nodes using dagre layout (including placeholders)
+  // Position workflow nodes using dagre layout (preserve sticky note positions)
   const newNodes = nodes.map((node) => {
+    // Skip sticky notes - preserve their original positions and dimensions
+    if (node.type === 'stickyNote') {
+      console.log(`🔍 Preserving sticky note position for: ${node.id}`, node.position);
+      return node; // Return unchanged
+    }
+
     const nodeWithPosition = dagreGraph.node(node.id);
 
     // Safety check
     if (!nodeWithPosition) {
-      // console.error(`Node position not found for: ${node.id}`);
+      console.error(`Node position not found for: ${node.id}`);
       return node;
     }
 
@@ -121,7 +132,7 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
       y: nodeWithPosition.y - (node.height || nodeHeight) / 2,
     };
 
-    // console.log(`🔍 Dagre positioned ${node.id} (${node.type}):`, finalPosition);
+    console.log(`🔍 Dagre positioned ${node.id} (${node.type}):`, finalPosition);
 
     return {
       ...node,
@@ -147,4 +158,5 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
 
   return { nodes: newNodes, edges: newEdges };
 };
+
 

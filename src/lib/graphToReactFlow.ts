@@ -2,7 +2,7 @@ import type { GraphNode } from '../store/useGraphStore';
 import type { Node, Edge } from '@xyflow/react';
 import { useGraphStore } from '../store/useGraphStore';
 
-export const graphToReactFlow = (nodeMap: Record<string, GraphNode>) => {
+export const graphToReactFlow = (nodeMap: Record<string, GraphNode>, openTriggerModal?: () => void) => {
   console.log('🔍 graphToReactFlow input nodes:', Object.keys(nodeMap));
 
   const stateNodes = Object.values(nodeMap).map((node) => {
@@ -19,6 +19,17 @@ export const graphToReactFlow = (nodeMap: Record<string, GraphNode>) => {
         onDelete: () => {
           useGraphStore.getState().removeNode(node.id);
         },
+        // Add functions back for trigger nodes (they're not stored in graph store)
+        ...(node.type === 'trigger' && {
+          openTriggerModal: openTriggerModal || (() => {
+            console.log('🔍 openTriggerModal called for trigger:', node.id);
+            console.log('❌ No openTriggerModal function provided');
+          }),
+          onOpenConfig: () => {
+            console.log('🔍 onOpenConfig called for trigger:', node.id);
+            // This will be handled by the onNodeClick in WorkflowBuilderClean
+          }
+        }),
       },
       // Set draggable based on node type
       draggable: isDraggable,
@@ -30,6 +41,11 @@ export const graphToReactFlow = (nodeMap: Record<string, GraphNode>) => {
     if (node.type === 'stickyNote') {
       return {
         ...baseNode,
+        // Set initial dimensions for React Flow NodeResizer
+        style: {
+          width: node.data.width || 200,
+          height: node.data.height || 120,
+        },
         data: {
           ...baseNode.data, // This preserves the onDelete function
           onChange: (id: string, text: string) => {
@@ -38,6 +54,9 @@ export const graphToReactFlow = (nodeMap: Record<string, GraphNode>) => {
           onToggleVisibility: (id: string) => {
             // Toggle visibility logic here if needed
             console.log('Toggle visibility for:', id);
+          },
+          onResize: (id: string, dimensions: { width: number; height: number }) => {
+            useGraphStore.getState().updateStickyNoteDimensions(id, dimensions);
           },
         },
       };

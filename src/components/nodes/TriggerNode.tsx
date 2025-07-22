@@ -47,14 +47,21 @@ export const TriggerNode = ({
   }, [data.icon]);
 
   const handleClick = () => {
-    const isDefaultTrigger = data.id === 'trigger-default' || data.label === 'Select Trigger';
-    
-    if (data.isConfigured && onOpenConfig && !isDefaultTrigger) {
-      onOpenConfig();
-    } else if (data.openTriggerModal) {
+    // This click handler is now mainly for debugging
+    // The actual logic is handled by WorkflowBuilderClean's onNodeClick
+    console.log('🔍 TriggerNode handleClick called:', {
+      id: data.id,
+      label: data.label,
+      isConfigured: data.isConfigured
+    });
+  };
+
+  const replaceTrigger = () => {
+    console.log("Replace trigger clicked, data:", data);
+    if (data.openTriggerModal) {
       data.openTriggerModal();
     }
-  };
+  }
 
   return (
     <div className="relative">
@@ -75,11 +82,10 @@ export const TriggerNode = ({
       {/* Node Box - ActivePieces Style */}
       <div
         onClick={handleClick}
-        className={`relative bg-white rounded-xl border-2 px-4 py-3 w-[280px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer ${
-          isSelected
+        className={`relative bg-white rounded-xl border-2 px-4 py-3 w-[280px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer ${isSelected
             ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
             : 'border-gray-200 hover:border-gray-300'
-        }`}
+          }`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -89,9 +95,8 @@ export const TriggerNode = ({
         <div className="flex items-center gap-3">
           {/* Icon with background */}
           <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
-            <IconComponent className={`w-8 h-8 ${
-              !data.isConfigured ? 'text-gray-600' : data.color || 'text-blue-600'
-            }`} />
+            <IconComponent className={`w-8 h-8 ${!data.isConfigured ? 'text-gray-600' : data.color || 'text-blue-600'
+              }`} />
           </div>
 
           {/* Content */}
@@ -127,18 +132,16 @@ export const TriggerNode = ({
                   sideOffset={30}
                   className="w-56 bg-white border border-gray-200 rounded-lg shadow-lg p-1"
                 >
-                  {onReplaceTrigger && (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onReplaceTrigger();
-                      }}
-                      className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
-                    >
-                      <LucideIcons.RefreshCw className="w-4 h-4 mr-3" />
-                      <span className="font-medium">Replace Trigger</span>
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      replaceTrigger();
+                    }}
+                    className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
+                  >
+                    <LucideIcons.RefreshCw className="w-4 h-4 mr-3" />
+                    <span className="font-medium">Replace Trigger</span>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

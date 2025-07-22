@@ -30,6 +30,8 @@ type GraphNode = {
     // Sticky note specific properties
     text?: string;
     isVisible?: boolean;
+    width?: number;
+    height?: number;
   };
   parent?: string;
   children?: string[]; // for linear flow
@@ -56,6 +58,7 @@ interface GraphState {
   // Sticky note methods
   addStickyNote: (color: string) => string;
   updateStickyNoteText: (id: string, text: string) => void;
+  updateStickyNoteDimensions: (id: string, dimensions: { width: number; height: number }) => void;
 
   insertNode: (params: {
     type: NodeType;
@@ -156,13 +159,13 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         text: '',
         color,
         isVisible: true,
+        width: 200,
+        height: 120,
       },
       children: [],
       parent: null,
       draggable: true,
     };
-
-    console.log('🔍 Creating sticky note at position:', stickyNote.position, 'Note count:', noteCount);
 
     set((state) => ({
       nodes: { ...state.nodes, [id]: stickyNote }
@@ -181,6 +184,23 @@ export const useGraphStore = create<GraphState>((set, get) => ({
           data: {
             ...state.nodes[id].data,
             text,
+          }
+        }
+      }
+    }));
+  },
+
+  // Update sticky note dimensions
+  updateStickyNoteDimensions: (id: string, dimensions: { width: number; height: number }) => {
+    set((state) => ({
+      nodes: {
+        ...state.nodes,
+        [id]: {
+          ...state.nodes[id],
+          data: {
+            ...state.nodes[id].data,
+            width: dimensions.width,
+            height: dimensions.height,
           }
         }
       }
@@ -469,7 +489,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   },
 
   removeNode: (id) => {
-    const graph = structuredClone(get().nodes);
+    const graph = { ...get().nodes };
 
     const nodeToRemove = graph[id];
 
@@ -2710,24 +2730,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     get().cleanupOrphanedNodes();
   },
 
-  // Update node data
-  updateNodeData: (nodeId: string, data: Partial<GraphNode['data']>) => {
-    const graph = get().nodes;
-    const node = graph[nodeId];
-    if (node) {
-      const updatedGraph = {
-        ...graph,
-        [nodeId]: {
-          ...node,
-          data: {
-            ...node.data,
-            ...data,
-          },
-        },
-      };
-      set({ nodes: updatedGraph });
-    }
-  },
 
   // Copy a single node to clipboard
   copyNode: (nodeId: string) => {
@@ -3312,6 +3314,31 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       console.log('✅ Cleaned up orphaned nodes');
     }
   },
+
+  
+  // this function is used to update notes of the workflow flow nodes 
+  updateNodeData: (nodeId: string, data: Partial<GraphNode['data']>) => {
+    const graph = get().nodes;
+    const node = graph[nodeId];
+    if (node) {
+      const updatedGraph = {
+        ...graph,
+        [nodeId]: {
+          ...node,
+          data: {
+            ...node.data,
+            ...data,
+          },
+        },
+      };
+      set({ nodes: updatedGraph });
+    }
+  },
+
+  // * This is function is for replacing the trigger 
+  // replaceTrigger :(nodeId : string){
+  //   console.log("")
+  // }
 }));
 
 export type { GraphNode };

@@ -24,7 +24,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   onDelete, // ✅ Add delete prop
 }) => {
   const [config, setConfig] = useState<NodeConfig>(node.data as NodeConfig);
-  const [customLabel, setCustomLabel] = useState<string>(node.data.customLabel || '');
+  const [customLabel, setCustomLabel] = useState<string>('');
 
   console.log('Node data came to main NodeConfigPanel:', node.data);
 
@@ -83,7 +83,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             <Label htmlFor="customLabel">Custom Label (Optional)</Label>
             <Input
               id="customLabel"
-              placeholder={`Default: ${node.data.label || node.type}`}
+              placeholder={`Default: ${ node.type}`}
               value={customLabel}
               onChange={(e) => setCustomLabel(e.target.value)}
               className="w-full"
