@@ -241,32 +241,7 @@ if (typeof window !== 'undefined') {
       };
     },
 
-    // Test condition duplicate
-    testConditionDuplicate: () => {
-      console.log('🧪 Testing condition duplicate functionality...');
-      const graphStore = useGraphStore.getState();
 
-      // Find first condition node
-      const conditionNodes = Object.values(graphStore.nodes).filter(node => node.type === 'condition');
-      if (conditionNodes.length === 0) {
-        console.log('❌ No condition nodes found to test duplicate');
-        return;
-      }
-
-      const testNode = conditionNodes[0];
-      console.log('🔄 Testing duplicate of condition node:', testNode.id);
-
-      // Duplicate the node
-      const duplicateId = graphStore.duplicateNodeInPlace(testNode.id);
-
-      console.log('✅ Duplicate created:', duplicateId);
-
-      return {
-        originalNodeId: testNode.id,
-        duplicateNodeId: duplicateId,
-        success: !!duplicateId
-      };
-    },
 
     // Analyze current workflow structure
     analyzeWorkflow: () => {

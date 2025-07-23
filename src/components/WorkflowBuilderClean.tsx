@@ -7,6 +7,7 @@ import { ActionCategoryModal } from './ActionCategoryModal';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useWorkflowActions } from '@/hooks/useWorkflowActions';
 import { useWorkflowJSON } from '@/hooks/useWorkflowJSON';
+import { useUndoRedoKeyboard } from '@/hooks/useUndoRedoKeyboard';
 import { useGraphStore } from '@/store/useGraphStore';
 import { NodeData } from '@/data/types';
 import { toast } from 'sonner';
@@ -38,7 +39,7 @@ export const WorkflowBuilderClean = () => {
   } = useWorkflowStore();
 
   const { executeWorkflow, saveWorkflow } = useWorkflowActions();
-  const { generateJSON } = useWorkflowJSON();
+  const { generateJSON, submitToBackend, submitConfigToBackend } = useWorkflowJSON();
 
   // Modal states
   const [showTriggerModal, setShowTriggerModal] = useState(false);
@@ -58,6 +59,35 @@ export const WorkflowBuilderClean = () => {
     }
     toast.success('Node deleted successfully!');
   }, [removeNode, selectedNode, setSelectedNode]);
+
+  // Backend integration functions
+  const handleWorkflowSubmit = useCallback(async () => {
+    try {
+      toast.loading('Submitting workflow to backend...');
+      const result = await submitToBackend();
+      toast.success('Workflow submitted successfully!');
+      console.log('✅ Workflow submission result:', result);
+      return result;
+    } catch (error) {
+      toast.error('Failed to submit workflow to backend');
+      console.error('❌ Workflow submission error:', error);
+      throw error;
+    }
+  }, [submitToBackend]);
+
+  const handleConfigSubmit = useCallback(async (nodeId: string, automationId: string) => {
+    try {
+      toast.loading('Updating workflow configuration...');
+      const result = await submitConfigToBackend(nodeId, automationId);
+      toast.success('Configuration updated successfully!');
+      console.log('✅ Config update result:', result);
+      return result;
+    } catch (error) {
+      toast.error('Failed to update configuration');
+      console.error('❌ Config update error:', error);
+      throw error;
+    }
+  }, [submitConfigToBackend]);
 
   // Simple node addition handler using graph store
   const handleNodeSelection = useCallback((nodeType: string, nodeData: NodeData, shouldAutoOpenConfig: boolean = false) => {
@@ -160,21 +190,15 @@ export const WorkflowBuilderClean = () => {
     const existingTrigger = allNodes.find(node => node.type === 'trigger');
 
     if (existingTrigger) {
-      // Clean trigger data by removing functions (they can't be cloned)
-      const cleanTriggerData = Object.fromEntries(
-        Object.entries(trigger).filter(([key, value]) => typeof value !== 'function')
-      );
-
-      // Create updated trigger with new trigger data (without functions)
+      // Create updated trigger with new trigger data
       const updatedTrigger = {
         ...existingTrigger,
         data: {
-          ...cleanTriggerData, // Use cleaned trigger data
+          ...trigger,
           label: trigger.label,
           icon: trigger.icon,
           id: trigger.id,
           isConfigured: false, // Set to false so config panel opens
-          // Don't store functions in graph store - they'll be added in graphToReactFlow
         }
       };
 

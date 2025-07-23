@@ -151,7 +151,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
           <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
             <Copy className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-medium text-blue-700">
-              {copiedNodes.length > 1 ? 'Flow' : 'Node'} ready to paste
+              {copiedNodes.length > 1 ? 'Flow' : 'Action'} ready to paste
             </span>
             <Button
               variant="ghost"
@@ -170,7 +170,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
           <div className="flex items-center space-x-2 px-3 py-2 bg-purple-50 border border-purple-200 rounded-lg">
             <Move className="w-4 h-4 text-purple-600" />
             <span className="text-sm font-medium text-purple-700">
-              {flowToMove ? 'Flow' : 'Node'} ready to move
+              {flowToMove ? 'Flow' : ''} ready to move
             </span>
             <Button
               variant="ghost"

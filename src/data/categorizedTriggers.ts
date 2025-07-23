@@ -76,47 +76,7 @@ export const categorizedTriggers: TriggerCategory[] = [
     ]
   },
 
-  // Contact Triggers
-  {
-    id: 'contact-triggers',
-    name: 'Contact Triggers',
-    icon: User,
-    description: 'Triggers based on contact activities',
-    color: 'bg-green-50 border-green-200',
-    triggers: [
-      {
-        id: 'contact-source-trigger',
-        label: 'Contact Source',
-        icon: UserPlus,
-        description: 'When new contact added via the selected source to send welcome message and more',
-        color: 'bg-green-50 border-green-200'
-      },
-
-      {
-        id: 'contact-updated-trigger',
-        label: 'Contact Update',
-        icon: UserPlus,
-        description: 'Send a cheer message to contact whenever contact is updated in system even with other automation',
-        color: 'bg-green-50 border-green-200'
-      },
-      {
-        id: 'contact-tagged-trigger',
-        label: 'Contact Tagged',
-        icon: Tag,
-        description: 'When a contact is tagged automation will trigger',
-        color: 'bg-yellow-50 border-yellow-200'
-      },
-      {
-        id: 'happy-birthday-trigger',
-        label: 'Say "Happy Birthday" ',
-        icon: UserPlus,
-        description: 'Celebrate with an exclusive offer or cheerful message that sends based on the birthday field in your audience',
-        color: 'bg-green-50 border-green-200'
-      },
-
-    ]
-  },
-
+  
   // CRM Triggers
   {
     id: 'crm-triggers',
@@ -156,6 +116,48 @@ export const categorizedTriggers: TriggerCategory[] = [
       }
     ]
   },
+
+  // Contact Triggers
+  {
+    id: 'contact-triggers',
+    name: 'Contact',
+    icon: User,
+    description: 'Triggers based on contact activities',
+    color: 'bg-green-50 border-green-200',
+    triggers: [
+      {
+        id: 'contact-source-trigger',
+        label: 'Contact Source',
+        icon: UserPlus,
+        description: 'When new contact added via the selected source to send welcome message and more',
+        color: 'bg-green-50 border-green-200'
+      },
+
+      {
+        id: 'contact-updated-trigger',
+        label: 'Contact Update',
+        icon: UserPlus,
+        description: 'Send a cheer message to contact whenever contact is updated in system even with other automation',
+        color: 'bg-green-50 border-green-200'
+      },
+      {
+        id: 'contact-tagged-trigger',
+        label: 'Contact Tagged',
+        icon: Tag,
+        description: 'When a contact is tagged automation will trigger',
+        color: 'bg-yellow-50 border-yellow-200'
+      },
+      {
+        id: 'happy-birthday-trigger',
+        label: 'Say "Happy Birthday" ',
+        icon: UserPlus,
+        description: 'Celebrate with an exclusive offer or cheerful message that sends based on the birthday field in your audience',
+        color: 'bg-green-50 border-green-200'
+      },
+
+    ]
+  },
+
 
   // Calendar Triggers
   {

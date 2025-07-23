@@ -83,8 +83,8 @@ export const TriggerNode = ({
       <div
         onClick={handleClick}
         className={`relative bg-white rounded-xl border-2 px-4 py-3 w-[280px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer ${isSelected
-            ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
-            : 'border-gray-200 hover:border-gray-300'
+          ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
+          : 'border-gray-200 hover:border-gray-300'
           }`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -107,15 +107,15 @@ export const TriggerNode = ({
                   {data.isConfigured ? (data.customLabel || data.label) : 'Select Trigger'}
                 </h3>
                 {/* Warning icon positioned at the end of title */}
-                {(!data.isConfigured || data.showWarning) && (
-                  <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                )}
               </div>
               <p className="text-xs text-gray-500 truncate mt-0.5">
                 {data.subtitle || 'Trigger'}
               </p>
             </div>
 
+            {(!data.isConfigured || data.showWarning) && (
+              <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+            )}
             {/* Menu Button */}
             <div className="flex-shrink ml-2">
               <DropdownMenu>

@@ -65,14 +65,14 @@ const edgeTypes = {
 };
 
 // Custom Controls Component
-const CustomControls = ({ 
-  onZoomIn, 
-  onZoomOut, 
-  onReset, 
-  onToggleLock, 
-  isLocked, 
-  layoutDirection, 
-  onLayoutChange 
+const CustomControls = ({
+  onZoomIn,
+  onZoomOut,
+  onReset,
+  onToggleLock,
+  isLocked,
+  layoutDirection,
+  onLayoutChange
 }: {
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -88,11 +88,10 @@ const CustomControls = ({
       <button
         onClick={() => onLayoutChange('TB')}
         title="Vertical Layout"
-        className={`p-2 rounded transition-all duration-200 ${
-          layoutDirection === 'TB' 
-            ? 'bg-blue-500 text-white shadow-md' 
+        className={`p-2 rounded transition-all duration-200 ${layoutDirection === 'TB'
+            ? 'bg-blue-500 text-white shadow-md'
             : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-        }`}
+          }`}
       >
         <ArrowDown size={16} />
       </button>
@@ -100,11 +99,10 @@ const CustomControls = ({
       <button
         onClick={() => onLayoutChange('LR')}
         title="Horizontal Layout"
-        className={`p-2 rounded transition-all duration-200 ${
-          layoutDirection === 'LR' 
-            ? 'bg-blue-500 text-white shadow-md' 
+        className={`p-2 rounded transition-all duration-200 ${layoutDirection === 'LR'
+            ? 'bg-blue-500 text-white shadow-md'
             : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-        }`}
+          }`}
       >
         <ArrowRight size={16} />
       </button>
@@ -117,11 +115,10 @@ const CustomControls = ({
         onClick={onZoomIn}
         disabled={isLocked}
         title="Zoom In"
-        className={`p-2 rounded transition-all duration-200 ${
-          isLocked 
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+        className={`p-2 rounded transition-all duration-200 ${isLocked
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
             : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-        }`}
+          }`}
       >
         <Plus size={16} />
       </button>
@@ -130,11 +127,10 @@ const CustomControls = ({
         onClick={onZoomOut}
         disabled={isLocked}
         title="Zoom Out"
-        className={`p-2 rounded transition-all duration-200 ${
-          isLocked 
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+        className={`p-2 rounded transition-all duration-200 ${isLocked
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
             : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-        }`}
+          }`}
       >
         <Minus size={16} />
       </button>
@@ -146,11 +142,10 @@ const CustomControls = ({
       <button
         onClick={onToggleLock}
         title={isLocked ? "Unlock Controls" : "Lock Controls"}
-        className={`p-2 rounded transition-all duration-200 ${
-          isLocked 
-            ? 'bg-red-500 text-white shadow-md' 
+        className={`p-2 rounded transition-all duration-200 ${isLocked
+            ? 'bg-red-500 text-white shadow-md'
             : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-        }`}
+          }`}
       >
         {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
       </button>
@@ -167,31 +162,6 @@ const CustomControls = ({
   );
 };
 
-// Sticky Note Panel Component
-const StickyNotePanel = ({ onAddStickyNote }: { onAddStickyNote: (color: string) => void }) => {
-  return (
-    <div className="absolute top-4 left-4 z-10 p-3 bg-white rounded-lg shadow-lg border border-gray-200">
-      <label className="block mb-2 text-sm font-semibold text-gray-700">Add Sticky Note</label>
-      <div className="flex gap-2">
-        {[
-          { color: '#fef08a', label: 'Yellow' },
-          { color: '#a7f3d0', label: 'Green' },
-          { color: '#bae6fd', label: 'Blue' },
-          { color: '#fca5a5', label: 'Red' }
-        ].map((item) => (
-          <button
-            key={item.color}
-            className="w-8 h-8 rounded-md border-2 border-white shadow-md hover:scale-110 transition-transform duration-200"
-            style={{ backgroundColor: item.color }}
-            onClick={() => onAddStickyNote(item.color)}
-            title={`Add ${item.label} sticky note`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
 // Main Component Wrapper
 const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal }: any) => {
   const reactFlowInstance = useReactFlow();
@@ -203,7 +173,7 @@ const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal }: any) => {
   const [showActionModal, setShowActionModal] = useState(false);
   const [layoutDirection, setLayoutDirection] = useState('TB');
   const [isLocked, setIsLocked] = useState(false);
-  const [draggedNodePositions, setDraggedNodePositions] = useState<Record<string, {x: number, y: number}>>({});
+  const [draggedNodePositions, setDraggedNodePositions] = useState<Record<string, { x: number, y: number }>>({});
 
 
   // Update local state when store changes and apply Dagre layout
@@ -212,6 +182,7 @@ const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal }: any) => {
       const { stateNodes, stateEdges } = graphToReactFlow(nodeMap, openTriggerModal);
 
       const nodesInBranches = new Set();
+
       Object.values(nodeMap).forEach(node => {
         if (node.type === 'condition' && node.branches) {
           node.branches.yes?.forEach(id => nodesInBranches.add(id));
@@ -239,6 +210,7 @@ const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal }: any) => {
       const filteredEdges = shouldHideEndNode
         ? stateEdges.filter(edge => edge.target !== 'end-1')
         : stateEdges;
+
 
       // Separate sticky notes from workflow nodes for layout
       const workflowNodes = filteredNodes.filter(node => node.type !== 'stickyNote');

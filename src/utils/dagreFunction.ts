@@ -20,9 +20,6 @@ export function calculateChildCounts(nodes, edges) {
   return childCounts;
 }
 
-// const dagreGraph = new dagre.graphlib.Graph();
-// dagreGraph.setDefaultEdgeLabel(() => ({}));
-
 export const getLayoutedElements = (nodes, edges, direction = "TB") => {
   // Create a new dagre graph instance for each layout
   const nodeWidth = 260;
@@ -108,6 +105,9 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
 
     dagreGraph.setEdge(edge.source, edge.target, edgeConfig);
   });
+
+
+
 
   // Apply layout
   dagre.layout(dagreGraph);
