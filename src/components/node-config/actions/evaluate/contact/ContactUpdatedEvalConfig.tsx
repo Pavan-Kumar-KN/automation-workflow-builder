@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Plus, X } from 'lucide-react';
+import BranchShift from '@/components/node-config/config-components/BranchShift';
 
 const ContactUpdatedEvalConfig = ({ config, setConfig }) => {
     const [isLoading, setIsLoading] = useState(false);
@@ -207,33 +208,8 @@ const ContactUpdatedEvalConfig = ({ config, setConfig }) => {
                 </Button>
             </div>
 
-            {/* Bulk Actions */}
-            <div className="space-y-3">
-                <Label className="text-sm font-medium text-gray-700">
-                    Bulk Actions
-                </Label>
-                <p className="text-sm text-gray-500">
-                    Apply action to all conditions (selected option will be highlighted)
-                </p>
-                <div className="flex gap-2 flex-wrap">
-                    <Button
-                        type="button"
-                        variant={bulkAction === 'yes' ? 'default' : 'outline'}
-                        onClick={() => handleBulkAction('yes')}
-                        className={bulkAction === 'yes' ? 'bg-red-500 hover:bg-red-600' : ''}
-                    >
-                        Move all to Yes node
-                    </Button>
-                    <Button
-                        type="button"
-                        variant={bulkAction === 'no' ? 'default' : 'outline'}
-                        onClick={() => handleBulkAction('no')}
-                        className={bulkAction === 'no' ? 'bg-gray-600 hover:bg-gray-700' : ''}
-                    >
-                        Move all to No node
-                    </Button>
-                </div>
-            </div>
+         <BranchShift nodeid={config.graphNodeId}/>
+         
 
             {/* Submit Button */}
             <Button

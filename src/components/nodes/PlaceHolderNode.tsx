@@ -22,9 +22,12 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
   id,
   data,
   isSelected = false,
-  targetPosition = Position.Top,
-  sourcePosition = Position.Bottom
+  targetPosition,
+  sourcePosition
 }) => {
+  // Use passed positions or fallback to defaults
+  const actualTargetPosition = targetPosition || Position.Top;
+  const actualSourcePosition = sourcePosition || Position.Bottom;
   const [showActionModal, setShowActionModal] = useState(false);
   const addNodeToBranch = useGraphStore((state) => state.addNodeToBranch);
 
@@ -56,16 +59,16 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
         {/* Input Handle */}
         <Handle
           type="target"
-        position={targetPosition}
+        position={actualTargetPosition}
         id="in"
         style={{
           background: '#4CAF50',
           border: '2px solid #fff',
           visibility: 'hidden',
-          left: targetPosition === Position.Top || targetPosition === Position.Bottom ? '50%' : undefined,
-          top: targetPosition === Position.Left || targetPosition === Position.Right ? '50%' : undefined,
-          bottom: targetPosition === Position.Top ? '-12px' : undefined,
-          right: targetPosition === Position.Left ? '-12px' : undefined
+          left: actualTargetPosition === Position.Top || actualTargetPosition === Position.Bottom ? '50%' : undefined,
+          top: actualTargetPosition === Position.Left || actualTargetPosition === Position.Right ? '50%' : undefined,
+          bottom: actualTargetPosition === Position.Top ? '-12px' : undefined,
+          right: actualTargetPosition === Position.Left ? '-12px' : undefined
         }}
       />
 
@@ -91,15 +94,15 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
       {/* Output Handle */}
       <Handle
         type="source"
-        position={sourcePosition}
+        position={actualSourcePosition}
         id="out"
         style={{
           background: '#fff',
           border: '2px solid #fff',
-          left: sourcePosition === Position.Top || sourcePosition === Position.Bottom ? '50%' : undefined,
-          top: sourcePosition === Position.Left || sourcePosition === Position.Right ? '50%' : undefined,
-          bottom: sourcePosition === Position.Bottom ? '-6px' : undefined,
-          right: sourcePosition === Position.Right ? '-6px' : undefined
+          left: actualSourcePosition === Position.Top || actualSourcePosition === Position.Bottom ? '50%' : undefined,
+          top: actualSourcePosition === Position.Left || actualSourcePosition === Position.Right ? '50%' : undefined,
+          bottom: actualSourcePosition === Position.Bottom ? '-6px' : undefined,
+          right: actualSourcePosition === Position.Right ? '-6px' : undefined
         }}
       />
     </div>

@@ -216,8 +216,9 @@ const WebhookAdvanceEvalConfig: React.FC<ConfigComponentProps> = ({ config, setC
                 
                 <Button
                     type="button"
+                    variant="outline"
                     onClick={addBodyItem}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="w-full border-2 border-dashed border-gray-300 hover:border-gray-400 text-gray-600"
                 >
                     Add Item
                 </Button>
@@ -259,8 +260,9 @@ const WebhookAdvanceEvalConfig: React.FC<ConfigComponentProps> = ({ config, setC
                 
                 <Button
                     type="button"
+                    variant="outline"
                     onClick={addHeaderItem}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="w-full border-2 border-dashed border-gray-300 hover:border-gray-400 text-gray-600"
                 >
                     Add Item
                 </Button>

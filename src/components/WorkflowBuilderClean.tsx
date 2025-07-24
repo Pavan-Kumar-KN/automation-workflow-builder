@@ -4,6 +4,7 @@ import { NodeConfigPanel } from './node-config/NodeConfigPanel';
 import { WorkflowHeader } from './WorkflowHeader';
 import { TriggerCategoryModal } from './TriggerCategoryModal';
 import { ActionCategoryModal } from './ActionCategoryModal';
+import { JSONPreview } from './debug/JSONPreview';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useWorkflowActions } from '@/hooks/useWorkflowActions';
 import { useWorkflowJSON } from '@/hooks/useWorkflowJSON';
@@ -293,9 +294,40 @@ export const WorkflowBuilderClean = () => {
   // Wrapper for action selection to match expected signature
   const handleActionSelection = useCallback((action: any) => {
     console.log('🔍 handleActionSelection called with action:', action);
+
+    // Check if we're replacing a condition
+    const { replacingConditionId, replaceCondition } = useGraphStore.getState();
+
+    if (replacingConditionId) {
+      // We're replacing a condition
+      console.log('🔍 Replacing condition with:', action);
+      replaceCondition(action);
+      toast.success(`Condition replaced with ${action.label}! Configure it now.`);
+
+      // Auto-open config panel for the replaced condition
+      setTimeout(() => {
+        const allNodes = Object.values(useGraphStore.getState().nodes);
+        const replacedCondition = allNodes.find(n => n.id === replacingConditionId);
+
+        if (replacedCondition) {
+          const nodeForConfig = {
+            id: replacedCondition.id,
+            type: 'condition',
+            data: replacedCondition.data,
+            position: replacedCondition.position,
+          };
+          setSelectedNode(nodeForConfig);
+          console.log('✅ Auto-opened config for replaced condition:', replacedCondition.id);
+        }
+      }, 100);
+
+      return;
+    }
+
+    // Normal action selection
     console.log('🔍 Calling handleNodeSelection with shouldAutoOpenConfig: true');
     handleNodeSelection('action', action, true); // Auto-open config panel
-  }, [handleNodeSelection]);
+  }, [handleNodeSelection, setSelectedNode]);
 
   // Panel handlers
   const handleOpenRuns = useCallback(() => {
@@ -422,6 +454,7 @@ export const WorkflowBuilderClean = () => {
           <WorkFlowCanvas
             onNodeClick={onNodeClick}
             openTriggerModal={() => setShowTriggerModal(true)}
+            openActionModal={() => setShowActionModal(true)}
           />
         </div>
 
@@ -498,6 +531,9 @@ export const WorkflowBuilderClean = () => {
         onClose={() => setShowActionModal(false)}
         onSelectAction={handleActionSelection}
       />
+
+      {/* JSON Preview for debugging */}
+      <JSONPreview />
     </div>
   );
 };

@@ -49,10 +49,7 @@ export const useCutPaste = (openActionModal?: (insertIndex?: number) => void) =>
     aboveNodeId: string,
     belowNodeId: string
   ) => {
-    console.log('✂️ PasteCutFlow called with:', { insertIndex, aboveNodeId, belowNodeId });
-    console.log('✂️ Current nodes count:', nodes.length);
-    console.log('✂️ Current edges count:', edges.length);
-
+    
     const result = handler.pasteCutFlow(insertIndex, aboveNodeId, belowNodeId, nodes, edges);
 
     console.log('✂️ PasteCutFlow result:', {

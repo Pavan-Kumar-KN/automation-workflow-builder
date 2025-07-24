@@ -123,12 +123,37 @@ export const useWorkflowJSON = () => {
   }, [generateJSON]);
 
   /**
-   * Auto-generate JSON on changes (for debugging)
+   * Auto-generate JSON and send to backend on changes
    */
   useEffect(() => {
     if (nodes.length > 0) {
       const json = generateJSON();
-      // console.log('🔄 Workflow JSON Updated:', json);
+      console.log('🔄 Workflow JSON Updated:', json);
+
+      // Automatically send POST request to backend
+      const sendToBackend = async () => {
+        try {
+          const response = await fetch('/api/workflows/update', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(json)
+          });
+
+          if (response.ok) {
+            console.log('✅ JSON successfully sent to backend');
+          } else {
+            console.log('❌ Failed to send JSON to backend:', response.status);
+          }
+        } catch (error) {
+          console.log('❌ Error sending JSON to backend:', error);
+        }
+      };
+
+      // Send to backend with a small delay to avoid too many requests
+      const timeoutId = setTimeout(sendToBackend, 500);
+      return () => clearTimeout(timeoutId);
     }
   }, [nodes, edges, generateJSON]);
 

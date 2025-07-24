@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import BranchShift from '@/components/node-config/config-components/BranchShift';
 
 const LeadQualityEvalConfig = ({ config, setConfig }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -159,29 +160,8 @@ const LeadQualityEvalConfig = ({ config, setConfig }) => {
             )}
 
             {/* Bulk Actions */}
-            <div className="space-y-3">
-                <Label className="text-sm font-medium text-gray-700">
-                    Move All Bottom Action (selected in red)
-                </Label>
-                <div className="flex gap-2 flex-wrap">
-                    <Button
-                        type="button"
-                        variant={bulkAction === 'yes' ? 'default' : 'outline'}
-                        onClick={() => handleBulkAction('yes')}
-                        className={bulkAction === 'yes' ? 'bg-red-500 hover:bg-red-600' : ''}
-                    >
-                        Move all action to Yes node
-                    </Button>
-                    <Button
-                        type="button"
-                        variant={bulkAction === 'no' ? 'default' : 'outline'}
-                        onClick={() => handleBulkAction('no')}
-                        className={bulkAction === 'no' ? 'bg-gray-600 hover:bg-gray-700' : ''}
-                    >
-                        Move all action to No node
-                    </Button>
-                </div>
-            </div>
+         <BranchShift nodeid={config.graphNodeId}/>
+           
 
             {/* Submit Button */}
             <Button

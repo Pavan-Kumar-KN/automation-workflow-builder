@@ -91,12 +91,14 @@ export interface BackendWorkflowJSON {
 
 // Node type mapping for backend
 const NODE_TYPE_MAPPING = {
-  'contact-updated-trigger': 'ElementTrigger',
-  'form-submitted-trigger': 'ElementTrigger',
-  'send-email-action': 'ElementSendEmail',
-  'send-sms-action': 'ElementSendSMS',
-  'add-to-list-action': 'ElementAddToList',
-  'update-contact-action': 'ElementUpdateContact',
+  'trigger': 'ElementGeneric',
+  'contact-updated-trigger': 'ElementGeneric',
+  'form-submitted-trigger': 'ElementGeneric',
+  'send-email-action': 'ElementGeneric',
+  'send-sms-action': 'ElementGeneric',
+  'add-to-list-action': 'ElementGeneric',
+  'update-contact-action': 'ElementGeneric',
+  'action': 'ElementGeneric',
   'condition': 'ElementCondition',
   // 'split-condition': 'ElementSplit',
   // 'goto-node': 'ElementGoto'
@@ -231,14 +233,10 @@ export class BackendJSONConstructor {
 
     // Build actions array
     const actions = actionNodes.map(actionNode => {
-      const nextEdge = edges.find(edge => edge.source === actionNode.id);
-      const nextNode = nextEdge ? nodes.find(n => n.id === nextEdge.target) : null;
-
-      return {
+      const actionObj: any = {
         id: actionNode.id,
         type: this.mapNodeTypeToBackend(actionNode.type),
         config: {
-          child: nextNode ? nextNode.id : null,
           type: this.mapNodeTypeToBackend(actionNode.type),
           options: {
             key: this.getNodeKey(actionNode.type),
@@ -248,6 +246,25 @@ export class BackendJSONConstructor {
           evaluationResult: null
         }
       };
+
+      // Handle condition nodes with yesChild and noChild
+      if (actionNode.type === 'condition') {
+        const conditionEdges = edges.filter(edge => edge.source === actionNode.id);
+        if (conditionEdges.length >= 2) {
+          // Assuming first edge is YES, second is NO (you may need to adjust this logic)
+          const yesNode = nodes.find(n => n.id === conditionEdges[0].target);
+          const noNode = nodes.find(n => n.id === conditionEdges[1].target);
+          if (yesNode) actionObj.yesChild = yesNode.id;
+          if (noNode) actionObj.noChild = noNode.id;
+        }
+      } else {
+        // Regular action nodes - find next child
+        const nextEdge = edges.find(edge => edge.source === actionNode.id);
+        const nextNode = nextEdge ? nodes.find(n => n.id === nextEdge.target) : null;
+        if (nextNode) actionObj.child = nextNode.id;
+      }
+
+      return actionObj;
     });
 
     // Build layout object
@@ -255,10 +272,10 @@ export class BackendJSONConstructor {
       node: nodes.map(node => ({
         id: node.id,
         type: node.type,
-        position: node.position,
+        position: { x: 0, y: 0 }, // Set to 0,0 as Dagre handles alignment
         data: {
           label: (node.data as any).label || 'Unnamed Node',
-          icon: (node.data as any).icon || undefined,
+          icon: (node.data as any).icon || {},
           color: (node.data as any).color || undefined,
           backendId: (node.data as any).backendId || undefined,
           submitted: (node.data as any).submitted || false
@@ -268,7 +285,7 @@ export class BackendJSONConstructor {
         id: edge.id,
         source: edge.source,
         target: edge.target,
-        type: edge.type || 'default',
+        type: 'smoothstep', // Use smoothstep as in your sample
         animated: edge.animated || false
       }))
     };

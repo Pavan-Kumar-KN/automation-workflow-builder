@@ -188,8 +188,7 @@ const SendWhatsappConfig: React.FC<ConfigComponentProps> = ({ config, setConfig 
             <div className="flex justify-end">
                 <Button
                     onClick={handleCreateNewTemplate}
-                    variant="outline"
-                    className="bg-black text-white hover:bg-gray-800"
+                    className="w-full"
                 >
                     Create New Template
                 </Button>

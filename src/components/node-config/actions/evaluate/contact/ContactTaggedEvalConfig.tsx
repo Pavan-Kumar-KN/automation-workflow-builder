@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import BranchShift from '@/components/node-config/config-components/BranchShift';
 
 const ContactTaggedEvalConfig = ({ config, setConfig }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -149,34 +150,7 @@ const ContactTaggedEvalConfig = ({ config, setConfig }) => {
                 )}
             </div>
 
-            {/* Bulk Actions */}
-            <div className="space-y-3">
-                <div className="text-sm text-gray-700">
-                    More All Bottom Action (selected in red)
-                </div>
-                <div className="flex space-x-2">
-                    <button
-                        onClick={() => handleBulkAction('yes')}
-                        className={`px-4 py-2 rounded text-sm font-medium ${
-                            bulkAction === 'yes' 
-                                ? 'bg-red-500 text-white' 
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                    >
-                        Move all action to Yes node
-                    </button>
-                    <button
-                        onClick={() => handleBulkAction('no')}
-                        className={`px-4 py-2 rounded text-sm font-medium ${
-                            bulkAction === 'no' 
-                                ? 'bg-gray-600 text-white' 
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                    >
-                        Move all action to No node
-                    </button>
-                </div>
-            </div>
+            <BranchShift nodeid={config?.graphNodeId}/>
 
             {/* Confirm Button */}
             <Button

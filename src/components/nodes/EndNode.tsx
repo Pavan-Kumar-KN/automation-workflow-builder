@@ -16,19 +16,21 @@ interface EndNodeProps extends NodeProps {
 
 const EndNode: React.FC<EndNodeProps> = ({
   data,
-  targetPosition = Position.Top
+  targetPosition
 }) => {
+  // Use passed position or fallback to default
+  const actualTargetPosition = targetPosition || Position.Top;
   return (
     <div className="flex flex-col items-center relative w-[280px] h-[56px]">
       <Handle
         type="target"
-        position={targetPosition}
+        position={actualTargetPosition}
         className="w-3 border-2 border-white"
         style={{
-          left: targetPosition === Position.Top || targetPosition === Position.Bottom ? '50%' : undefined,
-          top: targetPosition === Position.Left || targetPosition === Position.Right ? '70%' : undefined,
-          bottom: targetPosition === Position.Top ? '-12px' : undefined,
-          right: targetPosition === Position.Left ? '-12px' : undefined,
+          left: actualTargetPosition === Position.Top || actualTargetPosition === Position.Bottom ? '50%' : undefined,
+          top: actualTargetPosition === Position.Left || actualTargetPosition === Position.Right ? '70%' : undefined,
+          bottom: actualTargetPosition === Position.Top ? '-12px' : undefined,
+          right: actualTargetPosition === Position.Left ? '-12px' : undefined,
           visibility: 'hidden'
         }}
         id='in'

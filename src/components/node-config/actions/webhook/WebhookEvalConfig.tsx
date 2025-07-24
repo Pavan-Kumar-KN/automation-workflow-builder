@@ -10,6 +10,7 @@ const WebhookEvalConfig = ({ config, setConfig }) => {
     const [actionName, setActionName] = useState('Webhook');
     const [httpMethod, setHttpMethod] = useState('POST');
     const [endpoint, setEndpoint] = useState('https://example.com/webhook/to/fire');
+    const [requestType, setRequestType] = useState('Form');
     const [customData, setCustomData] = useState([]);
     const [headers, setHeaders] = useState([]);
 
@@ -20,6 +21,14 @@ const WebhookEvalConfig = ({ config, setConfig }) => {
         { value: 'PUT', label: 'PUT' },
         { value: 'PATCH', label: 'PATCH' },
         { value: 'DELETE', label: 'DELETE' }
+    ];
+
+    // Request Type options
+    const requestTypeOptions = [
+        { value: 'Form', label: 'Form' },
+        { value: 'JSON', label: 'JSON' },
+        { value: 'XML', label: 'XML' },
+        { value: 'Raw', label: 'Raw' }
     ];
 
     // Add custom data item
@@ -88,6 +97,7 @@ const WebhookEvalConfig = ({ config, setConfig }) => {
                 actionName: actionName.trim(),
                 httpMethod: httpMethod,
                 endpoint: endpoint.trim(),
+                requestType: requestType,
                 customData: customData.filter(item => item.key.trim() && item.value.trim()),
                 headers: headers.filter(item => item.key.trim() && item.value.trim())
             };
@@ -102,10 +112,10 @@ const WebhookEvalConfig = ({ config, setConfig }) => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* Header */}
             <div>
-                <h3 className="text-lg font-semibold text-gray-900">Webhook</h3>
+                <h3 className="font-semibold text-gray-900">Webhook</h3>
             </div>
 
             {/* Action Name */}
@@ -131,7 +141,7 @@ const WebhookEvalConfig = ({ config, setConfig }) => {
                     value={httpMethod}
                     onValueChange={setHttpMethod}
                 >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -158,16 +168,33 @@ const WebhookEvalConfig = ({ config, setConfig }) => {
                 />
             </div>
 
-            {/* Custom Data */}
+            {/* Request Type */}
+            <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                    Request Type
+                </Label>
+                <Select
+                    value={requestType}
+                    onValueChange={setRequestType}
+                >
+                    <SelectTrigger className="w-full">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {requestTypeOptions.map(type => (
+                            <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {/* Body */}
             <div className="space-y-3">
-                <div>
-                    <Label className="text-sm font-medium text-gray-700">
-                        Custom Data
-                    </Label>
-                    <p className="text-xs text-gray-500 mt-1">
-                        (These custom key-value pairs will be included along with the contact's data under extra value)
-                    </p>
-                </div>
+                <Label className="text-sm font-medium text-gray-700">
+                    Body
+                </Label>
                 
                 {customData.map((item) => (
                     <div key={item.id} className="flex gap-2 items-center">
@@ -255,7 +282,7 @@ const WebhookEvalConfig = ({ config, setConfig }) => {
             <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full"
             >
                 {isSubmitting ? 'Saving...' : 'Confirm'}
             </Button>

@@ -22,22 +22,21 @@ export const ActionNode = ({
   data,
   isSelected = false,
   onDelete,
-  targetPosition = Position.Top,
-  sourcePosition = Position.Bottom
+  targetPosition,
+  sourcePosition
 }) => {
+  // Use passed positions or fallback to defaults
+  const actualTargetPosition = targetPosition || Position.Top;
+  const actualSourcePosition = sourcePosition || Position.Bottom;
   const [isHovered, setIsHovered] = useState(false);
   const deleteHandler = onDelete || data.onDelete;
-  const { copyNode, copyFlowFromNode } = useCopyPaste();
+
   const {
-    duplicateNode,
-    duplicateFlow,
-    moveNode,
-    moveFlow,
     cutNode,
     cutFlow,
-    canDuplicateNode,
     canMoveNode
   } = useDuplicateMove();
+
   const { setCopiedNodes, setIsCopy } = useWorkflowStore();
 
   const graph = useGraphStore((state) => state.nodes);
@@ -133,14 +132,14 @@ export const ActionNode = ({
       {/* Input Handle */}
       <Handle
         type="target"
-        position={targetPosition}
+        position={actualTargetPosition}
         id="in"
         className="w-3 bg-white border-2 border-white"
         style={{
-          left: targetPosition === Position.Top || targetPosition === Position.Bottom ? '50%' : undefined,
-          top: targetPosition === Position.Left || targetPosition === Position.Right ? '50%' : undefined,
-          bottom: targetPosition === Position.Top ? '-12px' : undefined,
-          right: targetPosition === Position.Left ? '-12px' : undefined
+          left: actualTargetPosition === Position.Top || actualTargetPosition === Position.Bottom ? '50%' : undefined,
+          top: actualTargetPosition === Position.Left || actualTargetPosition === Position.Right ? '50%' : undefined,
+          bottom: actualTargetPosition === Position.Top ? '-12px' : undefined,
+          right: actualTargetPosition === Position.Left ? '-12px' : undefined
         }}
       />
 
@@ -369,14 +368,14 @@ export const ActionNode = ({
       {/* Output Handle */}
       <Handle
         type="source"
-        position={sourcePosition}
+        position={actualSourcePosition}
         id="out"
         className="w-3 bg-white border-2 border-white"
         style={{
-          left: sourcePosition === Position.Top || sourcePosition === Position.Bottom ? '50%' : undefined,
-          top: sourcePosition === Position.Left || sourcePosition === Position.Right ? '50%' : undefined,
-          bottom: sourcePosition === Position.Bottom ? '-6px' : undefined,
-          right: sourcePosition === Position.Right ? '-6px' : undefined
+          left: actualSourcePosition === Position.Top || actualSourcePosition === Position.Bottom ? '50%' : undefined,
+          top: actualSourcePosition === Position.Left || actualSourcePosition === Position.Right ? '50%' : undefined,
+          bottom: actualSourcePosition === Position.Bottom ? '-6px' : undefined,
+          right: actualSourcePosition === Position.Right ? '-6px' : undefined
         }}
       />
     </div>

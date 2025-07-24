@@ -1,4 +1,3 @@
-import type { Node } from "@xyflow/react";
 import { create } from "zustand";
 import { useWorkflowStore } from "@/hooks/useWorkflowState";
 
@@ -45,11 +44,12 @@ type GraphNode = {
 
 interface GraphState {
   nodes: Record<string, GraphNode>;
+  replacingConditionId: string | null;
   clipboard: {
     type: 'action' | 'condition' | 'flow' | null;
     data: GraphNode | GraphNode[] | null;
   };
-  
+
   // ? this function is adding initial nodes
   addNode: (node: GraphNode) => void;
 
@@ -74,14 +74,9 @@ interface GraphState {
     actionData: Record<string, unknown>;
   }) => void;
 
-  // Duplicate operations
-  duplicateNode: (nodeId: string) => string | null;
-  duplicateFlow: (startNodeId: string) => string[] | null;
-  duplicateActionNode: (nodeId: string, updatedGraph: Record<string, GraphNode>) => string;
-  duplicateConditionNode: (nodeId: string, updatedGraph: Record<string, GraphNode>) => string;
 
-  // Simple duplicate - creates immediate copy below the original
-  duplicateNodeInPlace: (nodeId: string) => string | null;
+  // Duplicate operations
+  duplicateNode?: (nodeId: string) => string | null;
 
   // Move operations
   moveNode: (params: {
@@ -101,7 +96,18 @@ interface GraphState {
 
   reset?: () => void;
 
+
+  // ? This function is used for handling of the shifting of the branch of condition of the node 
+  handleBranchShift?: (nodeId: string) => void;
+
+  // ? This function is used update the notes attribute of the notes 
   updateNodeData?: (nodid: string, data: Partial<GraphNode['data']>) => void;
+
+  // ? this function is used to handle the permission based deletion of the condtion node 
+  handleDeleteConditionNode?: (nodeid: string, option: 'yes' | 'no' | 'all') => void;
+
+  // * Helper function to the above function
+  deleteSubtree?: (nodeId: string) => void;
 
   pasteConditionTree: (params: {
     nodesToPaste: GraphNode[];
@@ -120,11 +126,16 @@ interface GraphState {
   pasteFlow: (nodesToPaste: GraphNode[], parentId: string, beforeNodeId: string) => void;
   clearClipboard: () => void;
   hasClipboardData: () => boolean;
+
+  // Replace condition functionality
+  setReplacingConditionId: (nodeId: string | null) => void;
+  replaceCondition: (newConditionData: any) => void;
 }
 
 
 export const useGraphStore = create<GraphState>((set, get) => ({
   nodes: {},
+  replacingConditionId: null,
   clipboard: {
     type: null,
     data: null,
@@ -213,7 +224,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
     // Check if this is a Remove Workflow node
     const isRemoveWorkflowNode = (actionData as any)?.id === 'remove-workflow-action' ||
-                                 (actionData as any)?.id === 'exit-workflow-operation-action';
+      (actionData as any)?.id === 'exit-workflow-operation-action';
 
     // Validate Remove Workflow node placement
     if (isRemoveWorkflowNode) {
@@ -1466,7 +1477,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       // For action nodes: Create a ghost node for flow continuation
       // Exception: Remove Workflow nodes are terminal and don't need ghost nodes
       const isRemoveWorkflowNode = (actionData as any)?.id === 'remove-workflow-action' ||
-                                   (actionData as any)?.id === 'exit-workflow-operation-action';
+        (actionData as any)?.id === 'exit-workflow-operation-action';
 
       if (isRemoveWorkflowNode) {
         // Remove Workflow nodes are terminal - no ghost node needed
@@ -1526,6 +1537,61 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     set({ nodes: updatedGraph });
   },
 
+  /**
+   * 
+   * @param connectToNodeId 
+   * @returns 
+   */
+
+  handleBranchShift: (nodeId: string) => {
+    const graph = get().nodes;
+    const node = graph[nodeId];
+
+    if (!node || node.type !== 'condition') {
+      return;
+    }
+
+    const yesBranchNodes = node.branches.yes || [];
+    const noBranchNodes = node.branches.no || [];
+
+    yesBranchNodes.forEach((childId) => {
+      const child = graph[childId];
+      if (child) {
+        graph[childId] = {
+          ...child,
+          branchType: 'yes',
+          data: {
+            ...child.data,
+            branchType: 'yes', // 👈 IMPORTANT: also update inside data
+          }
+        }
+      }
+    });
+
+    noBranchNodes.forEach((childId) => {
+      const child = graph[childId];
+      if (child) {
+        graph[childId] = {
+          ...child,
+          branchType: 'yes',
+          data: {
+            ...child.data,
+            branchType: 'yes', // 👈 IMPORTANT: also update inside data
+          }
+        }
+      }
+    });
+
+
+    // Swap the branches
+    node.branches = {
+      yes: noBranchNodes,
+      no: yesBranchNodes,
+    };
+
+    set({ nodes: { ...graph, [nodeId]: node } });
+  },
+
   // Helper function to recreate end node when needed
   recreateEndNode: (connectToNodeId: string) => {
     const { nodes } = get();
@@ -1563,7 +1629,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   },
 
   reset: () => {
-    console.log('🔄 Resetting workflow to initial state');
 
     // Create initial trigger node
     const triggerNode: GraphNode = {
@@ -2063,206 +2128,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     return duplicateId;
   },
 
-  // Helper method for duplicating condition nodes
-  duplicateConditionNode: (nodeId: string, updatedGraph: Record<string, GraphNode>) => {
-    const nodeToClone = updatedGraph[nodeId];
-    const timestamp = Date.now();
-    const duplicateId = `condition-${timestamp}`;
-
-    // Create placeholders for the duplicate condition
-    const yesPlaceholderId = `placeholder-yes-${timestamp}`;
-    const noPlaceholderId = `placeholder-no-${timestamp}`;
-
-    // Create duplicate condition node
-    const duplicateNode: GraphNode = {
-      id: duplicateId,
-      type: 'condition',
-      position: { x: nodeToClone.position.x, y: nodeToClone.position.y + 150 },
-      data: {
-        ...nodeToClone.data,
-        isConfigured: false,
-        yesPlaceholderId,
-        noPlaceholderId,
-      },
-      parent: nodeToClone.parent,
-      branches: {
-        yes: [yesPlaceholderId],
-        no: [noPlaceholderId],
-      },
-    };
-
-    // Create placeholder nodes
-    const yesPlaceholder: GraphNode = {
-      id: yesPlaceholderId,
-      type: 'placeholder',
-      position: { x: 0, y: 0 },
-      data: {
-        label: 'Add Action',
-        branchType: 'yes',
-        conditionNodeId: duplicateId,
-      },
-      parent: duplicateId,
-      children: [],
-    };
-
-    const noPlaceholder: GraphNode = {
-      id: noPlaceholderId,
-      type: 'placeholder',
-      position: { x: 0, y: 0 },
-      data: {
-        label: 'Add Action',
-        branchType: 'no',
-        conditionNodeId: duplicateId,
-      },
-      parent: duplicateId,
-      children: [],
-    };
-
-    // Insert duplicate after original in parent's children or branches
-    if (nodeToClone.parent) {
-      const parentNode = updatedGraph[nodeToClone.parent];
-      if (parentNode) {
-        if (parentNode.children) {
-          const insertIndex = parentNode.children.findIndex(id => id === nodeId);
-          if (insertIndex !== -1) {
-            parentNode.children.splice(insertIndex + 1, 0, duplicateId);
-          }
-        } else if (parentNode.branches) {
-          // Handle insertion in conditional branches
-          ['yes', 'no'].forEach(branchType => {
-            const branch = parentNode.branches![branchType as 'yes' | 'no'];
-            const insertIndex = branch.findIndex(id => id === nodeId);
-            if (insertIndex !== -1) {
-              branch.splice(insertIndex + 1, 0, duplicateId);
-            }
-          });
-        }
-      }
-    }
-
-    // Add all nodes to graph
-    updatedGraph[duplicateId] = duplicateNode;
-    updatedGraph[yesPlaceholderId] = yesPlaceholder;
-    updatedGraph[noPlaceholderId] = noPlaceholder;
-
-    set({ nodes: updatedGraph });
-    return duplicateId;
-  },
-
-  // Duplicate an entire flow starting from a node
-  duplicateFlow: (startNodeId: string) => {
-    const graph = get().nodes;
-    const startNode = graph[startNodeId];
-
-    if (!startNode) {
-      console.error("Start node not found:", startNodeId);
-      return null;
-    }
-
-    console.log("🔍 Duplicating flow from:", startNodeId);
-
-    // Collect all nodes in the flow using BFS
-    const collectFlowNodes = (nodeId: string): GraphNode[] => {
-      const visited = new Set<string>();
-      const queue = [nodeId];
-      const flowNodes: GraphNode[] = [];
-
-      while (queue.length > 0) {
-        const currentId = queue.shift()!;
-        if (visited.has(currentId)) continue;
-
-        visited.add(currentId);
-        const currentNode = graph[currentId];
-        if (!currentNode) continue;
-
-        // Skip end nodes and ghost nodes
-        if (currentNode.type === 'endNode' || currentNode.type === 'ghost') {
-          continue;
-        }
-
-        flowNodes.push(currentNode);
-
-        // Add children to queue
-        if (currentNode.children) {
-          queue.push(...currentNode.children);
-        }
-
-        // Add branch nodes to queue
-        if (currentNode.branches) {
-          queue.push(...currentNode.branches.yes, ...currentNode.branches.no);
-        }
-      }
-
-      return flowNodes;
-    };
-
-    const flowNodes = collectFlowNodes(startNodeId);
-    if (flowNodes.length === 0) return null;
-
-    // Create ID mapping
-    const timestamp = Date.now();
-    const idMapping: Record<string, string> = {};
-    flowNodes.forEach((node, index) => {
-      idMapping[node.id] = `${node.type}-${timestamp}-${index}`;
-    });
-
-    // Create duplicated nodes
-    const updatedGraph = { ...graph };
-    const duplicatedIds: string[] = [];
-
-    flowNodes.forEach(originalNode => {
-      const newId = idMapping[originalNode.id];
-      duplicatedIds.push(newId);
-
-      const duplicateNode: GraphNode = {
-        id: newId,
-        type: originalNode.type,
-        position: { x: originalNode.position.x, y: originalNode.position.y + 150 },
-        data: {
-          ...originalNode.data,
-          isConfigured: false,
-          ...Object.fromEntries(
-            Object.entries(originalNode.data).filter(([, value]) => typeof value !== 'function')
-          ),
-        },
-        parent: originalNode.parent ? idMapping[originalNode.parent] || originalNode.parent : originalNode.parent,
-        children: originalNode.children?.map(childId => idMapping[childId] || childId).filter(id => idMapping[id]) || [],
-        ...(originalNode.branches && {
-          branches: {
-            yes: originalNode.branches.yes?.map(nodeId => idMapping[nodeId] || nodeId).filter(id => idMapping[id]) || [],
-            no: originalNode.branches.no?.map(nodeId => idMapping[nodeId] || nodeId).filter(id => idMapping[id]) || [],
-          },
-        }),
-      };
-
-      updatedGraph[newId] = duplicateNode;
-    });
-
-    // Insert the duplicated flow after the original
-    const rootDuplicateId = idMapping[startNodeId];
-    if (startNode.parent) {
-      const parentNode = updatedGraph[startNode.parent];
-      if (parentNode) {
-        if (parentNode.children) {
-          const insertIndex = parentNode.children.findIndex(id => id === startNodeId);
-          if (insertIndex !== -1) {
-            parentNode.children.splice(insertIndex + 1, 0, rootDuplicateId);
-          }
-        } else if (parentNode.branches) {
-          ['yes', 'no'].forEach(branchType => {
-            const branch = parentNode.branches![branchType as 'yes' | 'no'];
-            const insertIndex = branch.findIndex(id => id === startNodeId);
-            if (insertIndex !== -1) {
-              branch.splice(insertIndex + 1, 0, rootDuplicateId);
-            }
-          });
-        }
-      }
-    }
-
-    set({ nodes: updatedGraph });
-    return duplicatedIds;
-  },
 
   // Move a single node to a new location
   moveNode: ({ nodeId, targetParentId, targetBeforeNodeId }) => {
@@ -3088,6 +2953,25 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     console.log(`✅ Flow with ${nodesToPaste.length} nodes pasted successfully`);
   },
 
+  // this function is used to update notes of the workflow flow nodes 
+  updateNodeData: (nodeId: string, data: Partial<GraphNode['data']>) => {
+    const graph = get().nodes;
+    const node = graph[nodeId];
+    if (node) {
+      const updatedGraph = {
+        ...graph,
+        [nodeId]: {
+          ...node,
+          data: {
+            ...node.data,
+            ...data,
+          },
+        },
+      };
+      set({ nodes: updatedGraph });
+    }
+  },
+
   // Clear clipboard
   clearClipboard: () => {
     set({
@@ -3105,173 +2989,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     return clipboard.type !== null && clipboard.data !== null;
   },
 
-  // Simple duplicate - creates immediate copy below the original node
-  duplicateNodeInPlace: (nodeId: string) => {
-    const graph = get().nodes;
-    const nodeToClone = graph[nodeId];
-
-    if (!nodeToClone) {
-      console.error("Node to duplicate not found:", nodeId);
-      return null;
-    }
-
-    console.log("🔍 Duplicating node in place:", nodeId);
-
-    const timestamp = Date.now();
-    const duplicateId = `${nodeToClone.type}-${timestamp}`;
-    const updatedGraph = { ...graph };
-
-    // Create duplicate node with clean data
-    const duplicateNode: GraphNode = {
-      id: duplicateId,
-      type: nodeToClone.type,
-      position: { x: nodeToClone.position.x, y: nodeToClone.position.y + 150 },
-      data: {
-        ...nodeToClone.data,
-        isConfigured: false, // Reset configuration
-        ...Object.fromEntries(
-          Object.entries(nodeToClone.data).filter(([, value]) => typeof value !== 'function')
-        ),
-      },
-      parent: nodeId, // The clicked node becomes the parent of the duplicate
-      children: [],
-      branches: nodeToClone.branches ? { yes: [], no: [] } : undefined,
-    };
-
-    // Handle different node types
-    if (nodeToClone.type === 'action') {
-      // For action nodes: Insert duplicate right after the original
-      // Flow: Parent → Original → Duplicate → Children
-
-      const originalChildren = nodeToClone.children || [];
-
-      // Separate ghost children from real children (including End nodes)
-      const ghostChildren = originalChildren.filter(childId => {
-        const child = updatedGraph[childId];
-        return child && child.type === 'ghost';
-      });
-
-      const realChildren = originalChildren.filter(childId => {
-        const child = updatedGraph[childId];
-        return child && child.type !== 'ghost';
-      });
-
-      console.log('🔍 Original children analysis:', {
-        total: originalChildren.length,
-        ghost: ghostChildren.length,
-        real: realChildren.length,
-        realTypes: realChildren.map(id => updatedGraph[id]?.type)
-      });
-
-      // Remove ghost children from original (they will be replaced)
-      ghostChildren.forEach(childId => {
-        console.log('🔍 Removing ghost node from original during duplicate:', childId);
-        delete updatedGraph[childId];
-      });
-
-      // Set up the flow: Original → Duplicate → RealChildren (or Ghost if no real children)
-      if (realChildren.length > 0) {
-        // Original → Duplicate → Real Children (including End nodes)
-        duplicateNode.children = [...realChildren];
-
-        // Update real children's parent to point to duplicate
-        realChildren.forEach(childId => {
-          const childNode = updatedGraph[childId];
-          if (childNode) {
-            console.log(`🔍 Updating ${childNode.type} node ${childId} parent: ${childNode.parent} → ${duplicateId}`);
-            childNode.parent = duplicateId;
-          }
-        });
-
-        console.log(`✅ Duplicate inherits ${realChildren.length} real children:`, realChildren);
-      } else {
-        // Original → Duplicate → Ghost (no real children)
-        // Only create ghost node if there are no real children
-        const ghostNodeId = `ghost-${timestamp}`;
-        const ghostNode: GraphNode = {
-          id: ghostNodeId,
-          type: 'ghost',
-          position: { x: 0, y: 0 },
-          data: { label: 'Ghost' },
-          children: [],
-          parent: duplicateId,
-        };
-
-        duplicateNode.children = [ghostNodeId];
-        updatedGraph[ghostNodeId] = ghostNode;
-        console.log('✅ Duplicate gets new ghost node:', ghostNodeId);
-      }
-
-      // Update original to point to duplicate
-      updatedGraph[nodeId].children = [duplicateId];
-
-      console.log(`✅ Action duplicate flow: ${nodeId} → ${duplicateId} → ${duplicateNode.children.join(', ')}`);
-      console.log('🔍 Final duplicate node:', {
-        id: duplicateId,
-        parent: duplicateNode.parent,
-        children: duplicateNode.children,
-        type: duplicateNode.type
-      });
-
-    } else if (nodeToClone.type === 'condition') {
-      // For condition nodes: The duplicate should be a child of the original condition
-      // But since conditions don't have direct children, we need to handle this differently
-
-      // Create placeholder nodes for the duplicate condition
-      const yesPlaceholderId = `placeholder-yes-${timestamp}`;
-      const noPlaceholderId = `placeholder-no-${timestamp}`;
-
-      const yesPlaceholder: GraphNode = {
-        id: yesPlaceholderId,
-        type: 'placeholder',
-        position: { x: 0, y: 0 },
-        data: {
-          label: 'Add Action',
-          branchType: 'yes',
-          conditionNodeId: duplicateId,
-        },
-        parent: duplicateId,
-        children: [],
-      };
-
-      const noPlaceholder: GraphNode = {
-        id: noPlaceholderId,
-        type: 'placeholder',
-        position: { x: 0, y: 0 },
-        data: {
-          label: 'Add Action',
-          branchType: 'no',
-          conditionNodeId: duplicateId,
-        },
-        parent: duplicateId,
-        children: [],
-      };
-
-      duplicateNode.branches = {
-        yes: [yesPlaceholderId],
-        no: [noPlaceholderId],
-      };
-
-      updatedGraph[yesPlaceholderId] = yesPlaceholder;
-      updatedGraph[noPlaceholderId] = noPlaceholder;
-
-      // For condition nodes, we need to add the duplicate to one of the original's branches
-      // Let's add it to the Yes branch by default
-      if (nodeToClone.branches && nodeToClone.branches.yes) {
-        // Add duplicate to the beginning of the Yes branch
-        updatedGraph[nodeId].branches!.yes.unshift(duplicateId);
-        console.log(`✅ Added duplicate condition to Yes branch of original condition`);
-      }
-    }
-
-    // Add duplicate to graph
-    updatedGraph[duplicateId] = duplicateNode;
-
-    set({ nodes: updatedGraph });
-    console.log("✅ Node duplicated in place:", duplicateId);
-
-    return duplicateId;
-  },
 
   // Clean up orphaned ghost nodes and placeholders
   cleanupOrphanedNodes: () => {
@@ -3302,7 +3019,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     // Remove orphaned ghost nodes and placeholders
     Object.values(updatedGraph).forEach(node => {
       if ((node.type === 'ghost' || node.type === 'placeholder') &&
-          !referencedNodes.has(node.id)) {
+        !referencedNodes.has(node.id)) {
         console.log('🔍 Removing orphaned node:', node.id, node.type);
         delete updatedGraph[node.id];
         hasChanges = true;
@@ -3315,30 +3032,123 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     }
   },
 
-  
-  // this function is used to update notes of the workflow flow nodes 
-  updateNodeData: (nodeId: string, data: Partial<GraphNode['data']>) => {
-    const graph = get().nodes;
-    const node = graph[nodeId];
-    if (node) {
-      const updatedGraph = {
-        ...graph,
-        [nodeId]: {
-          ...node,
-          data: {
-            ...node.data,
-            ...data,
-          },
-        },
-      };
-      set({ nodes: updatedGraph });
-    }
-  },
 
-  // * This is function is for replacing the trigger 
-  // replaceTrigger :(nodeId : string){
-  //   console.log("")
+// Fixed version of your node deletion functions
+
+handleDeleteConditionNode: (nodeId: string, option: 'yes' | 'no' | 'all') => {
+  const currentState = get();
+  const graph = { ...currentState.nodes };
+  
+  const conditionNode = graph[nodeId];
+  if (!conditionNode || conditionNode.type !== 'condition') return;
+
+  // const parentId = conditionNode.parent;
+  // const parentNode = graph[parentId];
+  // const yesBranchNodes = conditionNode.branches?.yes || [];
+  // const noBranchNodes = conditionNode.branches?.no || [];
+
+  // if (option === 'yes' || option === 'no') {
+  //   const keepBranch = option === 'yes' ? yesBranchNodes : noBranchNodes;
+  //   const deleteBranch = option === 'yes' ? noBranchNodes : yesBranchNodes;
+
+  //   // Update parent's children array
+  //   if (parentNode && Array.isArray(parentNode.children)) {
+  //     const index = parentNode.children.indexOf(nodeId);
+  //     if (index !== -1) {
+  //       parentNode.children.splice(index, 1, ...keepBranch);
+  //     }
+  //   }
+
+  //   // Update parent references for kept branch nodes
+  //   keepBranch.forEach(childId => {
+  //     if (graph[childId]) {
+  //       graph[childId] = { ...graph[childId], parent: parentId };
+  //     }
+  //   });
+
+  //   // Delete the opposite branch using the deleteSubtree function
+  //   deleteBranch.forEach(childId => {
+  //     currentState.deleteSubtree(childId, graph); // Pass the graph to work with
+  //   });
+
+  //   // Delete the condition node itself
+  //   delete graph[nodeId];
   // }
+
+  // if (option === 'all') {
+  //   // Delete everything under both branches
+  //   const allChildren = [...yesBranchNodes, ...noBranchNodes];
+    
+  //   // Delete all children using the deleteSubtree function
+  //   allChildren.forEach(childId => {
+  //     currentState.removeNode(childId); // Pass the graph to work with
+  //   });
+
+  //   // Remove condition node from parent's children
+  //   if (parentNode && Array.isArray(parentNode.children)) {
+  //     const index = parentNode.children.indexOf(nodeId);
+  //     if (index !== -1) {
+  //       parentNode.children.splice(index, 1);
+  //     }
+  //   }
+
+  //   // Delete the condition node
+  //   delete graph[nodeId];
+  // }
+
+  // Update state once at the end
+  set({ nodes: graph });
+},
+
+// Replace condition functionality
+setReplacingConditionId: (nodeId: string | null) => {
+  set({ replacingConditionId: nodeId });
+},
+
+replaceCondition: (newConditionData: any) => {
+  const { replacingConditionId } = get();
+  if (!replacingConditionId) {
+    console.error('No condition ID set for replacement');
+    return;
+  }
+
+  const graph = { ...get().nodes };
+  const existingCondition = graph[replacingConditionId];
+
+  if (!existingCondition || existingCondition.type !== 'condition') {
+    console.error('Condition node not found or not a condition:', replacingConditionId);
+    return;
+  }
+
+  console.log('🔍 Replacing condition:', replacingConditionId, 'with:', newConditionData);
+
+  // Update the condition node data while preserving structure
+  const updatedCondition: GraphNode = {
+    ...existingCondition,
+    data: {
+      ...newConditionData,
+      // Preserve important condition-specific data
+      branchType: existingCondition.data.branchType,
+      conditionNodeId: existingCondition.data.conditionNodeId,
+      yesPlaceholderId: existingCondition.data.yesPlaceholderId,
+      noPlaceholderId: existingCondition.data.noPlaceholderId,
+      isConfigured: false, // Set to false so config panel opens
+    }
+  };
+
+  // Update the node in the graph
+  graph[replacingConditionId] = updatedCondition;
+
+  // Update state and clear replacing ID
+  set({
+    nodes: graph,
+    replacingConditionId: null
+  });
+
+  console.log('✅ Condition replaced successfully');
+},
+
+
 }));
 
 export type { GraphNode };

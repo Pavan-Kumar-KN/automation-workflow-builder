@@ -32,9 +32,12 @@ export const TriggerNode = ({
   isSelected = false,
   onReplaceTrigger,
   onOpenConfig,
-  targetPosition = Position.Top,
-  sourcePosition = Position.Bottom
+  targetPosition,
+  sourcePosition
 }) => {
+  // Use passed positions or fallback to defaults
+  const actualTargetPosition = targetPosition || Position.Top;
+  const actualSourcePosition = sourcePosition || Position.Bottom;
   const [isHovered, setIsHovered] = useState(false);
 
   const IconComponent = React.useMemo(() => {
@@ -68,14 +71,14 @@ export const TriggerNode = ({
       {/* Input Handle */}
       <Handle
         type="target"
-        position={targetPosition}
+        position={actualTargetPosition}
         id="in"
         className="w-3 bg-white border-2 border-white"
         style={{
-          left: targetPosition === Position.Top || targetPosition === Position.Bottom ? '50%' : undefined,
-          top: targetPosition === Position.Left || targetPosition === Position.Right ? '50%' : undefined,
-          bottom: targetPosition === Position.Top ? '-12px' : undefined,
-          right: targetPosition === Position.Left ? '-12px' : undefined
+          left: actualTargetPosition === Position.Top || actualTargetPosition === Position.Bottom ? '50%' : undefined,
+          top: actualTargetPosition === Position.Left || actualTargetPosition === Position.Right ? '50%' : undefined,
+          bottom: actualTargetPosition === Position.Top ? '-12px' : undefined,
+          right: actualTargetPosition === Position.Left ? '-12px' : undefined
         }}
       />
 
@@ -116,35 +119,47 @@ export const TriggerNode = ({
             {(!data.isConfigured || data.showWarning) && (
               <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
             )}
-            {/* Menu Button */}
-            <div className="flex-shrink ml-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={`p-1.5 rounded-md transition-all duration-200`}
-                  >
-                    <LucideIcons.ChevronDown className="w-4 h-4" />
-                  </button>
-                </DropdownMenuTrigger>
+            {/* Menu Button - Only show when trigger is configured */}
+            {data.isConfigured && (
+              <div className="flex-shrink ml-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={`p-1.5 rounded-md transition-all duration-200`}
+                    >
+                      <LucideIcons.ChevronDown className="w-4 h-4" />
+                    </button>
+                  </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="start"
                   side="right"
                   sideOffset={30}
                   className="w-56 bg-white border border-gray-200 rounded-lg shadow-lg p-1"
                 >
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      replaceTrigger();
-                    }}
-                    className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
-                  >
-                    <LucideIcons.RefreshCw className="w-4 h-4 mr-3" />
-                    <span className="font-medium">Replace Trigger</span>
-                  </DropdownMenuItem>
+                  {/* Only show Replace Trigger option when trigger is configured */}
+                  {data.isConfigured && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        replaceTrigger();
+                      }}
+                      className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
+                    >
+                      <LucideIcons.RefreshCw className="w-4 h-4 mr-3" />
+                      <span className="font-medium">Replace Trigger</span>
+                    </DropdownMenuItem>
+                  )}
+
+                  {/* Show message when no trigger is selected */}
+                  {!data.isConfigured && (
+                    <div className="px-3 py-2 text-sm text-gray-500 italic">
+                      Select a trigger first
+                    </div>
+                  )}
                 </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -152,14 +167,14 @@ export const TriggerNode = ({
       {/* Output Handle */}
       <Handle
         type="source"
-        position={sourcePosition}
+        position={actualSourcePosition}
         id="out"
         className="w-3 bg-white border-2 border-white"
         style={{
-          left: sourcePosition === Position.Top || sourcePosition === Position.Bottom ? '50%' : undefined,
-          top: sourcePosition === Position.Left || sourcePosition === Position.Right ? '50%' : undefined,
-          bottom: sourcePosition === Position.Bottom ? '-6px' : undefined,
-          right: sourcePosition === Position.Right ? '-6px' : undefined
+          left: actualSourcePosition === Position.Top || actualSourcePosition === Position.Bottom ? '50%' : undefined,
+          top: actualSourcePosition === Position.Left || actualSourcePosition === Position.Right ? '50%' : undefined,
+          bottom: actualSourcePosition === Position.Bottom ? '-6px' : undefined,
+          right: actualSourcePosition === Position.Right ? '-6px' : undefined
         }}
       />
     </div>

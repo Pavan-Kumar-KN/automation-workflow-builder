@@ -163,15 +163,14 @@ const CustomControls = ({
 };
 
 // Main Component Wrapper
-const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal }: any) => {
+const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal, openActionModal }: any) => {
   const reactFlowInstance = useReactFlow();
   const nodeMap = useGraphStore((state) => state.nodes);
   const addNode = useGraphStore((state) => state.addNode);
-  const { setSelectedNode } = useWorkflowStore();
+  const { setSelectedNode, layoutDirection, setLayoutDirection } = useWorkflowStore();
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [showActionModal, setShowActionModal] = useState(false);
-  const [layoutDirection, setLayoutDirection] = useState('TB');
   const [isLocked, setIsLocked] = useState(false);
   const [draggedNodePositions, setDraggedNodePositions] = useState<Record<string, { x: number, y: number }>>({});
 
@@ -179,7 +178,7 @@ const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal }: any) => {
   // Update local state when store changes and apply Dagre layout
   useEffect(() => {
     try {
-      const { stateNodes, stateEdges } = graphToReactFlow(nodeMap, openTriggerModal);
+      const { stateNodes, stateEdges } = graphToReactFlow(nodeMap, openTriggerModal, openActionModal);
 
       const nodesInBranches = new Set();
 
@@ -405,9 +404,10 @@ const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal }: any) => {
 interface WorkFlowCanvasProps {
   onNodeClick?: (event: React.MouseEvent, node: any) => void;
   openTriggerModal?: () => void;
+  openActionModal?: () => void;
 }
 
-const WorkFlowCanvas = ({ onNodeClick, openTriggerModal }: WorkFlowCanvasProps) => {
+const WorkFlowCanvas = ({ onNodeClick, openTriggerModal, openActionModal }: WorkFlowCanvasProps) => {
   useEffect(() => {
     initializeGraph();
   }, []);
@@ -417,6 +417,7 @@ const WorkFlowCanvas = ({ onNodeClick, openTriggerModal }: WorkFlowCanvasProps) 
       <WorkFlowCanvasInner
         onNodeClick={onNodeClick}
         openTriggerModal={openTriggerModal}
+        openActionModal={openActionModal}
       />
     </ReactFlowProvider>
   );

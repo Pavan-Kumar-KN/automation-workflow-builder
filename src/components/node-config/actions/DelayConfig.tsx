@@ -147,7 +147,7 @@ const DelayConfig: React.FC<ConfigComponentProps> = ({ config, setConfig }) => {
             <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="w-full bg-black hover:bg-gray-800 text-white"
+                className="w-full"
             >
                 {isSubmitting ? 'Saving...' : 'Confirm'}
             </Button>

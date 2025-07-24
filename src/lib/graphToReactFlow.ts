@@ -2,7 +2,7 @@ import type { GraphNode } from '../store/useGraphStore';
 import type { Node, Edge } from '@xyflow/react';
 import { useGraphStore } from '../store/useGraphStore';
 
-export const graphToReactFlow = (nodeMap: Record<string, GraphNode>, openTriggerModal?: () => void) => {
+export const graphToReactFlow = (nodeMap: Record<string, GraphNode>, openTriggerModal?: () => void, openActionModal?: () => void) => {
   console.log('🔍 graphToReactFlow input nodes:', Object.keys(nodeMap));
 
   const stateNodes = Object.values(nodeMap).map((node) => {
@@ -15,6 +15,7 @@ export const graphToReactFlow = (nodeMap: Record<string, GraphNode>, openTrigger
       position: node.position,
       data: {
         ...node.data,
+        graphNodeId: node.id, // <-- Add this!
         // Add delete functionality to all nodes
         onDelete: () => {
           useGraphStore.getState().removeNode(node.id);
@@ -28,6 +29,20 @@ export const graphToReactFlow = (nodeMap: Record<string, GraphNode>, openTrigger
           onOpenConfig: () => {
             console.log('🔍 onOpenConfig called for trigger:', node.id);
             // This will be handled by the onNodeClick in WorkflowBuilderClean
+          }
+        }),
+        // Add replace functionality for condition nodes
+        ...(node.type === 'condition' && {
+          onReplace: (conditionId: string) => {
+            console.log('🔍 Replace condition called for:', conditionId);
+            // Store the condition ID to be replaced
+            useGraphStore.getState().setReplacingConditionId(conditionId);
+            // Open action modal to select new condition
+            if (openActionModal) {
+              openActionModal();
+            } else {
+              console.log('❌ No openActionModal function provided');
+            }
           }
         }),
       },

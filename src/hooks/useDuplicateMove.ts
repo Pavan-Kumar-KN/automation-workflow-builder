@@ -5,8 +5,6 @@ import { toast } from 'sonner';
 
 export const useDuplicateMove = () => {
   const {
-    duplicateNode: storeDuplicateNode,
-    duplicateFlow: storeDuplicateFlow,
     moveNode: storeMoveNode,
     moveFlow: storeMoveFlow,
     removeNode,
@@ -23,74 +21,6 @@ export const useDuplicateMove = () => {
     setFlowToMove,
     forceResetMoveState
   } = useWorkflowStore();
-
-  /**
-   * Duplicate a single node
-   */
-  const duplicateNode = useCallback((nodeId: string) => {
-    console.log('🔍 Duplicating node:', nodeId);
-    
-    const nodeToClone = nodes[nodeId];
-    if (!nodeToClone) {
-      toast.error('Node not found');
-      return;
-    }
-
-    // Prevent duplicating trigger or end nodes
-    if (nodeToClone.type === 'trigger' || nodeToClone.type === 'endNode') {
-      toast.error('Cannot duplicate trigger or end nodes');
-      return;
-    }
-
-    try {
-      const duplicatedId = storeDuplicateNode(nodeId);
-      if (duplicatedId) {
-        toast.success(`${nodeToClone.type === 'condition' ? 'Condition' : 'Action'} duplicated successfully`);
-        console.log('✅ Node duplicated:', nodeId, '->', duplicatedId);
-        return duplicatedId;
-      } else {
-        toast.error('Failed to duplicate node');
-        console.error('❌ Failed to duplicate node:', nodeId);
-      }
-    } catch (error) {
-      console.error('❌ Error duplicating node:', error);
-      toast.error('Error duplicating node');
-    }
-  }, [nodes, storeDuplicateNode]);
-
-  /**
-   * Duplicate an entire flow starting from a node
-   */
-  const duplicateFlow = useCallback((nodeId: string) => {
-    console.log('🔍 Duplicating flow from:', nodeId);
-    
-    const startNode = nodes[nodeId];
-    if (!startNode) {
-      toast.error('Start node not found');
-      return;
-    }
-
-    // Prevent duplicating from trigger or end nodes
-    if (startNode.type === 'trigger' || startNode.type === 'endNode') {
-      toast.error('Cannot duplicate flow from trigger or end nodes');
-      return;
-    }
-
-    try {
-      const duplicatedIds = storeDuplicateFlow(nodeId);
-      if (duplicatedIds && duplicatedIds.length > 0) {
-        toast.success(`Flow duplicated successfully (${duplicatedIds.length} nodes)`);
-        console.log('✅ Flow duplicated:', nodeId, '->', duplicatedIds);
-        return duplicatedIds;
-      } else {
-        toast.error('Failed to duplicate flow');
-        console.error('❌ Failed to duplicate flow from:', nodeId);
-      }
-    } catch (error) {
-      console.error('❌ Error duplicating flow:', error);
-      toast.error('Error duplicating flow');
-    }
-  }, [nodes, storeDuplicateFlow]);
 
   /**
    * Cut a node for moving (marks it for move operation)
@@ -335,9 +265,6 @@ export const useDuplicateMove = () => {
   }, [nodes]);
 
   return {
-    // Duplicate operations
-    duplicateNode,
-    duplicateFlow,
 
     // Move operations (direct)
     moveNode,

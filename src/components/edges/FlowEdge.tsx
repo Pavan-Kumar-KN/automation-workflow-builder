@@ -8,6 +8,7 @@ import { NodeData } from '@/data/types';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useDuplicateMove } from '@/hooks/useDuplicateMove';
 import { toast } from 'sonner';
+import { useCopyPaste } from '@/hooks/useCopyPaste';
 
 interface FlowEdgeProps {
   id: string;
@@ -118,8 +119,8 @@ const handleComplexConditionPaste = (nodesToPaste: any[], parentId: string, befo
 
           // Check if this node's parent has been processed
           const parentProcessed = !originalNode.parent ||
-                                processedNodes.has(originalNode.parent) ||
-                                !nodesToPaste.find(n => n.id === originalNode.parent);
+            processedNodes.has(originalNode.parent) ||
+            !nodesToPaste.find(n => n.id === originalNode.parent);
 
           if (!parentProcessed) continue;
 
@@ -208,13 +209,15 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
   style = {},
   data,
 }) => {
-  const isHorizontal = false;
+  const { layoutDirection } = useWorkflowStore();
+  const isHorizontal = layoutDirection === 'LR';
   const [showActionModal, setShowActionModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Copy-paste and move state
   const { isCopy, isCut, isMoveMode } = useWorkflowStore();
+  const { clearCopyState } = useCopyPaste();
 
   // Move operations
   const { pasteCut } = useDuplicateMove();
@@ -250,7 +253,7 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
   // Check if source node is a Remove Workflow node
   const sourceNode = parentId ? nodes[parentId] : null;
   const isSourceRemoveWorkflow = (sourceNode?.data as any)?.id === 'remove-workflow-action' ||
-                                 (sourceNode?.data as any)?.id === 'exit-workflow-operation-action';
+    (sourceNode?.data as any)?.id === 'exit-workflow-operation-action';
 
   // Don't show + button after Remove Workflow nodes
   if (isSourceRemoveWorkflow) {
@@ -399,48 +402,57 @@ const FlowEdge: React.FC<FlowEdgeProps> = ({
             }}
           >
             {hasCopiedContent ? (
-            // Dropdown button when there's copied content
-            <div className="relative" ref={dropdownRef}>
+              // Dropdown button when there's copied content
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  className="w-8 h-5 bg-blue-500 border border-blue-600 rounded-md flex items-center justify-center hover:bg-blue-600 transition-colors shadow-sm cursor-pointer"
+                  onClick={handlePlusClick}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseUp={(e) => e.stopPropagation()}
+                >
+                  <ChevronDown className="w-4 h-4 text-white stroke-[2.5]" />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showDropdown && (
+                  <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-white border border-gray-300 rounded-lg shadow-xl z-50 min-w-[140px] text-sm">
+                    <button
+                      onClick={handleAddNode}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 border-b border-gray-200"
+                    >
+                      Add Node
+                    </button>
+
+                    <button
+                      onClick={handlePasteFlow}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 text-blue-600 border-b border-gray-200"
+                    >
+                      {isMoveMode || isCut ? ' Move Here' : ' Paste Flow'}
+                    </button>
+                      <button
+                        onClick={clearCopyState}
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-red-600"
+                      >
+                        Discard actions
+                      </button>
+                  
+                  </div>
+
+                )}
+              </div>
+            ) : (
+              // Normal plus button
               <button
-                className="w-8 h-5 bg-blue-500 border border-blue-600 rounded-md flex items-center justify-center hover:bg-blue-600 transition-colors shadow-sm cursor-pointer"
+                className="w-6 h-5 bg-gray-400 border border-gray-500 rounded-md flex items-center justify-center hover:bg-gray-500 transition-colors shadow-sm cursor-pointer"
                 onClick={handlePlusClick}
                 onMouseDown={(e) => e.stopPropagation()}
                 onMouseUp={(e) => e.stopPropagation()}
               >
-                <ChevronDown className="w-4 h-4 text-white stroke-[2.5]" />
+                <Plus className="w-4 h-4 text-white stroke-[2.5]" />
               </button>
-
-              {/* Dropdown Menu */}
-              {showDropdown && (
-                <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-md shadow-lg z-50 min-w-[120px]">
-                  <button
-                    onClick={handleAddNode}
-                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 border-b border-gray-100"
-                  >
-                    Add Node
-                  </button>
-                  <button
-                    onClick={handlePasteFlow}
-                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 text-blue-600"
-                  >
-                    {isMoveMode ? 'Move Here' : isCut ? 'Move Here' : 'Paste Flow'}
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            // Normal plus button
-            <button
-              className="w-6 h-5 bg-gray-400 border border-gray-500 rounded-md flex items-center justify-center hover:bg-gray-500 transition-colors shadow-sm cursor-pointer"
-              onClick={handlePlusClick}
-              onMouseDown={(e) => e.stopPropagation()}
-              onMouseUp={(e) => e.stopPropagation()}
-            >
-              <Plus className="w-4 h-4 text-white stroke-[2.5]" />
-            </button>
-          )}
-        </div>
-      </EdgeLabelRenderer>
+            )}
+          </div>
+        </EdgeLabelRenderer>
       )}
 
       {/* Action Category Modal */}
