@@ -12,6 +12,7 @@ import { useCopyPaste } from '@/hooks/useCopyPaste';
 import { useCutPaste } from '@/hooks/useCutPaste';
 import { useDuplicateMove } from '@/hooks/useDuplicateMove';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
+import { RESPONSIVE_CLASSES } from '@/constants/responsive';
 import { toast } from 'sonner';
 import { useGraphStore } from '@/store/useGraphStore';
 import NotesPopover from '../notes/NotesPopover';
@@ -145,7 +146,7 @@ export const ActionNode = ({
 
       {/* Node Box - ActivePieces Style */}
       <div
-        className={`relative bg-white rounded-xl border-2 px-4 py-3 w-[280px] h-[70px] max-w-[280px] transition-all duration-200 shadow-sm hover:shadow-md ${isSelected
+        className={`relative bg-white rounded-xl border-2 px-4 py-3 w-[280px] h-[70px] max-w-[280px] min-w-[280px] transition-all duration-200 shadow-sm hover:shadow-md ${isSelected
           ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
           : 'border-gray-200 hover:border-gray-300'
           }`}
@@ -188,8 +189,6 @@ export const ActionNode = ({
             <IconComponent className={`w-8 h-8 ${data.color || 'text-blue-600'}`} />
           </div>
 
-
-
           {/* Content */}
           <div className="flex-1 min-w-0 flex items-center justify-between">
             <div className="flex-1 min-w-0">
@@ -199,7 +198,7 @@ export const ActionNode = ({
                 </h3>
                 {/* Warning icon positioned at the end of title */}
                 {data.showWarning && (
-                  <LucideIcons.AlertTriangle className="w-4 h-4  flex-shrink-0" />
+                  <LucideIcons.AlertTriangle className="w-4 h-4 flex-shrink-0" />
                 )}
               </div>
               <p className="text-xs text-gray-500 truncate mt-0.5">
@@ -210,7 +209,7 @@ export const ActionNode = ({
             {(!data.isConfigured || data.showWarning) && (
               <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
             )}
-            
+
             {/* Menu Button */}
             <div className="flex-shrink ml-2">
               <DropdownMenu>

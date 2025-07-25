@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-
 import {
   Play,
   Save,
@@ -19,12 +18,12 @@ import {
   Star,
   ChevronDown,
   Zap,
-  Badge,
   ArrowDown,
   ArrowRight,
   Copy,
   Move,
-  X
+  X,
+  Badge
 } from 'lucide-react';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
@@ -87,14 +86,14 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      <div className="flex items-center justify-between px-6 py-3">
-        {/* Left Section - Workflow Info */}
-        <div className="flex items-center space-x-6">
-          {/* Workflow Name & Status */}
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Zap className="w-4 h-4 text-white" />
+      <div className="flex items-center justify-between px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 lg:py-3">
+        {/* Left Section - Workflow Info - Responsive */}
+        <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-6 flex-1 min-w-0">
+          {/* Workflow Name & Status - Responsive */}
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+            <div className="flex items-center space-x-2 min-w-0">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
               </div>
 
               <div className="flex flex-col">
@@ -117,9 +116,17 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                     </h1>
                   )}
 
-                  <Badge variant={isActive ? "default" : "secondary"} className="text-xs">
-                    {isActive ? "Active" : "Draft"}
-                  </Badge>
+                  {/* Status Toggle - Moved beside logo */}
+                  <div className="flex items-center space-x-2 px-2 py-1 bg-gray-50 rounded-lg">
+                    <Switch
+                      checked={isActive}
+                      onCheckedChange={setIsActive}
+                      className="data-[state=checked]:bg-green-500"
+                    />
+                    <span className="text-xs font-medium text-gray-700">
+                      {isActive ? "Published" : "Draft"}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex items-center space-x-3 text-xs text-gray-500">
@@ -133,17 +140,6 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
             </div>
           </div>
 
-          {/* Status Toggle */}
-          <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
-            <Switch
-              checked={isActive}
-              onCheckedChange={setIsActive}
-              className="data-[state=checked]:bg-green-500"
-            />
-            <span className="text-sm font-medium text-gray-700">
-              {isActive ? "Published" : "Draft"}
-            </span>
-          </div>
         </div>
 
         {/* Copy State Indicator */}
@@ -184,44 +180,44 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
           </div>
         )}
 
-        {/* Right Section - Actions */}
-        <div className="flex items-center space-x-2">
-          {/* Quick Actions */}
-          <div className="flex items-center space-x-1">
+        {/* Right Section - Actions - Responsive */}
+        <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+          {/* Quick Actions - Compact on tablet */}
+          <div className="hidden md:flex items-center space-x-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={onOpenRuns}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2 sm:px-3"
             >
-              <Activity className="w-4 h-4 mr-1" />
-              Runs
+              <Activity className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              <span className="hidden lg:inline">Runs</span>
             </Button>
 
             <Button
               variant="ghost"
               size="sm"
               onClick={onOpenVersions}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2 sm:px-3"
             >
-              <GitBranch className="w-4 h-4 mr-1" />
-              History
+              <GitBranch className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              <span className="hidden lg:inline">History</span>
             </Button>
           </div>
 
-          {/* Divider */}
-          <div className="w-px h-6 bg-gray-300 mx-2" />
+          {/* Divider - Hidden on tablet */}
+          <div className="hidden lg:block w-px h-6 bg-gray-300 mx-2" />
 
           {/* Primary Actions */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2">
             <Button
               variant="outline"
               size="sm"
               onClick={onReset}
-              className="text-gray-600 hover:text-gray-900 border-gray-300"
+              className="text-gray-600 hover:text-gray-900 border-gray-300 px-2 sm:px-3"
             >
-              <RotateCcw className="w-4 h-4 mr-1" />
-              Reset
+              <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              <span className="hidden sm:inline">Reset</span>
             </Button>
 
 
@@ -232,10 +228,10 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
               <Button
                 size="sm"
                 onClick={onOpenPublish}
-                className="bg-gradient-to-br text-white px-4"
+                className="bg-gradient-to-br text-white px-2 sm:px-4"
               >
-                <Upload className="w-4 h-4 mr-1" />
-                Publish
+                <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span className="hidden sm:inline">Publish</span>
               </Button>
             </div>
           </div>

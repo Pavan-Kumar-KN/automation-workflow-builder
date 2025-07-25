@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { COMPONENT_STYLES, COMMON_CLASSES } from '@/constants/theme';
 
 interface PublishPanelProps {
   isOpen: boolean;
@@ -113,12 +114,12 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 left-0 w-96 bg-white shadow-xl border-r border-gray-200 z-50 flex flex-col">
+    <div className="fixed inset-y-0 right-0 w-full sm:w-[400px] lg:w-[480px] bg-white shadow-xl border-l border-gray-200 z-50 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <Upload className="w-5 h-5 text-blue-600" />
-          <h2 className="text-lg font-semibold">Publish Workflow</h2>
+          <h2 className={COMPONENT_STYLES.PUBLISH.TITLE}>Publish Workflow</h2>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-4 h-4" />
@@ -142,17 +143,17 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Validation Status */}
         <div className="space-y-3">
-          <h3 className="text-sm font-medium">Validation Status</h3>
+          <h3 className={COMPONENT_STYLES.PUBLISH.SECTION_HEADER}>Validation Status</h3>
           
           {mockValidationIssues.length === 0 ? (
             <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
               <CheckCircle className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-green-700">All validations passed</span>
+              <span className={`${COMPONENT_STYLES.PUBLISH.DESCRIPTION} text-green-700`}>All validations passed</span>
             </div>
           ) : (
             <div className="space-y-2">
               {searchQuery && filteredIssues.length === 0 ? (
-                <div className="text-sm text-gray-500 p-3 text-center">
+                <div className={`${COMPONENT_STYLES.PUBLISH.DESCRIPTION} text-gray-500 p-3 text-center`}>
                   No validation issues found for "{searchQuery}"
                 </div>
               ) : (
@@ -160,9 +161,9 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
                   <div key={index} className={`flex items-start gap-2 p-3 border rounded-lg ${getIssueColor(issue.type)}`}>
                     {getIssueIcon(issue.type)}
                     <div className="flex-1">
-                      <span className="text-sm">{issue.message}</span>
+                      <span className={COMPONENT_STYLES.PUBLISH.DESCRIPTION}>{issue.message}</span>
                       {issue.nodeId && (
-                        <div className="text-xs mt-1 opacity-75">Node: {issue.nodeId}</div>
+                        <div className={`${COMPONENT_STYLES.PUBLISH.VALIDATION_INFO} mt-1 opacity-75`}>Node: {issue.nodeId}</div>
                       )}
                     </div>
                   </div>
@@ -174,11 +175,11 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
 
         {/* Version Information */}
         <div className="space-y-3">
-          <h3 className="text-sm font-medium">Version Information</h3>
+          <h3 className={COMPONENT_STYLES.PUBLISH.SECTION_HEADER}>Version Information</h3>
           
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Version</label>
+              <label className={`${COMPONENT_STYLES.PUBLISH.LABEL} mb-1 block`}>Version</label>
               <Input
                 value={publishData.version}
                 onChange={(e) => setPublishData(prev => ({ ...prev, version: e.target.value }))}
@@ -187,7 +188,7 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
             </div>
             
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Name</label>
+              <label className={`${COMPONENT_STYLES.PUBLISH.LABEL} mb-1 block`}>Name</label>
               <Input
                 value={publishData.name}
                 onChange={(e) => setPublishData(prev => ({ ...prev, name: e.target.value }))}
@@ -196,7 +197,7 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
             </div>
             
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
+              <label className={`${COMPONENT_STYLES.PUBLISH.LABEL} mb-1 block`}>Description</label>
               <Textarea
                 value={publishData.description}
                 onChange={(e) => setPublishData(prev => ({ ...prev, description: e.target.value }))}
@@ -209,11 +210,11 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
 
         {/* Environment Settings */}
         <div className="space-y-3">
-          <h3 className="text-sm font-medium">Environment Settings</h3>
+          <h3 className={COMPONENT_STYLES.PUBLISH.SECTION_HEADER}>Environment Settings</h3>
           
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Target Environment</label>
+              <label className={`${COMPONENT_STYLES.PUBLISH.LABEL} mb-2 block`}>Target Environment</label>
               <div className="grid grid-cols-1 gap-2">
                 {(['development', 'staging', 'production'] as const).map((env) => (
                   <label key={env} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
@@ -225,7 +226,7 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
                       onChange={(e) => setPublishData(prev => ({ ...prev, environment: e.target.value as any }))}
                       className="text-blue-600"
                     />
-                    <span className="text-sm capitalize">{env}</span>
+                    <span className={`${COMPONENT_STYLES.PUBLISH.DESCRIPTION} capitalize`}>{env}</span>
                     {env === 'production' && <Lock className="w-3 h-3 text-gray-500" />}
                   </label>
                 ))}
@@ -236,15 +237,15 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
 
         {/* Publish Options */}
         <div className="space-y-3">
-          <h3 className="text-sm font-medium">Publish Options</h3>
+          <h3 className={COMPONENT_STYLES.PUBLISH.SECTION_HEADER}>Publish Options</h3>
           
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 border rounded-lg">
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-gray-500" />
                 <div>
-                  <div className="text-sm font-medium">Public Access</div>
-                  <div className="text-xs text-gray-500">Allow public access to this workflow</div>
+                  <div className={COMPONENT_STYLES.PUBLISH.LABEL}>Public Access</div>
+                  <div className={COMPONENT_STYLES.PUBLISH.VALIDATION_INFO}>Allow public access to this workflow</div>
                 </div>
               </div>
               <Switch
@@ -257,8 +258,8 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-gray-500" />
                 <div>
-                  <div className="text-sm font-medium">Auto Activate</div>
-                  <div className="text-xs text-gray-500">Automatically activate after publishing</div>
+                  <div className={COMPONENT_STYLES.PUBLISH.LABEL}>Auto Activate</div>
+                  <div className={COMPONENT_STYLES.PUBLISH.VALIDATION_INFO}>Automatically activate after publishing</div>
                 </div>
               </div>
               <Switch
@@ -271,7 +272,7 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
 
         {/* Release Notes */}
         <div className="space-y-3">
-          <h3 className="text-sm font-medium">Release Notes</h3>
+          <h3 className={COMPONENT_STYLES.PUBLISH.SECTION_HEADER}>Release Notes</h3>
           <Textarea
             value={publishData.releaseNotes}
             onChange={(e) => setPublishData(prev => ({ ...prev, releaseNotes: e.target.value }))}
@@ -307,13 +308,13 @@ export const PublishPanel: React.FC<PublishPanelProps> = ({
         </div>
         
         {hasErrors && (
-          <div className="text-xs text-red-600 mt-2">
+          <div className={`${COMPONENT_STYLES.PUBLISH.VALIDATION_ERROR} mt-2`}>
             Please fix all errors before publishing
           </div>
         )}
         
         {hasWarnings && !hasErrors && (
-          <div className="text-xs text-yellow-600 mt-2">
+          <div className={`${COMPONENT_STYLES.PUBLISH.VALIDATION_WARNING} mt-2`}>
             Warning: Some issues detected but publishing is allowed
           </div>
         )}

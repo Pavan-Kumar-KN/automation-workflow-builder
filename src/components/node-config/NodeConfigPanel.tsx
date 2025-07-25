@@ -9,6 +9,7 @@ import { X, Settings, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DynamicNodeConfig } from './DynamicNodeConfig';
 import { NodeConfig } from './types';
+import { COMPONENT_STYLES, COMMON_CLASSES } from '@/constants/theme';
 
 interface NodeConfigPanelProps {
   node: Node;
@@ -58,14 +59,14 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
 
   return (
     <div className="w-full h-full relative z-20">
-      <Card className="h-full rounded-none border-0">
-        <CardHeader className="border-b border-gray-200 relative px-6 py-4 flex-shrink-0">
+      <Card className="h-full rounded-none border-0 flex flex-col">
+        <CardHeader className="border-b border-gray-200 relative px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center space-x-2 flex-1 min-w-0">
               {/* <span className="text-lg">{getNodeIcon()}</span> */}
-              <CardTitle className="text-lg truncate">
+              <CardTitle className={`${COMPONENT_STYLES.CONFIG.SECTION_TITLE} truncate`}>
                 Configure {node.type === 'split-condition' ? 'Split' : node.type?.charAt(0).toUpperCase() + node.type?.slice(1)}
-                {customLabel && <span className="text-sm text-gray-500 ml-2">({customLabel})</span>}
+                {customLabel && <span className={`${COMPONENT_STYLES.CONFIG.FIELD_DESCRIPTION} ml-2`}>({customLabel})</span>}
               </CardTitle>
             </div>
             <Button
@@ -91,15 +92,15 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
           </div>
         </CardHeader>
 
-        <CardContent className="p-6 flex-1 overflow-y-auto">
-          <div className="space-y-6 pb-6">
+        <CardContent className="p-4 sm:p-6 flex-1 overflow-y-auto min-h-0">
+          <div className="space-y-4 sm:space-y-6 pb-6">
             {renderConfigForm()}
 
             <div className="flex space-x-3 pt-4 border-t border-gray-200 mt-6">
               <Button
                 variant="outline"
                 onClick={onClose}
-                className="flex-1"
+                className={`flex-1 ${COMPONENT_STYLES.BUTTON.PRIMARY}`}
               >
                 Cancel
               </Button>
@@ -108,7 +109,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
                 <Button
                   variant="destructive"
                   onClick={handleDelete}
-                  className="flex-1"
+                  className={`flex-1 ${COMPONENT_STYLES.BUTTON.PRIMARY}`}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete

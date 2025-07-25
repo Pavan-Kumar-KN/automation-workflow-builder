@@ -25,10 +25,16 @@ const StickyNoteNode = memo<StickyNoteNodeProps>(({ data, id, selected = false, 
     const [isHovered, setIsHovered] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [localText, setLocalText] = useState(data?.text || '');
-    const [dimensions, setDimensions] = useState({
-        width: data?.width || 250,
-        height: data?.height || 150
-    });
+    // Responsive dimensions based on screen size
+    const getDefaultDimensions = () => {
+        const isMobile = window.innerWidth < 768;
+        return {
+            width: data?.width || (isMobile ? 180 : 250),
+            height: data?.height || (isMobile ? 120 : 150)
+        };
+    };
+
+    const [dimensions, setDimensions] = useState(getDefaultDimensions());
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -189,7 +195,7 @@ const StickyNoteNode = memo<StickyNoteNodeProps>(({ data, id, selected = false, 
                 cursor: isEditing ? 'text' : 'grab',
                 fontFamily: 'system-ui, -apple-system, sans-serif',
                 transition: 'box-shadow 0.2s ease',
-                padding: '16px',
+                padding: window.innerWidth < 768 ? '12px' : '16px', // Smaller padding on mobile
                 overflow: 'visible',
                 display: 'flex',
                 flexDirection: 'column',
@@ -224,7 +230,7 @@ const StickyNoteNode = memo<StickyNoteNodeProps>(({ data, id, selected = false, 
                         // Prevent text selection when clicking to edit
                         e.stopPropagation();
                     }}
-                    className="w-full h-full bg-transparent border-none resize-none focus:outline-none text-sm text-gray-800 placeholder-gray-500 leading-relaxed nodrag"
+                    className="w-full h-full bg-transparent border-none resize-none focus:outline-none text-xs sm:text-sm text-gray-800 placeholder-gray-500 leading-relaxed nodrag"
                     placeholder="Click to add note..."
                     minRows={3}
                     style={{

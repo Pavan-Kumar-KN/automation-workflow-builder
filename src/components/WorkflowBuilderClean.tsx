@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Node } from '@xyflow/react';
 import { NodeConfigPanel } from './node-config/NodeConfigPanel';
 import { WorkflowHeader } from './WorkflowHeader';
+import { MobileWorkflowHeader } from './MobileWorkflowHeader';
 import { TriggerCategoryModal } from './TriggerCategoryModal';
 import { ActionCategoryModal } from './ActionCategoryModal';
-import { JSONPreview } from './debug/JSONPreview';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useWorkflowActions } from '@/hooks/useWorkflowActions';
 import { useWorkflowJSON } from '@/hooks/useWorkflowJSON';
@@ -17,6 +17,7 @@ import { RunsPanel } from './panels/RunsPanel';
 import { VersionsPanel } from './panels/VersionsPanel';
 import { PublishPanel } from './panels/PublishPanel';
 import { StickyNotesPanel } from './StickyNotesPanel';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 
 export const WorkflowBuilderClean = () => {
   // Graph-based state management
@@ -48,8 +49,20 @@ export const WorkflowBuilderClean = () => {
   const [activePanel, setActivePanel] = useState<string | null>(null);
 
   // Sticky notes state
-  const [showStickyNotesPanel, setShowStickyNotesPanel] = useState(true);
   const [stickyNotesVisible, setStickyNotesVisible] = useState(true);
+
+  // Screen size state for responsive config panel
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+  // Track screen size for responsive config panel
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Core graph operations
   const deleteSingleNode = useCallback((nodeId: string) => {
@@ -427,27 +440,43 @@ export const WorkflowBuilderClean = () => {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      {/* Header */}
-      <WorkflowHeader
-        workflowName={workflowName}
-        setWorkflowName={setWorkflowName}
-        isActive={isActive}
-        setIsActive={setIsActive}
-        onExecute={executeWorkflow}
-        onSave={saveWorkflow}
-        onReset={handleResetWorkflow}
-        onOpenRuns={handleOpenRuns}
-        onOpenVersions={handleOpenVersions}
-        onOpenPublish={handleOpenPublish}
-      />
+      {/* Mobile Header - shown only on small screens (< 640px) */}
+      <div className="block sm:hidden">
+        <MobileWorkflowHeader
+          workflowName={workflowName}
+          setWorkflowName={setWorkflowName}
+          isActive={isActive}
+          setIsActive={setIsActive}
+          onExecute={executeWorkflow}
+          onSave={saveWorkflow}
+          onReset={handleResetWorkflow}
+          onOpenPublish={handleOpenPublish}
+        />
+      </div>
+
+      {/* Desktop Header - shown on tablets and larger (≥ 640px) */}
+      <div className="hidden sm:block">
+        <WorkflowHeader
+          workflowName={workflowName}
+          setWorkflowName={setWorkflowName}
+          isActive={isActive}
+          setIsActive={setIsActive}
+          onExecute={executeWorkflow}
+          onSave={saveWorkflow}
+          onReset={handleResetWorkflow}
+          onOpenRuns={handleOpenRuns}
+          onOpenVersions={handleOpenVersions}
+          onOpenPublish={handleOpenPublish}
+        />
+      </div>
 
       <div className="flex flex-1 overflow-hidden relative">
+
         {/* Sticky Notes Panel */}
         <StickyNotesPanel
           onAddNote={handleAddStickyNote}
           onToggleVisibility={handleToggleStickyNotesVisibility}
           isVisible={stickyNotesVisible}
-          isOpen={showStickyNotesPanel}
         />
 
         <div className="flex-1">
@@ -458,48 +487,112 @@ export const WorkflowBuilderClean = () => {
           />
         </div>
 
-        {/* Configuration Panel */}
+        {/* Configuration Panel - Single conditional render */}
         {selectedNode && (
-          <div className="fixed inset-x-0 bottom-0 h-1/2 z-50 md:relative md:w-[32rem] lg:w-[36rem] md:h-auto md:inset-auto bg-white border-t md:border-t-0 md:border-l border-gray-200 shadow-lg">
-            <div className="h-full overflow-y-auto">
-              <NodeConfigPanel
-                node={selectedNode}
-                onClose={() => setSelectedNode(null)}
-                onUpdate={(nodeId, updates) => {
-                  console.log('🔍 Updating node:', nodeId, 'with updates:', updates);
+          isMobile ? (
+            // Mobile: Full-screen sheet from right
+            <Sheet
+              key={selectedNode?.id || 'no-node'}
+              open={!!selectedNode}
+              onOpenChange={(open) => {
+                console.log('📱 Sheet onOpenChange:', open);
+                if (!open) {
+                  setSelectedNode(null);
+                }
+              }}
+            >
+              <SheetContent
+                side="right"
+                className="w-full p-0 overflow-y-auto max-h-screen"
+              >
+                <NodeConfigPanel
+                  node={selectedNode}
+                  onClose={() => {
+                    console.log('📱 Mobile config panel onClose called');
+                    setSelectedNode(null);
+                  }}
+                  onUpdate={(nodeId, updates) => {
+                    console.log('📱 Mobile config panel onUpdate called:', nodeId, updates);
 
-                  // Update the graph store (main source of truth) using updateNodeData
-                  if (updateNodeData) {
-                    updateNodeData(nodeId, {
-                      ...updates,
-                      isConfigured: true // Mark as configured after update
-                    });
-                    console.log('✅ Node updated in graph store:', nodeId);
-                  }
-
-                  // Also update the workflow store for UI consistency
-                  setNodes((nds) =>
-                    nds.map((n) => (n.id === nodeId ? {
-                      ...n,
-                      data: {
-                        ...n.data,
+                    // Update the graph store (main source of truth) using updateNodeData
+                    if (updateNodeData) {
+                      updateNodeData(nodeId, {
                         ...updates,
-                        isConfigured: true
-                      }
-                    } : n))
-                  );
+                        isConfigured: true // Mark as configured after update
+                      });
+                      console.log('✅ Node updated in graph store:', nodeId);
+                    }
 
-                  setSelectedNode(null); // Close config panel after update
-                  console.log('✅ Config panel closed after update');
-                }}
-                onDelete={(nodeId) => {
-                  // ✅ Handle node deletion from config panel using graph store
-                  removeNode(nodeId);
-                  setSelectedNode(null); // Close config panel after deletion
-                }}
-              />
+                    // Also update the workflow store for UI consistency
+                    setNodes((nds) =>
+                      nds.map((n) => (n.id === nodeId ? {
+                        ...n,
+                        data: {
+                          ...n.data,
+                          ...updates,
+                          isConfigured: true
+                        }
+                      } : n))
+                    );
+
+                    // Force close the mobile panel with a small delay to ensure state updates
+                    console.log('📱 Forcing mobile config panel to close');
+                    setTimeout(() => {
+                      setSelectedNode(null);
+                      console.log('📱 Mobile panel closed with delay');
+                    }, 100);
+                  }}
+                  onDelete={(nodeId) => {
+                    // ✅ Handle node deletion from config panel using graph store
+                    removeNode(nodeId);
+                    setSelectedNode(null); // Close config panel after deletion
+                  }}
+                />
+              </SheetContent>
+            </Sheet>
+          ) : (
+            // PC: Bottom panel (original design)
+            <div className="fixed inset-x-0 bottom-0 h-1/2 z-50 md:relative md:w-[32rem] lg:w-[36rem] md:h-auto md:inset-auto bg-white border-t md:border-t-0 md:border-l border-gray-200 shadow-lg">
+              <div className="h-full overflow-y-auto">
+                <NodeConfigPanel
+                  node={selectedNode}
+                  onClose={() => setSelectedNode(null)}
+                  onUpdate={(nodeId, updates) => {
+                    console.log('🔍 Updating node:', nodeId, 'with updates:', updates);
+
+                    // Update the graph store (main source of truth) using updateNodeData
+                    if (updateNodeData) {
+                      updateNodeData(nodeId, {
+                        ...updates,
+                        isConfigured: true // Mark as configured after update
+                      });
+                      console.log('✅ Node updated in graph store:', nodeId);
+                    }
+
+                    // Also update the workflow store for UI consistency
+                    setNodes((nds) =>
+                      nds.map((n) => (n.id === nodeId ? {
+                        ...n,
+                        data: {
+                          ...n.data,
+                          ...updates,
+                          isConfigured: true
+                        }
+                      } : n))
+                    );
+
+                    setSelectedNode(null); // Close config panel after update
+                    console.log('✅ Config panel closed after update');
+                  }}
+                  onDelete={(nodeId) => {
+                    // ✅ Handle node deletion from config panel using graph store
+                    removeNode(nodeId);
+                    setSelectedNode(null); // Close config panel after deletion
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          )
         )}
       </div>
 
@@ -532,8 +625,6 @@ export const WorkflowBuilderClean = () => {
         onSelectAction={handleActionSelection}
       />
 
-      {/* JSON Preview for debugging */}
-      <JSONPreview />
     </div>
   );
 };

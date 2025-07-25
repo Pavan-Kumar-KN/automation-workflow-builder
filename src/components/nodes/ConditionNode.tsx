@@ -176,7 +176,7 @@ const ConditionNode = ({
 
         {/* Node Box - ActivePieces Style */}
         <div
-          className={`relative bg-white rounded-xl border-2 px-4 py-3 w-[280px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer ${isSelected
+          className={`relative bg-white rounded-xl border-2 px-4 py-3 w-[280px] min-w-[280px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer ${isSelected
             ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
             : 'border-gray-200 hover:border-gray-300'
             }`}

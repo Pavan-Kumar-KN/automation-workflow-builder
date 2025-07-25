@@ -83,80 +83,80 @@ const CustomControls = ({
   onLayoutChange: (direction: string) => void;
 }) => {
   return (
-    <div className="absolute bottom-4 left-4 z-10 flex flex-col gap-1 p-2 bg-white rounded-lg shadow-lg border border-gray-200">
-      {/* Layout Direction Controls */}
+    <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-10 flex flex-col gap-0.5 sm:gap-1 p-1 sm:p-2 bg-white rounded-md sm:rounded-lg shadow-lg border border-gray-200">
+      {/* Layout Direction Controls - Responsive */}
       <button
         onClick={() => onLayoutChange('TB')}
         title="Vertical Layout"
-        className={`p-2 rounded transition-all duration-200 ${layoutDirection === 'TB'
+        className={`p-1 sm:p-2 rounded transition-all duration-200 ${layoutDirection === 'TB'
             ? 'bg-blue-500 text-white shadow-md'
             : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
           }`}
       >
-        <ArrowDown size={16} />
+        <ArrowDown size={12} className="sm:w-4 sm:h-4" />
       </button>
 
       <button
         onClick={() => onLayoutChange('LR')}
         title="Horizontal Layout"
-        className={`p-2 rounded transition-all duration-200 ${layoutDirection === 'LR'
+        className={`p-1 sm:p-2 rounded transition-all duration-200 ${layoutDirection === 'LR'
             ? 'bg-blue-500 text-white shadow-md'
             : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
           }`}
       >
-        <ArrowRight size={16} />
+        <ArrowRight size={12} className="sm:w-4 sm:h-4" />
       </button>
 
       {/* Divider */}
-      <div className="h-px bg-gray-200 my-1" />
+      <div className="h-px bg-gray-200 my-0.5 sm:my-1" />
 
-      {/* Zoom Controls */}
+      {/* Zoom Controls - Responsive */}
       <button
         onClick={onZoomIn}
         disabled={isLocked}
         title="Zoom In"
-        className={`p-2 rounded transition-all duration-200 ${isLocked
+        className={`p-1 sm:p-2 rounded transition-all duration-200 ${isLocked
             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
             : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
           }`}
       >
-        <Plus size={16} />
+        <Plus size={12} className="sm:w-4 sm:h-4" />
       </button>
 
       <button
         onClick={onZoomOut}
         disabled={isLocked}
         title="Zoom Out"
-        className={`p-2 rounded transition-all duration-200 ${isLocked
+        className={`p-1 sm:p-2 rounded transition-all duration-200 ${isLocked
             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
             : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
           }`}
       >
-        <Minus size={16} />
+        <Minus size={12} className="sm:w-4 sm:h-4" />
       </button>
 
       {/* Divider */}
-      <div className="h-px bg-gray-200 my-1" />
+      <div className="h-px bg-gray-200 my-0.5 sm:my-1" />
 
-      {/* Lock/Unlock Control */}
+      {/* Lock/Unlock Control - Responsive */}
       <button
         onClick={onToggleLock}
         title={isLocked ? "Unlock Controls" : "Lock Controls"}
-        className={`p-2 rounded transition-all duration-200 ${isLocked
+        className={`p-1 sm:p-2 rounded transition-all duration-200 ${isLocked
             ? 'bg-red-500 text-white shadow-md'
             : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
           }`}
       >
-        {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
+        {isLocked ? <Lock size={12} className="sm:w-4 sm:h-4" /> : <Unlock size={12} className="sm:w-4 sm:h-4" />}
       </button>
 
-      {/* Reset Control */}
+      {/* Reset Control - Responsive */}
       <button
         onClick={onReset}
         title="Reset View Position & Zoom"
-        className="p-2 rounded transition-all duration-200 bg-gray-50 text-gray-700 hover:bg-gray-100"
+        className="p-1 sm:p-2 rounded transition-all duration-200 bg-gray-50 text-gray-700 hover:bg-gray-100"
       >
-        <RotateCcw size={16} />
+        <RotateCcw size={12} className="sm:w-4 sm:h-4" />
       </button>
     </div>
   );
@@ -355,13 +355,13 @@ const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal, openActionModal }:
           onlyRenderVisibleElements={false}
           fitView
           fitViewOptions={{
-            padding: 0.1,
+            padding: window.innerWidth < 640 ? 0.1 : 0.1, // Keep normal padding
             includeHiddenNodes: false,
-            minZoom: 0.5,
-            maxZoom: 1.2,
+            minZoom: window.innerWidth < 640 ? 0.4 : 0.5, // Prevent too much zoom out that stretches nodes
+            maxZoom: window.innerWidth < 640 ? 1.2 : 1.2, // Keep normal max zoom
           }}
-          minZoom={0.25}
-          maxZoom={2}
+          minZoom={window.innerWidth < 640 ? 0.2 : 0.25} // Allow zoom out but not too much
+          maxZoom={window.innerWidth < 640 ? 2.5 : 2} // Allow more zoom in on mobile
           attributionPosition="bottom-left"
           proOptions={{ hideAttribution: true }}
           panOnScroll={!isLocked}
@@ -373,7 +373,6 @@ const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal, openActionModal }:
           preventScrolling={false}
           deleteKeyCode={['Backspace', 'Delete']}
           multiSelectionKeyCode={['Meta', 'Ctrl']}
-          defaultViewport={{ x: 0, y: 0, zoom: 1 }} // Center position by default
         >
           {/* Sticky Note Panel is now handled externally */}
 

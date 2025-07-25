@@ -77,8 +77,8 @@ const PlaceHolderNode: React.FC<PlaceHolderNodeProps> = ({
         className={`
           flex items-center justify-center
           bg-[#f8fafc]
-          w-[280px] h-10 
-          cursor-pointer
+          w-[280px] min-w-[280px] h-10
+          cursor-pointer touch-manipulation
           transition-all duration-200
           hover:scale-110
           active:scale-95

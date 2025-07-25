@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ConfigComponentProps } from '../../types';
+import { COMPONENT_STYLES, COMMON_CLASSES } from '@/constants/theme';
 
 const SendMailConfig: React.FC<ConfigComponentProps> = ({ config, setConfig }) => {
     const [templates, setTemplates] = useState([]);
@@ -145,13 +146,13 @@ const SendMailConfig: React.FC<ConfigComponentProps> = ({ config, setConfig }) =
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="font-semibold text-gray-900">Send Email</h3>
-                <p className="text-sm text-gray-500">Send an email to your contacts who reach this point of the automation workflow. Set up a personalized email and have it ready to shoot</p>
+                <h3 className={COMPONENT_STYLES.CONFIG.SECTION_TITLE}>Send Email</h3>
+                <p className={COMPONENT_STYLES.CONFIG.FIELD_DESCRIPTION}>Send an email to your contacts who reach this point of the automation workflow. Set up a personalized email and have it ready to shoot</p>
             </div>
 
             {/* Template Selection */}
             <div className="space-y-2">
-                <Label htmlFor="email-template" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="email-template" className={COMPONENT_STYLES.CONFIG.FIELD_LABEL}>
                     Select Template
                 </Label>
                 <Select
@@ -172,7 +173,7 @@ const SendMailConfig: React.FC<ConfigComponentProps> = ({ config, setConfig }) =
                     </SelectContent>
                 </Select>
                 {isLoading && (
-                    <p className="text-xs text-blue-600 animate-pulse">Loading available templates...</p>
+                    <p className={`${COMPONENT_STYLES.CONFIG.FIELD_DESCRIPTION} text-blue-600 animate-pulse`}>Loading available templates...</p>
                 )}
             </div>
 
