@@ -1,323 +1,123 @@
-import React from 'react';
-import { X, Upload, CheckCircle, AlertTriangle, Info, Globe, Lock, Users, Search } from 'lucide-react';
+import React, { useState } from 'react';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { COMPONENT_STYLES, COMMON_CLASSES } from '@/constants/theme';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
 
 interface PublishPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  onPublish?: (publishData: PublishData) => void;
 }
 
-interface PublishData {
-  version: string;
-  name: string;
-  description: string;
-  isPublic: boolean;
-  environment: 'development' | 'staging' | 'production';
-  autoActivate: boolean;
-  releaseNotes: string;
-}
+export const PublishPanel: React.FC<PublishPanelProps> = ({ isOpen, onClose }) => {
+  const { workflowName } = useWorkflowStore();
+  const [scheduleEnable, setScheduleEnable] = useState('');
+  const [scheduleDisable, setScheduleDisable] = useState('');
+  const [allowReentry, setAllowReentry] = useState(true);
+  const [specificTime, setSpecificTime] = useState(false);
 
-interface ValidationIssue {
-  type: 'error' | 'warning' | 'info';
-  message: string;
-  nodeId?: string;
-}
-
-// Mock validation issues
-const mockValidationIssues: ValidationIssue[] = [
-  {
-    type: 'warning',
-    message: 'Email action is missing a fallback template',
-    nodeId: 'action-1'
-  },
-  {
-    type: 'info',
-    message: 'Workflow contains 5 nodes and 4 connections',
-  },
-  {
-    type: 'info',
-    message: 'Estimated execution time: 2-5 seconds',
-  }
-];
-
-const getIssueIcon = (type: ValidationIssue['type']) => {
-  switch (type) {
-    case 'error':
-      return <AlertTriangle className="w-4 h-4 text-red-600" />;
-    case 'warning':
-      return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
-    case 'info':
-      return <Info className="w-4 h-4 text-blue-600" />;
-    default:
-      return <Info className="w-4 h-4 text-gray-600" />;
-  }
-};
-
-const getIssueColor = (type: ValidationIssue['type']) => {
-  switch (type) {
-    case 'error':
-      return 'text-red-600 bg-red-50 border-red-200';
-    case 'warning':
-      return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    case 'info':
-      return 'text-blue-600 bg-blue-50 border-blue-200';
-    default:
-      return 'text-gray-600 bg-gray-50 border-gray-200';
-  }
-};
-
-export const PublishPanel: React.FC<PublishPanelProps> = ({ 
-  isOpen, 
-  onClose, 
-  onPublish 
-}) => {
-  const [publishData, setPublishData] = React.useState<PublishData>({
-    version: '1.4.0',
-    name: 'Enhanced Workflow',
-    description: '',
-    isPublic: false,
-    environment: 'development',
-    autoActivate: true,
-    releaseNotes: ''
-  });
-
-  const [isPublishing, setIsPublishing] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState('');
-
-  const handlePublish = async () => {
-    setIsPublishing(true);
-    
-    // Simulate publishing process
-    setTimeout(() => {
-      if (onPublish) {
-        onPublish(publishData);
-      }
-      setIsPublishing(false);
-      onClose();
-    }, 2000);
+  const handleSave = () => {
+    console.log('Saving automation settings:', {
+      scheduleEnable,
+      scheduleDisable,
+      allowReentry,
+      specificTime
+    });
+    onClose();
   };
-
-  const hasErrors = mockValidationIssues.some(issue => issue.type === 'error');
-  const hasWarnings = mockValidationIssues.some(issue => issue.type === 'warning');
-
-  // Filter validation issues based on search query
-  const filteredIssues = mockValidationIssues.filter(issue => 
-    issue.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (issue.nodeId && issue.nodeId.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-y-0 right-0 w-full sm:w-[400px] lg:w-[480px] bg-white shadow-xl border-l border-gray-200 z-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Upload className="w-5 h-5 text-blue-600" />
-          <h2 className={COMPONENT_STYLES.PUBLISH.TITLE}>Publish Workflow</h2>
-        </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
+      <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+        <h2 className={COMPONENT_STYLES.PUBLISH.TITLE}>Publish Workflow</h2>
+        <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
           <X className="w-4 h-4" />
         </Button>
       </div>
 
-      {/* Search Bar */}
-      <div className="p-4 border-b border-gray-100">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search validation issues..."
-            className="pl-10"
-          />
-        </div>
-      </div>
-
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* Validation Status */}
-        <div className="space-y-3">
-          <h3 className={COMPONENT_STYLES.PUBLISH.SECTION_HEADER}>Validation Status</h3>
-          
-          {mockValidationIssues.length === 0 ? (
-            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <CheckCircle className="w-4 h-4 text-green-600" />
-              <span className={`${COMPONENT_STYLES.PUBLISH.DESCRIPTION} text-green-700`}>All validations passed</span>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {searchQuery && filteredIssues.length === 0 ? (
-                <div className={`${COMPONENT_STYLES.PUBLISH.DESCRIPTION} text-gray-500 p-3 text-center`}>
-                  No validation issues found for "{searchQuery}"
-                </div>
-              ) : (
-                (searchQuery ? filteredIssues : mockValidationIssues).map((issue, index) => (
-                  <div key={index} className={`flex items-start gap-2 p-3 border rounded-lg ${getIssueColor(issue.type)}`}>
-                    {getIssueIcon(issue.type)}
-                    <div className="flex-1">
-                      <span className={COMPONENT_STYLES.PUBLISH.DESCRIPTION}>{issue.message}</span>
-                      {issue.nodeId && (
-                        <div className={`${COMPONENT_STYLES.PUBLISH.VALIDATION_INFO} mt-1 opacity-75`}>Node: {issue.nodeId}</div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        {/* Workflow Title */}
+        <div className="mb-6">
+          <h2 className={`${COMPONENT_STYLES.PUBLISH.SECTION_HEADER} mb-2`}>
+            {workflowName || 'Untitled Automation'}
+          </h2>
+          <p className={`${COMPONENT_STYLES.PUBLISH.VALIDATION_ERROR} mb-4`}>Trigger Not Set</p>
+          <p className={COMPONENT_STYLES.PUBLISH.DESCRIPTION}>
+            Below is general information of the automation. You can update the settings and click 'Save' button.
+          </p>
         </div>
 
-        {/* Version Information */}
-        <div className="space-y-3">
-          <h3 className={COMPONENT_STYLES.PUBLISH.SECTION_HEADER}>Version Information</h3>
-          
-          <div className="space-y-3">
-            <div>
-              <label className={`${COMPONENT_STYLES.PUBLISH.LABEL} mb-1 block`}>Version</label>
-              <Input
-                value={publishData.version}
-                onChange={(e) => setPublishData(prev => ({ ...prev, version: e.target.value }))}
-                placeholder="e.g., 1.4.0"
-              />
-            </div>
-            
-            <div>
-              <label className={`${COMPONENT_STYLES.PUBLISH.LABEL} mb-1 block`}>Name</label>
-              <Input
-                value={publishData.name}
-                onChange={(e) => setPublishData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Version name"
-              />
-            </div>
-            
-            <div>
-              <label className={`${COMPONENT_STYLES.PUBLISH.LABEL} mb-1 block`}>Description</label>
-              <Textarea
-                value={publishData.description}
-                onChange={(e) => setPublishData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Brief description of changes"
-                rows={3}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Environment Settings */}
-        <div className="space-y-3">
-          <h3 className={COMPONENT_STYLES.PUBLISH.SECTION_HEADER}>Environment Settings</h3>
-          
-          <div className="space-y-3">
-            <div>
-              <label className={`${COMPONENT_STYLES.PUBLISH.LABEL} mb-2 block`}>Target Environment</label>
-              <div className="grid grid-cols-1 gap-2">
-                {(['development', 'staging', 'production'] as const).map((env) => (
-                  <label key={env} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="environment"
-                      value={env}
-                      checked={publishData.environment === env}
-                      onChange={(e) => setPublishData(prev => ({ ...prev, environment: e.target.value as any }))}
-                      className="text-blue-600"
-                    />
-                    <span className={`${COMPONENT_STYLES.PUBLISH.DESCRIPTION} capitalize`}>{env}</span>
-                    {env === 'production' && <Lock className="w-3 h-3 text-gray-500" />}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Publish Options */}
-        <div className="space-y-3">
-          <h3 className={COMPONENT_STYLES.PUBLISH.SECTION_HEADER}>Publish Options</h3>
-          
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-gray-500" />
-                <div>
-                  <div className={COMPONENT_STYLES.PUBLISH.LABEL}>Public Access</div>
-                  <div className={COMPONENT_STYLES.PUBLISH.VALIDATION_INFO}>Allow public access to this workflow</div>
-                </div>
-              </div>
-              <Switch
-                checked={publishData.isPublic}
-                onCheckedChange={(checked) => setPublishData(prev => ({ ...prev, isPublic: checked }))}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-gray-500" />
-                <div>
-                  <div className={COMPONENT_STYLES.PUBLISH.LABEL}>Auto Activate</div>
-                  <div className={COMPONENT_STYLES.PUBLISH.VALIDATION_INFO}>Automatically activate after publishing</div>
-                </div>
-              </div>
-              <Switch
-                checked={publishData.autoActivate}
-                onCheckedChange={(checked) => setPublishData(prev => ({ ...prev, autoActivate: checked }))}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Release Notes */}
-        <div className="space-y-3">
-          <h3 className={COMPONENT_STYLES.PUBLISH.SECTION_HEADER}>Release Notes</h3>
-          <Textarea
-            value={publishData.releaseNotes}
-            onChange={(e) => setPublishData(prev => ({ ...prev, releaseNotes: e.target.value }))}
-            placeholder="Detailed release notes for this version..."
-            rows={4}
+        {/* Schedule Enable */}
+        <div className="mb-6">
+          <label className={`${COMPONENT_STYLES.PUBLISH.LABEL} mb-2 block`}>Schedule Enable</label>
+          <input
+            type="datetime-local"
+            value={scheduleEnable}
+            onChange={(e) => setScheduleEnable(e.target.value)}
+            className={`${COMMON_CLASSES.INPUT_FIELD} w-full`}
+            placeholder="mm/dd/yyyy --:-- --"
           />
+        </div>
+
+        {/* Schedule Disable */}
+        <div className="mb-6">
+          <label className={`${COMPONENT_STYLES.PUBLISH.LABEL} mb-1 block`}>Schedule Disable</label>
+          <p className={`${COMPONENT_STYLES.PUBLISH.VALIDATION_INFO} mb-2`}>
+            (if date not selected then it will not disable automatically)
+          </p>
+          <input
+            type="datetime-local"
+            value={scheduleDisable}
+            onChange={(e) => setScheduleDisable(e.target.value)}
+            className={`${COMMON_CLASSES.INPUT_FIELD} w-full`}
+            placeholder="mm/dd/yyyy --:-- --"
+          />
+        </div>
+
+        {/* Allow Re-entry */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between py-2">
+            <label className={COMPONENT_STYLES.PUBLISH.LABEL}>Allow Re-entry</label>
+            <Switch
+              checked={allowReentry}
+              onCheckedChange={setAllowReentry}
+            />
+          </div>
+        </div>
+
+        {/* Specific Time */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between py-2">
+            <label className={COMPONENT_STYLES.PUBLISH.LABEL}>Specific Time</label>
+            <Switch
+              checked={specificTime}
+              onCheckedChange={setSpecificTime}
+            />
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onClose} className="flex-1">
-            Cancel
-          </Button>
-          <Button
-            onClick={handlePublish}
-            disabled={hasErrors || isPublishing || !publishData.name || !publishData.version}
-            className="flex-1"
-          >
-            {isPublishing ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Publishing...
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4 mr-2" />
-                Publish
-              </>
-            )}
-          </Button>
-        </div>
-        
-        {hasErrors && (
-          <div className={`${COMPONENT_STYLES.PUBLISH.VALIDATION_ERROR} mt-2`}>
-            Please fix all errors before publishing
-          </div>
-        )}
-        
-        {hasWarnings && !hasErrors && (
-          <div className={`${COMPONENT_STYLES.PUBLISH.VALIDATION_WARNING} mt-2`}>
-            Warning: Some issues detected but publishing is allowed
-          </div>
-        )}
+      <div className="p-4 sm:p-6 border-t border-gray-200 space-y-3">
+        <Button
+          onClick={handleSave}
+          className="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-2 px-4 rounded-md"
+        >
+          Save
+        </Button>
+
+        <Button
+          onClick={onClose}
+          variant="outline"
+          className="w-full text-sm font-medium py-2 px-4 rounded-md"
+        >
+          Cancel
+        </Button>
       </div>
     </div>
   );

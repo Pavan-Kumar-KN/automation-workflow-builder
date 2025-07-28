@@ -7,6 +7,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Handle, Position } from '@xyflow/react';
+import { NodeExecutionIndicator } from '../NodeExecutionIndicator';
+import { ActionExecutionControls } from '../ActionExecutionControls';
 
 interface TriggerNodeProps {
   data: {
@@ -28,6 +30,7 @@ interface TriggerNodeProps {
 
 // TriggerNode Component
 export const TriggerNode = ({
+  id,
   data,
   isSelected = false,
   onReplaceTrigger,
@@ -92,6 +95,9 @@ export const TriggerNode = ({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* Action Execution Controls (Loading, Skip, Completed) */}
+        <ActionExecutionControls nodeId={id || data.id} />
+
         {/* Top colored border */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-purple-500 rounded-t-xl"></div>
 

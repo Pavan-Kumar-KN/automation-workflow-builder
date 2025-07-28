@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
+import { TestFlowButton } from './TestFlowButton';
+import { useWorkflowJSON } from '@/hooks/useWorkflowJSON';
 
 interface MobileWorkflowHeaderProps {
   workflowName: string;
@@ -43,6 +45,9 @@ export const MobileWorkflowHeader: React.FC<MobileWorkflowHeaderProps> = ({
   // Copy and Move state management
   const { isCopy, copiedNodes, isMoveMode, nodeToMove, flowToMove, forceResetMoveState } = useWorkflowStore();
   const { clearCopyState } = useCopyPaste();
+
+  // Get workflow JSON for testing
+  const { getCurrentJSON } = useWorkflowJSON();
 
   const handleSave = () => {
     onSave();
@@ -110,6 +115,13 @@ export const MobileWorkflowHeader: React.FC<MobileWorkflowHeaderProps> = ({
           >
             {isActive ? "Active" : "Draft"}
           </Button>
+
+          <TestFlowButton
+            workflow={getCurrentJSON()}
+            variant="outline"
+            size="sm"
+            className="text-gray-600 hover:text-gray-900 border-gray-300 px-2 py-1 h-7"
+          />
 
           <Button
             variant="outline"

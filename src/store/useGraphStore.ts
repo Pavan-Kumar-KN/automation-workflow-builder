@@ -44,6 +44,7 @@ type GraphNode = {
 
 interface GraphState {
   nodes: Record<string, GraphNode>;
+  
   replacingConditionId: string | null;
   clipboard: {
     type: 'action' | 'condition' | 'flow' | null;
@@ -499,390 +500,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     set({ nodes: updatedGraph });
   },
 
-  removeNode: (id) => {
-    const graph = { ...get().nodes };
-
-    const nodeToRemove = graph[id];
-
-    if (!nodeToRemove) return;
-
-    // Helper function to recursively delete all descendants of a node
-    const recursivelyDeleteNode = (nodeId: string, visited = new Set<string>()) => {
-      if (visited.has(nodeId)) return; // Prevent infinite loops
-      visited.add(nodeId);
-
-      const node = graph[nodeId];
-      if (!node) return;
-
-      // If it's a condition node, delete all its branch nodes first
-      if (node.type === 'condition' && node.branches) {
-        const allBranchNodes = [
-          ...(node.branches.yes || []),
-          ...(node.branches.no || [])
-        ];
-
-        allBranchNodes.forEach(branchNodeId => {
-          recursivelyDeleteNode(branchNodeId, visited);
-        });
-      }
-
-      // Delete all children recursively
-      if (node.children) {
-        node.children.forEach(childId => {
-          if (graph[childId] && graph[childId].type !== 'endNode') {
-            recursivelyDeleteNode(childId, visited);
-          }
-        });
-      }
-
-      // Finally delete the node itself
-      delete graph[nodeId];
-    };
-
-    // PRIORITY 1: Handle condition nodes first (regardless of where they are)
-    if (nodeToRemove.type === 'condition') {
-
-      if (nodeToRemove.branches) {
-        // Collect all branch node IDs to delete with destructure method
-        const allBranchNodes = [
-          ...(nodeToRemove.branches.yes || []),
-          ...(nodeToRemove.branches.no || [])
-        ];
-
-        // Recursively delete all branch nodes and their descendants
-        allBranchNodes.forEach(branchNodeId => {
-          recursivelyDeleteNode(branchNodeId);
-        });
-      }
-
-      // Handle parent reconnection for condition nodes
-      const parent = nodeToRemove.parent;
-      const children = nodeToRemove.children || [];
-
-      if (parent) {
-        const parentNode = graph[parent];
-        if (parentNode) {
-          console.log('🔍 Reconnecting parent:', parent, 'to children:', children);
-
-          // For condition nodes being deleted, handle termination based on context
-          const isInBranch = nodeToRemove.data?.branchType ||
-            (parentNode && parentNode.type === 'action');
-
-          if (isInBranch && parentNode.type === 'action') {
-            // Condition is in a branch and parent is action -> create ghost node
-            console.log('🔍 Creating ghost node after condition deletion in branch');
-
-            const timestamp = Date.now();
-            const ghostNodeId = `ghost-${timestamp}`;
-            const newGhostNode: GraphNode = {
-              id: ghostNodeId,
-              type: 'ghost',
-              position: { x: 0, y: 0 },
-              data: { label: 'Ghost' },
-              children: [],
-              parent: parent,
-            };
-
-            // Add ghost node to graph
-            graph[ghostNodeId] = newGhostNode;
-
-            // Connect parent action to ghost node
-            parentNode.children = [ghostNodeId];
-          } else {
-            // Condition is in main flow -> connect to end node
-            const endNode = Object.values(graph).find(node => node.type === 'endNode');
-
-            if (!endNode) {
-              // No end node exists, create one
-              console.log('🔍 Recreating end node after condition deletion (no end node exists)');
-
-              const endNodeId = 'end-1';
-              const newEndNode: GraphNode = {
-                id: endNodeId,
-                type: 'endNode',
-                position: { x: 100, y: 250 },
-                data: { label: 'End' },
-                children: [],
-                parent: parent,
-              };
-
-              graph[endNodeId] = newEndNode;
-              parentNode.children = [endNodeId];
-            } else {
-              // End node exists, connect parent to it
-              console.log('🔍 Connecting parent to existing end node after condition deletion');
-              parentNode.children = [endNode.id];
-              endNode.parent = parent;
-            }
-          }
-        }
-      }
-
-      // Delete the condition node itself
-      delete graph[id];
-      set({ nodes: graph });
-
-      // Close config panel if the deleted node was selected
-      const currentSelectedNode = useWorkflowStore.getState().selectedNode;
-      if (currentSelectedNode && currentSelectedNode.id === id) {
-        useWorkflowStore.getState().setSelectedNode(null);
-        console.log("✅ Config panel closed for deleted node:", id);
-      }
-
-      return;
-    }
-
-    // PRIORITY 2: Check if this node is in a condition branch (has branchType in data)
-    const isInBranch = nodeToRemove.data?.branchType && nodeToRemove.data?.conditionNodeId;
-
-    if (isInBranch) {
-      console.log('🔍 Node is in a condition branch, handling branch reconnection');
-
-      // Find the condition node that owns this branch
-      const conditionNodeId = nodeToRemove.data.conditionNodeId;
-      const branchType = nodeToRemove.data.branchType;
-      const conditionNode = graph[conditionNodeId];
-
-      if (conditionNode && conditionNode.branches) {
-        const branchArray = conditionNode.branches[branchType];
-        const nodeIndex = branchArray.indexOf(id);
-
-        if (nodeIndex !== -1) {
-          // Get the node's children (what comes after it in the branch)
-          const nodeChildren = nodeToRemove.children || [];
-
-          // Filter out ghost nodes - they should be deleted, not reconnected
-          const realChildren = nodeChildren.filter(childId => {
-            const childNode = graph[childId];
-            return childNode && childNode.type !== 'ghost';
-          });
-
-          // Delete any ghost children
-          nodeChildren.forEach(childId => {
-            const childNode = graph[childId];
-            if (childNode && childNode.type === 'ghost') {
-              console.log('🔍 Deleting ghost node:', childId, 'when deleting action in branch');
-              delete graph[childId];
-            }
-          });
-
-          // Remove the node from the branch array and insert only real children
-          branchArray.splice(nodeIndex, 1, ...realChildren);
-
-          // Update parent-child relationships for the real children
-          realChildren.forEach(childId => {
-            const childNode = graph[childId];
-            if (childNode) {
-              // Find what should be the new parent (previous node in branch or condition node)
-              if (nodeIndex > 0) {
-                // Previous node in branch becomes parent
-                const prevNodeId = branchArray[nodeIndex - 1];
-                childNode.parent = prevNodeId;
-
-                // Update previous node's children
-                const prevNode = graph[prevNodeId];
-                if (prevNode) {
-                  prevNode.children = [childId];
-                }
-              } else {
-                // Condition node becomes parent (first node in branch)
-                childNode.parent = conditionNodeId;
-              }
-            }
-          });
-
-          // If branch becomes empty, recreate placeholder
-          if (branchArray.length === 0) {
-
-            const placeholderId = `placeholder-${branchType}-${conditionNodeId}`;
-
-            const placeholder: GraphNode = {
-              id: placeholderId,
-              type: 'placeholder',
-              position: { x: 0, y: 0 },
-              data: {
-                label: 'Add Action',
-                branchType: branchType as 'yes' | 'no',
-                conditionNodeId: conditionNodeId,
-              },
-              parent: conditionNodeId,
-              children: [],
-            };
-
-            graph[placeholderId] = placeholder;
-            branchArray.push(placeholderId);
-
-          } else {
-            console.log(`🔍 Branch not empty, length: ${branchArray.length}, contents:`, branchArray);
-          }
-
-          // Update the condition node's branch data with the modified array
-          conditionNode.branches[branchType] = branchArray;
-        }
-      }
-
-      // For branch nodes, we handle reconnection above, so skip the main flow logic
-      delete graph[id];
-      set({ nodes: graph });
-
-      // Close config panel if the deleted node was selected
-      const currentSelectedNode = useWorkflowStore.getState().selectedNode;
-      if (currentSelectedNode && currentSelectedNode.id === id) {
-        useWorkflowStore.getState().setSelectedNode(null);
-        console.log("✅ Config panel closed for deleted node:", id);
-      }
-
-      return;
-    }
-
-    const parent = nodeToRemove.parent;
-    const children = nodeToRemove.children || [];
-
-    // Step 1: Handle parent reconnection
-    if (parent) {
-      const parentNode = graph[parent];
-      if (parentNode) {
-        console.log('🔍 Reconnecting parent:', parent, 'to children:', children);
-
-        // For regular nodes, update children array normally
-        if (parentNode.children) {
-          // For regular nodes, update children array normally
-          if (parentNode.children) {
-            const updatedChildren = [];
-            for (const childId of parentNode.children) {
-              if (childId === id) {
-                updatedChildren.push(...children);
-              } else {
-                updatedChildren.push(childId);
-              }
-            }
-            parentNode.children = updatedChildren;
-          }
-        }
-      }
-    }
-
-    // Step 2: Update children's parent (only for non-condition deletions)
-    if (nodeToRemove.type !== 'condition') {
-      children.forEach((childId) => {
-        const childNode = graph[childId];
-        if (childNode) {
-          childNode.parent = parent;
-        }
-      });
-    }
-
-    // Step 3: Delete the main node
-    console.log('🔍 Deleting main node:', id);
-    delete graph[id];
-
-    // Step 4: Recreate placeholders for empty branches (same approach as end node recreation)
-    if (isInBranch && nodeToRemove.data?.conditionNodeId && nodeToRemove.data?.branchType) {
-      const conditionNodeId = nodeToRemove.data.conditionNodeId;
-      const branchType = nodeToRemove.data.branchType;
-      const conditionNode = graph[conditionNodeId];
-
-      if (conditionNode && conditionNode.branches) {
-        const branchArray = conditionNode.branches[branchType];
-
-        // Check if branch is now empty (no real nodes, only placeholders or nothing)
-        const realNodes = branchArray.filter(nodeId =>
-          graph[nodeId] && graph[nodeId].type !== 'placeholder'
-        );
-
-        if (realNodes.length === 0) {
-          console.log(`🔍 ${branchType} branch is empty, checking for action nodes that need ghost nodes`);
-
-          // Check if there are any action nodes in the branch that need ghost nodes
-          const actionNodesInBranch = branchArray.filter(nodeId => {
-            const node = graph[nodeId];
-            return node && node.type === 'action';
-          });
-
-          if (actionNodesInBranch.length > 0) {
-            // If there are action nodes, they should point to ghost nodes
-            console.log(`🔍 Found ${actionNodesInBranch.length} action nodes, creating ghost nodes`);
-
-            actionNodesInBranch.forEach(actionNodeId => {
-              const actionNode = graph[actionNodeId];
-              if (actionNode && (!actionNode.children || actionNode.children.length === 0)) {
-                // Create ghost node for this action
-                const timestamp = Date.now();
-                const ghostNodeId = `ghost-${actionNodeId}-${timestamp}`;
-
-                const ghostNode: GraphNode = {
-                  id: ghostNodeId,
-                  type: 'ghost',
-                  position: { x: 0, y: 0 },
-                  data: {
-                    label: 'Ghost',
-                    branchType,
-                    conditionNodeId,
-                  },
-                  parent: actionNodeId,
-                  children: [],
-                };
-
-                // Add ghost node to graph
-                graph[ghostNodeId] = ghostNode;
-
-                // Connect action to ghost node
-                actionNode.children = [ghostNodeId];
-
-                // Add ghost node to branch array
-                branchArray.push(ghostNodeId);
-
-                console.log(`✅ Created ghost node ${ghostNodeId} for action ${actionNodeId}`);
-              }
-            });
-
-            // Update the condition node's branch data
-            conditionNode.branches[branchType] = branchArray;
-          } else {
-            // No action nodes, create placeholder
-            console.log(`🔍 No action nodes found, recreating placeholder`);
-
-            const timestamp = Date.now();
-            const placeholderId = `placeholder-${branchType}-${timestamp}`;
-
-            const placeholder: GraphNode = {
-              id: placeholderId,
-              type: 'placeholder',
-              position: { x: 0, y: 0 },
-              data: {
-                label: 'Add Action',
-                branchType,
-                conditionNodeId,
-              },
-              parent: conditionNodeId,
-              children: [],
-            };
-
-            // Add placeholder to graph
-            graph[placeholderId] = placeholder;
-
-            // Update branch array to only contain the new placeholder
-            conditionNode.branches[branchType] = [placeholderId];
-
-            console.log(`✅ Recreated placeholder for empty ${branchType} branch`);
-          }
-        }
-      }
-    }
-
-    console.log('✅ Node removal complete');
-    set({ nodes: graph });
-
-    // Close config panel if the deleted node was selected
-    const currentSelectedNode = useWorkflowStore.getState().selectedNode;
-    if (currentSelectedNode && currentSelectedNode.id === id) {
-      useWorkflowStore.getState().setSelectedNode(null);
-      console.log("✅ Config panel closed for deleted node:", id);
-    }
-
-    // Ensure conditional branches have placeholders after deletion
-    get().ensureConditionalPlaceholders();
-  },
 
   // ? Version 2 code 
   // insertNode: ({ type, parentId, beforeNodeId, actionData }) => {
@@ -1344,6 +961,388 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
   //   console.log("✅ Node removal complete");
   // },
+ 
+ 
+  removeNode: (id) => {
+    const graph = { ...get().nodes };
+
+    const nodeToRemove = graph[id];
+
+    if (!nodeToRemove) return;
+
+    // Helper function to recursively delete all descendants of a node
+    const recursivelyDeleteNode = (nodeId: string, visited = new Set<string>()) => {
+      if (visited.has(nodeId)) return; // Prevent infinite loops
+      visited.add(nodeId);
+
+      const node = graph[nodeId];
+      if (!node) return;
+
+      // If it's a condition node, delete all its branch nodes first
+      if (node.type === 'condition' && node.branches) {
+        const allBranchNodes = [
+          ...(node.branches.yes || []),
+          ...(node.branches.no || [])
+        ];
+
+        allBranchNodes.forEach(branchNodeId => {
+          recursivelyDeleteNode(branchNodeId, visited);
+        });
+      }
+
+      // Delete all children recursively
+      if (node.children) {
+        node.children.forEach(childId => {
+          if (graph[childId] && graph[childId].type !== 'endNode') {
+            recursivelyDeleteNode(childId, visited);
+          }
+        });
+      }
+
+      // Finally delete the node itself
+      delete graph[nodeId];
+    };
+
+    // PRIORITY 1: Handle condition nodes first (regardless of where they are)
+    if (nodeToRemove.type === 'condition') {
+
+      if (nodeToRemove.branches) {
+        // Collect all branch node IDs to delete with destructure method
+        const allBranchNodes = [
+          ...(nodeToRemove.branches.yes || []),
+          ...(nodeToRemove.branches.no || [])
+        ];
+
+        // Recursively delete all branch nodes and their descendants
+        allBranchNodes.forEach(branchNodeId => {
+          recursivelyDeleteNode(branchNodeId);
+        });
+      }
+
+      // Handle parent reconnection for condition nodes
+      const parent = nodeToRemove.parent;
+      const children = nodeToRemove.children || [];
+
+      if (parent) {
+        const parentNode = graph[parent];
+        if (parentNode) {
+
+          // For condition nodes being deleted, handle termination based on context
+          const isInBranch = nodeToRemove.data?.branchType ||
+            (parentNode && parentNode.type === 'action');
+
+          if (isInBranch && parentNode.type === 'action') {
+            // Condition is in a branch and parent is action -> create ghost node
+
+            const timestamp = Date.now();
+            const ghostNodeId = `ghost-${timestamp}`;
+            const newGhostNode: GraphNode = {
+              id: ghostNodeId,
+              type: 'ghost',
+              position: { x: 0, y: 0 },
+              data: { label: 'Ghost' },
+              children: [],
+              parent: parent,
+            };
+
+            // Add ghost node to graph
+            graph[ghostNodeId] = newGhostNode;
+
+            // Connect parent action to ghost node
+            parentNode.children = [ghostNodeId];
+          } else {
+            // Condition is in main flow -> connect to end node
+            const endNode = Object.values(graph).find(node => node.type === 'endNode');
+
+            if (!endNode) {
+              // No end node exists, create one
+              console.log('🔍 Recreating end node after condition deletion (no end node exists)');
+
+              const endNodeId = 'end-1';
+              const newEndNode: GraphNode = {
+                id: endNodeId,
+                type: 'endNode',
+                position: { x: 100, y: 250 },
+                data: { label: 'End' },
+                children: [],
+                parent: parent,
+              };
+
+              graph[endNodeId] = newEndNode;
+              parentNode.children = [endNodeId];
+            } else {
+              // End node exists, connect parent to it
+              parentNode.children = [endNode.id];
+              endNode.parent = parent;
+            }
+          }
+        }
+      }
+
+      // Delete the condition node itself
+      delete graph[id];
+      set({ nodes: graph });
+
+      // Close config panel if the deleted node was selected
+      const currentSelectedNode = useWorkflowStore.getState().selectedNode;
+      if (currentSelectedNode && currentSelectedNode.id === id) {
+        useWorkflowStore.getState().setSelectedNode(null);
+      }
+
+      return;
+    }
+
+    // PRIORITY 2: Check if this node is in a condition branch (has branchType in data)
+    const isInBranch = nodeToRemove.data?.branchType && nodeToRemove.data?.conditionNodeId;
+
+    if (isInBranch) {
+
+      // Find the condition node that owns this branch
+      const conditionNodeId = nodeToRemove.data.conditionNodeId;
+      const branchType = nodeToRemove.data.branchType;
+      const conditionNode = graph[conditionNodeId];
+
+      if (conditionNode && conditionNode.branches) {
+        const branchArray = conditionNode.branches[branchType];
+        const nodeIndex = branchArray.indexOf(id);
+
+        if (nodeIndex !== -1) {
+          // Get the node's children (what comes after it in the branch)
+          const nodeChildren = nodeToRemove.children || [];
+
+          // Filter out ghost nodes - they should be deleted, not reconnected
+          const realChildren = nodeChildren.filter(childId => {
+            const childNode = graph[childId];
+            return childNode && childNode.type !== 'ghost';
+          });
+
+          // Delete any ghost children
+          nodeChildren.forEach(childId => {
+            const childNode = graph[childId];
+            if (childNode && childNode.type === 'ghost') {
+              console.log('🔍 Deleting ghost node:', childId, 'when deleting action in branch');
+              delete graph[childId];
+            }
+          });
+
+          // Remove the node from the branch array and insert only real children
+          branchArray.splice(nodeIndex, 1, ...realChildren);
+
+          // Update parent-child relationships for the real children
+          realChildren.forEach(childId => {
+            const childNode = graph[childId];
+            if (childNode) {
+              // Find what should be the new parent (previous node in branch or condition node)
+              if (nodeIndex > 0) {
+                // Previous node in branch becomes parent
+                const prevNodeId = branchArray[nodeIndex - 1];
+                childNode.parent = prevNodeId;
+
+                // Update previous node's children
+                const prevNode = graph[prevNodeId];
+                if (prevNode) {
+                  prevNode.children = [childId];
+                }
+              } else {
+                // Condition node becomes parent (first node in branch)
+                childNode.parent = conditionNodeId;
+              }
+            }
+          });
+
+          // If branch becomes empty, recreate placeholder
+          if (branchArray.length === 0) {
+
+            const placeholderId = `placeholder-${branchType}-${conditionNodeId}`;
+
+            const placeholder: GraphNode = {
+              id: placeholderId,
+              type: 'placeholder',
+              position: { x: 0, y: 0 },
+              data: {
+                label: 'Add Action',
+                branchType: branchType as 'yes' | 'no',
+                conditionNodeId: conditionNodeId,
+              },
+              parent: conditionNodeId,
+              children: [],
+            };
+
+            graph[placeholderId] = placeholder;
+            branchArray.push(placeholderId);
+
+          } else {
+            console.log(`🔍 Branch not empty, length: ${branchArray.length}, contents:`, branchArray);
+          }
+
+          // Update the condition node's branch data with the modified array
+          conditionNode.branches[branchType] = branchArray;
+        }
+      }
+
+      // For branch nodes, we handle reconnection above, so skip the main flow logic
+      delete graph[id];
+      set({ nodes: graph });
+
+      // Close config panel if the deleted node was selected
+      const currentSelectedNode = useWorkflowStore.getState().selectedNode;
+      if (currentSelectedNode && currentSelectedNode.id === id) {
+        useWorkflowStore.getState().setSelectedNode(null);
+        console.log("✅ Config panel closed for deleted node:", id);
+      }
+
+      return;
+    }
+
+    const parent = nodeToRemove.parent;
+    const children = nodeToRemove.children || [];
+
+    // Step 1: Handle parent reconnection
+    if (parent) {
+      const parentNode = graph[parent];
+      if (parentNode) {
+        console.log('🔍 Reconnecting parent:', parent, 'to children:', children);
+
+        // For regular nodes, update children array normally
+        if (parentNode.children) {
+          // For regular nodes, update children array normally
+          if (parentNode.children) {
+            const updatedChildren = [];
+            for (const childId of parentNode.children) {
+              if (childId === id) {
+                updatedChildren.push(...children);
+              } else {
+                updatedChildren.push(childId);
+              }
+            }
+            parentNode.children = updatedChildren;
+          }
+        }
+      }
+    }
+
+    // Step 2: Update children's parent (only for non-condition deletions)
+    if (nodeToRemove.type !== 'condition') {
+      children.forEach((childId) => {
+        const childNode = graph[childId];
+        if (childNode) {
+          childNode.parent = parent;
+        }
+      });
+    }
+
+    // Step 3: Delete the main node
+    console.log('🔍 Deleting main node:', id);
+    delete graph[id];
+
+    // Step 4: Recreate placeholders for empty branches (same approach as end node recreation)
+    if (isInBranch && nodeToRemove.data?.conditionNodeId && nodeToRemove.data?.branchType) {
+      const conditionNodeId = nodeToRemove.data.conditionNodeId;
+      const branchType = nodeToRemove.data.branchType;
+      const conditionNode = graph[conditionNodeId];
+
+      if (conditionNode && conditionNode.branches) {
+        const branchArray = conditionNode.branches[branchType];
+
+        // Check if branch is now empty (no real nodes, only placeholders or nothing)
+        const realNodes = branchArray.filter(nodeId =>
+          graph[nodeId] && graph[nodeId].type !== 'placeholder'
+        );
+
+        if (realNodes.length === 0) {
+          console.log(`🔍 ${branchType} branch is empty, checking for action nodes that need ghost nodes`);
+
+          // Check if there are any action nodes in the branch that need ghost nodes
+          const actionNodesInBranch = branchArray.filter(nodeId => {
+            const node = graph[nodeId];
+            return node && node.type === 'action';
+          });
+
+          if (actionNodesInBranch.length > 0) {
+            // If there are action nodes, they should point to ghost nodes
+            console.log(`🔍 Found ${actionNodesInBranch.length} action nodes, creating ghost nodes`);
+
+            actionNodesInBranch.forEach(actionNodeId => {
+              const actionNode = graph[actionNodeId];
+              if (actionNode && (!actionNode.children || actionNode.children.length === 0)) {
+                // Create ghost node for this action
+                const timestamp = Date.now();
+                const ghostNodeId = `ghost-${actionNodeId}-${timestamp}`;
+
+                const ghostNode: GraphNode = {
+                  id: ghostNodeId,
+                  type: 'ghost',
+                  position: { x: 0, y: 0 },
+                  data: {
+                    label: 'Ghost',
+                    branchType,
+                    conditionNodeId,
+                  },
+                  parent: actionNodeId,
+                  children: [],
+                };
+
+                // Add ghost node to graph
+                graph[ghostNodeId] = ghostNode;
+
+                // Connect action to ghost node
+                actionNode.children = [ghostNodeId];
+
+                // Add ghost node to branch array
+                branchArray.push(ghostNodeId);
+
+                console.log(`✅ Created ghost node ${ghostNodeId} for action ${actionNodeId}`);
+              }
+            });
+
+            // Update the condition node's branch data
+            conditionNode.branches[branchType] = branchArray;
+          } else {
+            // No action nodes, create placeholder
+            console.log(`🔍 No action nodes found, recreating placeholder`);
+
+            const timestamp = Date.now();
+            const placeholderId = `placeholder-${branchType}-${timestamp}`;
+
+            const placeholder: GraphNode = {
+              id: placeholderId,
+              type: 'placeholder',
+              position: { x: 0, y: 0 },
+              data: {
+                label: 'Add Action',
+                branchType,
+                conditionNodeId,
+              },
+              parent: conditionNodeId,
+              children: [],
+            };
+
+            // Add placeholder to graph
+            graph[placeholderId] = placeholder;
+
+            // Update branch array to only contain the new placeholder
+            conditionNode.branches[branchType] = [placeholderId];
+
+            console.log(`✅ Recreated placeholder for empty ${branchType} branch`);
+          }
+        }
+      }
+    }
+
+    console.log('✅ Node removal complete');
+    set({ nodes: graph });
+
+    // Close config panel if the deleted node was selected
+    const currentSelectedNode = useWorkflowStore.getState().selectedNode;
+    if (currentSelectedNode && currentSelectedNode.id === id) {
+      useWorkflowStore.getState().setSelectedNode(null);
+      console.log("✅ Config panel closed for deleted node:", id);
+    }
+
+    // Ensure conditional branches have placeholders after deletion
+    get().ensureConditionalPlaceholders();
+  },
+  
   /**
    * Adds a new node to a condition branch, replacing a placeholder
    *

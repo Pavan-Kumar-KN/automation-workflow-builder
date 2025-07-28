@@ -16,6 +16,8 @@ import { RESPONSIVE_CLASSES } from '@/constants/responsive';
 import { toast } from 'sonner';
 import { useGraphStore } from '@/store/useGraphStore';
 import NotesPopover from '../notes/NotesPopover';
+import { NodeExecutionIndicator } from '../NodeExecutionIndicator';
+import { ActionExecutionControls } from '../ActionExecutionControls';
 
 // ActionNode Component
 export const ActionNode = ({
@@ -153,6 +155,9 @@ export const ActionNode = ({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* Action Execution Controls (Loading, Skip, Completed) */}
+        <ActionExecutionControls nodeId={id} />
+
         {/* Message/Notes Icon - Always show if has notes, show on hover if empty */}
         {data.notes ? (
           <button

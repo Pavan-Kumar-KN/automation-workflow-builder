@@ -23,10 +23,12 @@ import {
   Copy,
   Move,
   X,
-  Badge
+  Badge, Workflow
 } from 'lucide-react';
 import { useWorkflowStore } from '@/hooks/useWorkflowState';
 import { useCopyPaste } from '@/hooks/useCopyPaste';
+import { TestFlowButton } from './TestFlowButton';
+import { useWorkflowJSON } from '@/hooks/useWorkflowJSON';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +68,9 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
   // Copy and Move state management
   const { isCopy, copiedNodes, isMoveMode, nodeToMove, flowToMove, forceResetMoveState } = useWorkflowStore();
   const { clearCopyState } = useCopyPaste();
+
+  // Get workflow JSON for testing
+  const { getCurrentJSON } = useWorkflowJSON();
 
   const handleSave = () => {
     onSave();
@@ -194,15 +199,12 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
               <span className="hidden lg:inline">Runs</span>
             </Button>
 
-            <Button
+            <TestFlowButton
+              workflow={getCurrentJSON()}
               variant="ghost"
               size="sm"
-              onClick={onOpenVersions}
               className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2 sm:px-3"
-            >
-              <GitBranch className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-              <span className="hidden lg:inline">History</span>
-            </Button>
+            />
           </div>
 
           {/* Divider - Hidden on tablet */}
@@ -221,9 +223,6 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
             </Button>
 
 
-
-
-
             <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <Button
                 size="sm"
@@ -238,29 +237,29 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
 
           {/* More Actions Menu */}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            {/*<DropdownMenuTrigger asChild>*/}
+            {/*  <Button*/}
+            {/*    variant="ghost"*/}
+            {/*    size="sm"*/}
+            {/*    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"*/}
+            {/*  >*/}
+            {/*    <MoreHorizontal className="w-4 h-4" />*/}
+            {/*  </Button>*/}
+            {/*</DropdownMenuTrigger>*/}
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem className="flex items-center space-x-2">
-                <Share className="w-4 h-4" />
-                <span>Share Workflow</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex items-center space-x-2">
-                <Star className="w-4 h-4" />
-                <span>Add to Favorites</span>
-              </DropdownMenuItem>
+              {/*<DropdownMenuItem className="flex items-center space-x-2">*/}
+              {/*  <Share className="w-4 h-4" />*/}
+              {/*  <span>Share Workflow</span>*/}
+              {/*</DropdownMenuItem>*/}
+              {/*<DropdownMenuItem className="flex items-center space-x-2">*/}
+              {/*  <Star className="w-4 h-4" />*/}
+              {/*  <span>Add to Favorites</span>*/}
+              {/*</DropdownMenuItem>*/}
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="flex items-center space-x-2">
-                <Settings className="w-4 h-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
+              {/*<DropdownMenuItem className="flex items-center space-x-2">*/}
+              {/*  <Settings className="w-4 h-4" />*/}
+              {/*  <span>Settings</span>*/}
+              {/*</DropdownMenuItem>*/}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

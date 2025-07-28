@@ -391,7 +391,7 @@ const WorkFlowCanvasInner = ({ onNodeClick, openTriggerModal, openActionModal }:
             variant={BackgroundVariant.Dots}
             gap={20}
             size={1}
-            color="#E2E8F0"
+            // color="#E2E8F0"
             style={{ opacity: 0.5 }}
           />
         </ReactFlow>

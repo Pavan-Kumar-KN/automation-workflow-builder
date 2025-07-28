@@ -176,6 +176,8 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
     marginy: 10,
     acyclicer: "greedy",
     ranker: "longest-path", // KEEP this for best semantic layout
+    // ranker: 'tight-tree',
+    // ranker:'network-simplex'
   });
 
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -235,7 +237,6 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
 
     const nodeWithPosition = dagreGraph.node(node.id);
     if (!nodeWithPosition) {
-      console.error(`Node position not found for: ${node.id}`);
       return node;
     }
 
@@ -250,7 +251,6 @@ export const getLayoutedElements = (nodes, edges, direction = "TB") => {
     };
   });
 
-  // 🔧 NEW: Trim dangling conditional branches
   conditionalNodes.forEach((conditionNode) => {
     const yesEdge = validEdges.find(
       (e) => e.source === conditionNode.id && e.label === "Yes"
