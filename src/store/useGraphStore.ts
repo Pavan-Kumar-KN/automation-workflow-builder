@@ -1356,6 +1356,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
    * When all nodes in a branch are deleted → recreate placeholder
    * When user adds node to placeholder → delete placeholder, add real node
    */
+  
   addNodeToBranch: ({
     conditionNodeId,
     branchType,
