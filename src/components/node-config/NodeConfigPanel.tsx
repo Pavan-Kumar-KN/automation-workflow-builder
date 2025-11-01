@@ -3,87 +3,118 @@ import React, { useState } from 'react';
 import { Node } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { X, Settings } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { X, Settings, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { TriggerConfig } from './TriggerConfig';
-import { ActionConfig } from './ActionConfig';
-import { ConditionConfig } from './ConditionConfig';
-import { SplitConfig } from './SplitConfig';
+import { DynamicNodeConfig } from './DynamicNodeConfig';
 import { NodeConfig } from './types';
+import { COMPONENT_STYLES, COMMON_CLASSES } from '@/constants/theme';
 
 interface NodeConfigPanelProps {
   node: Node;
   onClose: () => void;
   onUpdate: (nodeId: string, data: any) => void;
+  onDelete?: (nodeId: string) => void; // ✅ Add delete callback
 }
 
 export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   node,
   onClose,
   onUpdate,
+  onDelete, // ✅ Add delete prop
 }) => {
   const [config, setConfig] = useState<NodeConfig>(node.data as NodeConfig);
+  const [customLabel, setCustomLabel] = useState<string>('');
 
-  const handleSave = () => {
-    onUpdate(node.id, config);
-    toast.success('Node configuration saved!');
-    onClose();
+  console.log('Node data came to main NodeConfigPanel:', node.data);
+
+  // Wrapper function to include custom label in any update
+  const handleUpdateWithCustomLabel = (nodeId: string, data: any) => {
+    onUpdate(nodeId, {
+      ...data,
+      customLabel: customLabel.trim() || undefined // Always include custom label
+    });
+  };
+
+  // ✅ Handle node deletion
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(node.id);
+      toast.success('Node deleted successfully!');
+      onClose();
+    }
   };
 
   const renderConfigForm = () => {
-    switch (node.type) {
-      case 'trigger':
-        return <TriggerConfig config={config} setConfig={setConfig} />;
-      case 'action':
-        return <ActionConfig config={config} setConfig={setConfig} />;
-      case 'condition':
-        return <ConditionConfig config={config} setConfig={setConfig} />;
-      case 'split-condition':
-        return <SplitConfig config={config} setConfig={setConfig} />;
-      default:
-        return null;
-    }
+    return (
+      <DynamicNodeConfig
+        node={node}
+        onUpdate={handleUpdateWithCustomLabel}
+        onClose={onClose}
+      />
+    );
   };
 
-  const getNodeIcon = () => {
-    switch (node.type) {
-      case 'trigger': return '🔥';
-      case 'action': return '⚡';
-      case 'condition': return '🎯';
-      case 'split-condition': return '🔀';
-      default: return '⚙️';
-    }
-  };
 
   return (
-    <div className="w-96 bg-white border-l border-gray-200 shadow-xl">
-      <Card className="h-full rounded-none border-0">
-        <CardHeader className="border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-lg">{getNodeIcon()}</span>
-              <CardTitle className="text-lg">
+    <div className="w-full h-full relative z-20">
+      <Card className="h-full rounded-none border-0 flex flex-col">
+        <CardHeader className="border-b border-gray-200 relative px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center space-x-2 flex-1 min-w-0">
+              {/* <span className="text-lg">{getNodeIcon()}</span> */}
+              <CardTitle className={`${COMPONENT_STYLES.CONFIG.SECTION_TITLE} truncate`}>
                 Configure {node.type === 'split-condition' ? 'Split' : node.type?.charAt(0).toUpperCase() + node.type?.slice(1)}
+                {customLabel && <span className={`${COMPONENT_STYLES.CONFIG.FIELD_DESCRIPTION} ml-2`}>({customLabel})</span>}
               </CardTitle>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="z-30 hover:bg-gray-100 flex-shrink-0 h-8 w-8 p-0"
+              onClick={onClose}
+            >
               <X className="w-4 h-4" />
             </Button>
           </div>
+
+          {/* Custom Label Input */}
+          <div className="mt-4 space-y-1">
+            <Label htmlFor="customLabel">Custom Label (Optional)</Label>
+            <Input
+              id="customLabel"
+              placeholder={`Default: ${ node.type}`}
+              value={customLabel}
+              onChange={(e) => setCustomLabel(e.target.value)}
+              className="w-full"
+            />
+          </div>
         </CardHeader>
-        
-        <CardContent className="p-6">
-          <div className="space-y-6">
+
+        <CardContent className="p-4 sm:p-6 flex-1 overflow-y-auto min-h-0">
+          <div className="space-y-4 sm:space-y-6 pb-6">
             {renderConfigForm()}
-            
-            <div className="flex space-x-3 pt-4">
-              <Button onClick={handleSave} className="flex-1">
-                <Settings className="w-4 h-4 mr-2" />
-                Save Configuration
-              </Button>
-              <Button variant="outline" onClick={onClose}>
+
+            <div className="flex space-x-3 pt-4 border-t border-gray-200 mt-6">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                className={`flex-1 ${COMPONENT_STYLES.BUTTON.PRIMARY}`}
+              >
                 Cancel
               </Button>
+              {/* ✅ Add delete button if onDelete is provided */}
+              {onDelete && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDelete}
+                  className={`flex-1 ${COMPONENT_STYLES.BUTTON.PRIMARY}`}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>

@@ -1,129 +1,400 @@
-
-import React from 'react';
+// ConditionNode.tsx
+import React, { useState } from 'react';
+import * as LucideIcons from 'lucide-react';
 import { Handle, Position } from '@xyflow/react';
-import { GitBranch, CheckCircle, XCircle, Filter } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useCopyPaste } from '@/hooks/useCopyPaste';
+import { useDuplicateMove } from '@/hooks/useDuplicateMove';
+import { useWorkflowStore } from '@/hooks/useWorkflowState';
+import { useGraphStore } from '@/store/useGraphStore';
+import { toast } from 'sonner';
+import NotesPopover from '../notes/NotesPopover';
+import { BranchActionsModal } from '../modals/BranchActionsModal';
 
-interface ConditionNodeProps {
-  data: {
-    label: string;
-    id: string;
-    field?: string;
-    operator?: string;
-    value?: string;
-    description?: string;
-    layoutMode?: string;
-  };
+interface Branch {
+  label: string;
+  branchType: string;
 }
 
-export const ConditionNode: React.FC<ConditionNodeProps> = ({ data }) => {
-  const getIcon = () => {
-    if (data.id?.includes('filter')) return Filter;
-    return GitBranch;
+interface ConditionNodeProps {
+  id: string;
+  data: {
+    label: string;
+    icon?: keyof typeof LucideIcons;
+    description?: string;
+    color?: string;
+    subtitle?: string;
+    showWarning?: boolean;
+    openNodeModal?: (node: any) => void;
+
+    // New props for tree structure
+    branches?: Branch[];  // e.g. [{ label: 'Yes', branchType: 'yes' }]
+    handleAddNodeToBranch?: (branchType: string) => void;
+
+    // Props for embedded placeholder functionality
+    onAddYesAction?: () => void;
+    onAddNoAction?: () => void;
+    showPlaceholders?: boolean;
+
+    // New props for replace and delete functionality
+    onReplace?: (conditionId: string) => void;
+    onDelete?: (conditionId: string) => void;
+    onDuplicate?: (conditionId: string) => void;
+  };
+  isSelected?: boolean;
+}
+
+// ConditionNode Component
+const ConditionNode = ({
+  id,
+  data,
+  isSelected = false,
+  targetPosition,
+  sourcePosition
+}) => {
+  // Use passed positions or fallback to defaults
+  const actualTargetPosition = targetPosition || Position.Top;
+  const actualSourcePosition = sourcePosition || Position.Bottom;
+  const [isHovered, setIsHovered] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const { copyNode, copyFlowFromNode } = useCopyPaste();
+
+  const {
+    moveNode,
+    moveFlow,
+    cutNode,
+    cutFlow,
+    canDuplicateNode,
+    canMoveNode
+  } = useDuplicateMove();
+
+  const { setCopiedNodes, setIsCopy } = useWorkflowStore();
+
+  // Modal state for action selection modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const onClose = () => {
+    setIsModalOpen(false);
+  }
+
+  const nodeMap = useGraphStore((state) => state.nodes);
+
+  // Copy condition node with all its branches
+  const handleCopyConditionNode = () => {
+    const conditionNode = nodeMap[id];
+    if (!conditionNode) return;
+
+    // Deep traversal function to collect entire subtree
+    const collectEntireSubtree = (startNodeIds: string[]): any[] => {
+      const allNodes: any[] = [];
+      const visited = new Set<string>();
+
+      const traverse = (nodeId: string) => {
+        if (visited.has(nodeId)) return;
+        visited.add(nodeId);
+
+        const node = nodeMap[nodeId];
+        if (!node) return;
+
+        // Add current node
+        allNodes.push({
+          id: nodeId,
+          type: node.type,
+          data: node.data,
+          position: node.position,
+          branches: node.branches,
+          children: node.children,
+          parent: node.parent
+        });
+
+        // Traverse children (for action nodes)
+        if (node.children) {
+          node.children.forEach(childId => traverse(childId));
+        }
+
+        // Traverse branches (for condition nodes)
+        if (node.type === 'condition' && node.branches) {
+          if (node.branches.yes) {
+            node.branches.yes.forEach(branchNodeId => traverse(branchNodeId));
+          }
+          if (node.branches.no) {
+            node.branches.no.forEach(branchNodeId => traverse(branchNodeId));
+          }
+        }
+      };
+
+      // Start traversal from all provided node IDs
+      startNodeIds.forEach(nodeId => traverse(nodeId));
+
+      return allNodes;
+    };
+
+    // Use deep traversal to collect the entire subtree starting from this condition node
+    const allNodes = collectEntireSubtree([id]);
+
+    setCopiedNodes(allNodes);
+    setIsCopy(true);
+
+    toast.success('Condition node with branches copied to clipboard');
   };
 
-  const IconComponent = getIcon();
-  const isVertical = data.layoutMode === 'vertical';
+  const deleteConditionNode = (id) => {
+    // This will be handled by the DropdownMenu component
+    // No need to manage state here anymore
+  }
+
+  const IconComponent = React.useMemo(() => {
+    if (!data.icon) return LucideIcons.GitBranch;
+    if (typeof data.icon === 'string') return LucideIcons[data.icon] || LucideIcons.GitBranch;
+    if (typeof data.icon === 'function') return data.icon;
+    if (React.isValidElement(data.icon)) return () => data.icon;
+    if (typeof data.icon === 'object') return data.icon;
+    return LucideIcons.GitBranch;
+  }, [data.icon]);
 
   return (
-    <div className="bg-white border-2 border-orange-200 rounded-lg shadow-lg min-w-[200px] hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
-      {/* Input connection point - position depends on layout mode */}
-      <Handle
-        type="target"
-        position={isVertical ? Position.Top : Position.Left}
-        className="w-3 h-3 bg-orange-500 border-2 border-white shadow-md hover:bg-orange-600 transition-colors"
-      />
+    <>
+      <div className="relative">
+        {/* Input Handle */}
+        <Handle
+          type="target"
+          position={actualTargetPosition}
+          id="in"
+          className="w-3 bg-white border-2 border-white"
+          style={{
+            left: actualTargetPosition === Position.Top || actualTargetPosition === Position.Bottom ? '50%' : undefined,
+            top: actualTargetPosition === Position.Left || actualTargetPosition === Position.Right ? '50%' : undefined,
+            bottom: actualTargetPosition === Position.Top ? '-12px' : undefined,
+            right: actualTargetPosition === Position.Left ? '-12px' : undefined
+          }}
+        />
 
-      <div className="bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-3 rounded-t-lg border-b border-orange-200">
-        <div className="flex items-center space-x-2">
-          <div className="p-1.5 bg-orange-100 rounded-md shadow-sm">
-            <IconComponent className="w-4 h-4 text-orange-600" />
+        {/* Node Box - ActivePieces Style */}
+        <div
+          className={`relative bg-white rounded-xl border-2 px-4 py-3 w-[280px] min-w-[280px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer ${isSelected
+            ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
+            : 'border-gray-200 hover:border-gray-300'
+            }`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {/* Top colored border */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-purple-500 rounded-t-xl"></div>
+
+          {/* Message/Notes Icon - Always show if has notes, show on hover if empty */}
+          {data.notes ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowNotes(true);
+              }}
+              className="absolute top-1 left-2 p-1 hover:bg-gray-100 rounded-md transition-colors group z-20"
+              title="View/Edit notes"
+            >
+              <LucideIcons.MessageSquare className="w-3.5 h-3.5" style={{
+                background: 'linear-gradient(to bottom right, rgb(59 130 246), rgb(147 51 234))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }} />
+            </button>
+          ) : isHovered ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowNotes(true);
+              }}
+              className="absolute top-1 left-2 p-1 hover:bg-gray-100 rounded-md transition-colors group z-20"
+              title="Add notes"
+            >
+              <LucideIcons.MessageSquare className="w-3.5 h-3.5 text-blue-500 group-hover:text-blue-600" />
+            </button>
+          ) : null}
+
+          <div className="flex items-center gap-3">
+            {/* Icon with background */}
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
+              <IconComponent className={`w-8 h-8 ${data.color || 'text-blue-600'}`} />
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0 flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm truncate">
+                    {data.customLabel || data.label}
+                  </h3>
+                  {/* Warning icon positioned at the end of title */}
+                  {data.showWarning && (
+                    <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 truncate mt-0.5">
+                  {data.subtitle || 'Condition'}
+                </p>
+              </div>
+
+              {(!data.isConfigured || data.showWarning) && (
+                <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+              )}
+              {/* Menu Button */}
+              <div className="flex-shrink ml-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={`p-1.5 rounded-md transition-all duration-200`}
+                    >
+                      <LucideIcons.ChevronDown className="w-4 h-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    side="right"
+                    sideOffset={30}
+                    className="w-56 bg-white border border-gray-200 rounded-lg shadow-lg p-1"
+                  >
+
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          handleCopyConditionNode();
+                        } catch (err) {
+                          console.error('Copy error:', err);
+                        }
+                      }}
+                      className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer transition-colors"
+                    >
+                      <LucideIcons.Copy className="w-4 h-4 mr-3" />
+                      <span className="font-medium">Copy Condition</span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          copyFlowFromNode(id);
+                        } catch (err) {
+                          console.error('Copy error:', err);
+                        }
+                      }}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <LucideIcons.GitBranch className="w-4 h-4 mr-2" />
+                      Copy From Here
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          cutNode(id);
+                        } catch (err) {
+                          console.error('Cut error:', err);
+                        }
+                      }}
+                      className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                      disabled={!canMoveNode(id)}
+                    >
+                      <LucideIcons.Scissors className="w-4 h-4 mr-2" />
+                      Move Condition
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          cutFlow(id);
+                        } catch (err) {
+                          console.error('Cut error:', err);
+                        }
+                      }}
+                      className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                      disabled={!canMoveNode(id)}
+                    >
+                      <LucideIcons.Move className="w-4 h-4 mr-2" />
+                      Move From Here
+                    </DropdownMenuItem>
+
+                    {/* Divider */}
+                    <div className="h-px bg-gray-200 my-1 mx-2"></div>
+
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          if (data.onReplace) {
+                            data.onReplace(id);
+                          }
+                        } catch (error) {
+                          console.error('Error calling replace handler:', error);
+                        }
+                      }}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <LucideIcons.RefreshCw className="w-4 h-4 mr-2" />
+                      Replace Condition
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        data.onDelete(id) // Prevent the dropdown from closing
+                      }}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <LucideIcons.Trash2 className="w-4 h-4 mr-2" />
+                      Delete Condition
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
           </div>
-          <span className="text-sm font-bold text-orange-800 tracking-wide">CONDITION</span>
         </div>
-      </div>
-      
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
-          {data.label}
-        </h3>
-        {data.description && (
-          <p className="text-xs text-gray-500 leading-relaxed mb-2">
-            {data.description}
-          </p>
-        )}
-        {data.field && data.operator && (
-          <p className="text-xs text-gray-600 font-mono bg-gray-50 px-2 py-1 rounded">
-            If {data.field} {data.operator} {data.value || '...'}
-          </p>
+
+        {/* Output Handles for Yes/No branches */}
+        <Handle
+          type="source"
+          position={actualSourcePosition}
+          id="yes"
+          className="w-3 bg-white border-2 border-white"
+          style={{
+            left: actualSourcePosition === Position.Bottom ? '50%' : undefined,
+            top: actualSourcePosition === Position.Right ? '50%' : undefined,
+            bottom: actualSourcePosition === Position.Bottom ? '-6px' : undefined,
+            right: actualSourcePosition === Position.Right ? '-6px' : undefined
+          }}
+        />
+        <Handle
+          type="source"
+          position={actualSourcePosition}
+          id="no"
+          className="w-3 bg-white border-2 border-white"
+          style={{
+            left: actualSourcePosition === Position.Bottom ? '50%' : undefined,
+            top: actualSourcePosition === Position.Right ? '50%' : undefined,
+            bottom: actualSourcePosition === Position.Bottom ? '-6px' : undefined,
+            right: actualSourcePosition === Position.Right ? '-6px' : undefined
+          }}
+        />
+
+        {/* Notes Popover */}
+        {showNotes && (
+          <div className="absolute left-[calc(100%+8px)] top-0 z-50">
+            <NotesPopover nodeId={id} onClose={() => setShowNotes(false)} />
+          </div>
         )}
       </div>
 
-      {/* Output handles - positioned based on layout mode */}
-      {isVertical ? (
-        <>
-          {/* Vertical layout: Both handles at bottom, side by side */}
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            id="true"
-            className="w-3 h-3 bg-green-500 border-2 border-white shadow-md hover:bg-green-600 transition-colors"
-            style={{ left: '30%' }}
-          />
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            id="false"
-            className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
-            style={{ left: '70%' }}
-          />
-          
-          {/* Labels for vertical layout */}
-          <div className="absolute bottom-2 left-8 text-xs">
-            <div className="flex items-center space-x-1 text-green-600 font-medium">
-              <CheckCircle className="w-3 h-3" />
-              <span>True</span>
-            </div>
-          </div>
-          <div className="absolute bottom-2 right-8 text-xs">
-            <div className="flex items-center space-x-1 text-red-600 font-medium">
-              <XCircle className="w-3 h-3" />
-              <span>False</span>
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Horizontal layout: True handle on right, False handle on bottom */}
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="true"
-            className="w-3 h-3 bg-green-500 border-2 border-white shadow-md hover:bg-green-600 transition-colors"
-            style={{ top: '40%' }}
-          />
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            id="false"
-            className="w-3 h-3 bg-red-500 border-2 border-white shadow-md hover:bg-red-600 transition-colors"
-            style={{ left: '50%' }}
-          />
 
-          {/* Labels for horizontal layout */}
-          <div className="absolute right-4 top-10 text-xs">
-            <div className="flex items-center space-x-1 text-green-600 font-medium">
-              <CheckCircle className="w-3 h-3" />
-              <span>True</span>
-            </div>
-          </div>
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs">
-            <div className="flex items-center space-x-1 text-red-600 font-medium">
-              <XCircle className="w-3 h-3" />
-              <span>False</span>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+    </>
   );
 };
+
+export default ConditionNode;

@@ -1,8 +1,8 @@
 
-import { WorkflowBuilder } from "@/components/WorkflowBuilder";
+import { WorkflowBuilderClean } from "@/components/WorkflowBuilderClean";
 
 const Index = () => {
-  return <WorkflowBuilder />;
+  return <WorkflowBuilderClean />;
 };
 
 export default Index;

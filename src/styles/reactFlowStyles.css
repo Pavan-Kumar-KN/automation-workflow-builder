@@ -1,0 +1,97 @@
+/* Hide React Flow handles but keep them functional */
+.react-flow__handle {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+  border: none;
+}
+
+/* Hide React Flow selection highlighting */
+.react-flow__node.selected {
+  box-shadow: none !important;
+}
+
+/* Custom styling for the React Flow background */
+.react-flow__background {
+  background-color: #f8fafc;
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Custom styling for the React Flow controls - Left side positioning */
+.react-flow__controls {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  padding: 8px;
+  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 50;
+}
+
+.react-flow__controls-button {
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  margin: 0;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: none;
+}
+
+.react-flow__controls-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.react-flow__controls-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Ensure nodes don't have default React Flow styling */
+.react-flow__node {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* Ensure edges have proper z-index */
+.react-flow__edge {
+  z-index: 1;
+}
+
+/* Custom styling for the edge path */
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+/* Ensure foreignObject content is visible */
+.react-flow__edge foreignObject {
+  overflow: visible;
+}
+
+/* Ensure the canvas takes full height */
+.react-flow {
+  height: 100%;
+}

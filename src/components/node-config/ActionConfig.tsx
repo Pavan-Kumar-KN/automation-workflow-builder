@@ -5,12 +5,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfigComponentProps } from './types';
+import { COMPONENT_STYLES, COMMON_CLASSES } from '@/constants/theme';
 
 export const ActionConfig: React.FC<ConfigComponentProps> = ({ config, setConfig }) => {
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="action-name">Action Name</Label>
+        <Label htmlFor="action-name" className={COMPONENT_STYLES.CONFIG.FIELD_LABEL}>Action Name</Label>
         <Input
           id="action-name"
           value={config.label || ''}
@@ -20,7 +21,7 @@ export const ActionConfig: React.FC<ConfigComponentProps> = ({ config, setConfig
       </div>
 
       <div>
-        <Label htmlFor="action-type">Action Type</Label>
+        <Label htmlFor="action-type" className={COMPONENT_STYLES.CONFIG.FIELD_LABEL}>Action Type</Label>
         <Select value={config.actionType || ''} onValueChange={(value) => setConfig({ ...config, actionType: value })}>
           <SelectTrigger>
             <SelectValue placeholder="Select action type" />
